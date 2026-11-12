@@ -8,6 +8,14 @@ This repo is public: describe a security gap by what to change, never by how to 
 
 ## Recipes and refresh
 
+- **Auto-merged recipe code still runs with the builder SA's network reach.** The authoring
+  routine now merges its own batch PR when `services/page_builder/automerge_guard.py` passes,
+  so model-written `compute.py` reaches `main` with no human review. The guard limits paths,
+  imports and pandas/numpy I/O, but it is a static check, and the compute sandbox can still reach
+  the GCP metadata server (CLAUDE.md, "Sandbox boundary"). Fix: cut the sandbox's network
+  (run compute in a network namespace with no route out, or at least none to the metadata
+  server), so a bad recipe can't reach the SA token whatever the guard misses. (2026-11-12)
+
 - **`public_resource_url` raises on a malformed bracketed host.** `urlsplit` throws
   `ValueError` for a resource URL like `https://[::1/x`, so `Dataset.from_ckan_response` fails
   for the whole dataset instead of blanking that one URL (the frontend mirror just returns it).

@@ -79,3 +79,27 @@ def test_trust_boundary_accepts_provider_ids_as_well_as_uuids():
     line = re.search(r"^- dataset: `([^`]+)`$", body, re.MULTILINE)
     assert line and re.fullmatch(provider_rule, line.group(1))
     assert notify.issue_title("t", pid).endswith(f"({line.group(1)})")
+
+
+def test_routine_merges_only_through_the_guard():
+    # The routine merges its own batch PR, but only after automerge_guard
+    # passes, and never with --admin, --auto or a force.
+    text = _text()
+    m = re.search(r"^## 6a\. Auto-merge.*?(?=^## )", text, re.DOTALL | re.MULTILINE)
+    assert m, "step 6a not found"
+    section = m.group(0)
+    # main's copy of the guard, never the batch branch's own (it would judge itself)
+    assert "git show origin/main:services/page_builder/automerge_guard.py" in section
+    guard = _commands(section, "python3 -I /tmp/automerge_guard_main.py")
+    assert guard and "--wait" in guard[0], guard
+    assert "python -m services.page_builder.automerge_guard" not in section
+    merges = _commands(text, "gh pr merge")
+    assert len(merges) == 1, merges
+    merge = merges[0]
+    assert merge in section
+    for flag in ("--merge", "--match-head-commit", "--repo"):
+        assert flag in merge, merge
+    for flag in ("--admin", "--auto", "--squash", "--rebase"):
+        assert flag not in merge, merge
+    assert section.index("automerge_guard") < section.index("gh pr merge")
+    assert "Review:" in text
