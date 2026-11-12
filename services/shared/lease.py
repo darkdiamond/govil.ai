@@ -71,3 +71,43 @@ def release(client, doc_path: str, holder: str) -> None:
             transaction.delete(ref)
 
     _run_in_transaction(client, _txn)
+
+
+class Heartbeat:
+    """Keeps a lease alive while its holder works: a daemon thread re-acquires
+    (extends) it every `interval_s` (default a third of `ttl_s`). So the TTL
+    can be short: a run that is killed without releasing (task timeout, OOM)
+    blocks the next ticks for at most `ttl_s`, not for a whole run's length.
+    A failed or refused renewal is logged and retried at the next beat; the
+    work goes on (stopping it midway would be worse than a rare overlap)."""
+
+    def __init__(self, client, doc_path: str, holder: str, ttl_s: float,
+                 interval_s: float | None = None):
+        import threading
+
+        self._args = (client, doc_path, holder, ttl_s)
+        self._interval = interval_s if interval_s is not None else max(1.0, ttl_s / 3)
+        self._stop = threading.Event()
+        self._thread = threading.Thread(target=self._beat, name="lease-heartbeat", daemon=True)
+
+    def _beat(self) -> None:
+        import logging
+
+        log = logging.getLogger("shared.lease")
+        client, doc_path, holder, ttl_s = self._args
+        while not self._stop.wait(self._interval):
+            try:
+                if not acquire(client, doc_path, holder, ttl_s):
+                    log.error("lease %s: renewal refused, another holder took it "
+                              "(this run was too slow to renew)", doc_path)
+            except Exception:
+                log.exception("lease %s: renewal failed; retrying at the next beat", doc_path)
+
+    def start(self) -> Heartbeat:
+        self._thread.start()
+        return self
+
+    def stop(self) -> None:
+        self._stop.set()
+        if self._thread.is_alive():
+            self._thread.join(timeout=10)

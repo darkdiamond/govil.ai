@@ -131,7 +131,7 @@ def test_held_lock_skips_and_reads_nothing(live, capsys):
     assert run.main([]) == 0
     assert _summary(capsys) == {"type": "news_summary", "status": "skipped_overlap"}
     assert _Articles.reads == [] and probes == [] and _Articles.cursor == CURSOR
-    assert lease["calls"] == [("acquire", "news_state/lock", 3900.0)]   # not released: not ours
+    assert lease["calls"] == [("acquire", "news_state/lock", 900.0)]   # not released: not ours
 
 
 def test_lease_is_released_and_its_ttl_comes_from_env(live, monkeypatch, capsys):
@@ -486,3 +486,19 @@ def test_rejected_signal_keys_rules():
     assert eligible([sig], [], cooldown_days=21, rejected_keys={sig.key}) == []
     assert eligible([sig], [], cooldown_days=21) == [sig]
 
+
+
+def test_refused_key_gives_the_floor_attempt_back(tmp_path, monkeypatch):
+    """Nothing was judged or spent, so a later run today may still fill the day."""
+    from services.news.llm import LLMUnavailable
+
+    def _refused(*a, **k):
+        raise LLMUnavailable("key refused")
+
+    monkeypatch.setattr(run, "_fill", _refused)
+    with pytest.raises(LLMUnavailable):
+        _floor_day(tmp_path, FloorLLM([_draft()]), THURSDAY_08 + timedelta(hours=4), floor_hour=12)
+    monkeypatch.undo()
+    out, store = _floor_day(tmp_path, FloorLLM([_draft()]), THURSDAY_08 + timedelta(hours=6),
+                            floor_hour=12)
+    assert out["fill"]["published"] == 1 and store.read_daily()["floor_attempt"] == "2026-11-12"

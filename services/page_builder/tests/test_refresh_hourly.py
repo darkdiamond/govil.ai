@@ -395,3 +395,20 @@ def test_store_exact_skip_clears_strike_starts_and_probe():
                  inputs_hash="h", reason="inputs_hash", advance_version=True)
     assert p["transient_strikes_since"] is None and p["wall_budget_strikes_since"] is None
     assert p["probed_at"] is None and p["probed_key"] is None
+
+
+def test_a_young_bump_is_probed_every_run(env, clock, monkeypatch):
+    """CKAN bumps metadata_modified at the upload; the datastore can load a
+    little later with no second bump, so a fresh bump never backs off."""
+    monkeypatch.setenv("REFRESH_REPROBE_MIN_HOURS", "6")
+    store, ckan = _fingerprinted(env, monkeypatch)
+    _bump(store, (T0 - timedelta(hours=1)).isoformat())
+    assert _first(_run(env, store, ckan))["reason"] == "fingerprint"   # probes the new bump
+    previews = ckan.previews
+    clock.now = T0 + timedelta(hours=1)        # the bump is 2h old: still young
+    assert _first(_run(env, store, ckan))["reason"] == "fingerprint"
+    assert ckan.previews > previews
+    previews = ckan.previews
+    clock.now = T0 + timedelta(hours=6)        # 7h old, probed 5h ago: backs off
+    assert _first(_run(env, store, ckan))["reason"] == UnchangedReason.RECENTLY_PROBED
+    assert ckan.previews == previews

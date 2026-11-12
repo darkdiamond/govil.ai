@@ -32,7 +32,7 @@ def test_scheduled_run_takes_and_releases_the_lease(harness):  # noqa: F811
     assert kinds == ["acquire", "release"]
     acq, rel = harness.lease_calls
     assert acq[1] == rel[1] == "job_state/run" and acq[2] == rel[2]  # same holder
-    assert acq[3] == 7500.0
+    assert acq[3] == 900.0
     assert s["lease"] == "held" and s["status"] == "idle"
 
 

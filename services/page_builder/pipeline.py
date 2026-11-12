@@ -32,7 +32,13 @@ from services.scanner.main import Scanner
 from services.shared import github, lease, schedule
 from services.shared.env import env_float, env_int
 from services.shared.firestore import FirestoreStateStore
-from services.shared.states import NO_DATA_STATUSES, AuthoringReason, RunStatus
+from services.shared.states import (
+    NO_DATA_STATUSES,
+    AuthoringReason,
+    OutcomeStatus,
+    RunStatus,
+    UnchangedReason,
+)
 
 from . import refresh as _refresh
 from . import selector
@@ -55,9 +61,11 @@ FAILED_RUN_STATUSES = frozenset({
 })
 
 # The run lease (services/shared/lease.py): one scheduled execution at a time.
-# Its TTL (RUN_LEASE_TTL_S) only matters when a run dies without releasing it.
+# A heartbeat renews it while the run works, so its TTL (RUN_LEASE_TTL_S) is
+# short: it only bounds how long a run that died without releasing (task
+# timeout, OOM) keeps later ticks out.
 RUN_LEASE_DOC = "job_state/run"
-RUN_LEASE_TTL_DEFAULT_S = 7500.0
+RUN_LEASE_TTL_DEFAULT_S = 900.0
 # Reconcile sweeps started per IL date (RECONCILE_MAX_ATTEMPTS): an aborted or
 # crashed sweep is retried by later runs that day, up to this many in all.
 RECONCILE_MAX_ATTEMPTS_DEFAULT = 2
@@ -412,17 +420,20 @@ async def run_pipeline(
             skip_publish=skip_publish))
 
     holder = _lease_holder()
-    acquired = _acquire_run_lease(
-        store, holder, env_float("RUN_LEASE_TTL_S", RUN_LEASE_TTL_DEFAULT_S))
+    ttl_s = env_float("RUN_LEASE_TTL_S", RUN_LEASE_TTL_DEFAULT_S)
+    acquired = _acquire_run_lease(store, holder, ttl_s)
     if acquired is False:
         log.warning("run lease %s is held by another execution — skipping this tick",
                     RUN_LEASE_DOC)
         return _skipped(RunStatus.SKIPPED_OVERLAP)
+    beat = lease.Heartbeat(store.client, RUN_LEASE_DOC, holder, ttl_s).start() if acquired else None
     try:
         summary = await _run_pipeline_body(
             store, mode=mode, override_id=override_id, dry_run=dry_run,
             skip_publish=skip_publish)
     finally:
+        if beat:
+            beat.stop()
         if acquired:
             _release_run_lease(store, holder)
     summary["lease"] = "held" if acquired else "error"
@@ -675,7 +686,8 @@ def summarize_for_log(summary: dict) -> list[str]:
             continue
         # A pending no-op bump inside REFRESH_REPROBE_MIN_HOURS: nothing was
         # fetched or written, and hourly runs would repeat the line all day.
-        if (o.get("status") == "unchanged" and o.get("reason") == "recently_probed"
+        if (o.get("status") == OutcomeStatus.UNCHANGED
+                and o.get("reason") == UnchangedReason.RECENTLY_PROBED
                 and o.get("issue") is None):
             continue
         kept = {k: v for k, v in o.items() if v is not None and v != {} and v != []}

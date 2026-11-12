@@ -65,7 +65,9 @@ def sync_provider_sources(
         if p is None:
             summary["skipped"].append({"id": dataset_id, "reason": f"provider_disabled:{source.provider}"})
             continue
-        if only_ids is None and not due.setdefault(p.key, _sync_due(p.key)):
+        if only_ids is None and p.key not in due:
+            due[p.key] = _sync_due(p.key)
+        if only_ids is None and not due[p.key]:
             summary["skipped"].append({"id": dataset_id, "reason": f"provider_gated:{p.key}"})
             continue
         if not p.healthy():

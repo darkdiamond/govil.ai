@@ -216,7 +216,7 @@ def _safe_pair(store, ds: str, cutoff: str | None, upto: str | None = None) -> H
 # date; a provider source's first sync), else the doc's `first_seen_at` (the
 # scanner's first sighting).
 SOURCE_FIELDS = ["title", "organization", "page_slug_suffix", "metadata_created",
-                 "first_seen_at", "metadata_modified"]
+                 "first_seen_at", "metadata_modified", "provider"]
 DATASET_TAGS_PATH = Path(__file__).resolve().parents[2] / "taxonomy" / "dataset-tags.json"
 _source_store = None
 
@@ -277,6 +277,10 @@ def _new_dataset_signals(firsts: list[tuple[str, Snapshot]], *, lookup, days: in
             continue
         if not doc:
             log.info("news: first render of %s but no sources doc; no new_dataset signal", ds)
+            continue
+        if doc.get("provider"):
+            # A provider doc is created by our first sync, so its date says when
+            # we added the page, not when the publication began (often decades ago).
             continue
         created, field_name = source_created(doc)
         if created is None:
@@ -402,6 +406,15 @@ def _mark_duty(store, duty: str, il_day: date, run_id: str) -> bool:
     except Exception:
         log.exception("news: recording the %s attempt failed; skipping it this run", duty)
         return False
+
+
+def _unmark_duty(store, duty: str, run_id: str) -> None:
+    """Give the day's attempt back: the model key was refused before anything
+    was judged or spent, so a later run today should try again."""
+    try:
+        store.mark_duty(duty, "", run_id=run_id)
+    except Exception:
+        log.exception("news: clearing the %s attempt failed; it stays used today", duty)
 
 
 class _Day:
@@ -600,8 +613,13 @@ def write_day(llm, *, ranked: list[Signal], series_by_ds: dict, models: dict, ca
         # silently cost the week its digest.
         on_attempt = (None if digest_hour is None
                       else lambda: _mark_duty(store, "digest", il_today, run_id))
-        out["digest"] = _digest(day, recent=recent, today=il_today, cooldown_days=cooldown_days,
-                                on_attempt=on_attempt)
+        try:
+            out["digest"] = _digest(day, recent=recent, today=il_today,
+                                    cooldown_days=cooldown_days, on_attempt=on_attempt)
+        except LLMUnavailable:
+            if digest_hour is not None:
+                _unmark_duty(store, "digest", run_id)
+            raise
         if out["digest"].get("status") == StoryResult.PUBLISHED:
             recent = store.recent(90)
     today_count = published_today(recent, il_today)
@@ -611,8 +629,14 @@ def write_day(llm, *, ranked: list[Signal], series_by_ds: dict, models: dict, ca
         if fl_hour is not None and not _mark_duty(store, "floor", il_today, run_id):
             out["fill"] = {"kind": ArticleKind.FEATURE, "need": need, "skipped": "attempt_unrecorded"}
         else:
-            out["fill"] = _fill(day, need=need, recent=recent, demand_by_id=demand_by_id or {},
-                                cooldown_days=feature_cooldown_days, attempts=fill_attempts, now=now)
+            try:
+                out["fill"] = _fill(day, need=need, recent=recent, demand_by_id=demand_by_id or {},
+                                    cooldown_days=feature_cooldown_days, attempts=fill_attempts,
+                                    now=now)
+            except LLMUnavailable:
+                if fl_hour is not None:
+                    _unmark_duty(store, "floor", run_id)
+                raise
     return out
 
 
@@ -693,7 +717,9 @@ def _dispatch_publish() -> str | None:
         return None
 
 
-LEASE_TTL_DEFAULT_S = 3900   # just over the job's 3600 s task timeout
+# Renewed by a heartbeat while the run works (lease.Heartbeat), so the TTL only
+# bounds how long a run that died without releasing keeps later ticks out.
+LEASE_TTL_DEFAULT_S = 900
 
 
 def _lease_holder() -> str:
@@ -701,12 +727,15 @@ def _lease_holder() -> str:
     return f"{execution}:{os.getpid()}:{uuid.uuid4().hex[:12]}"
 
 
+def _lease_ttl_s() -> float:
+    return float(_env_int("NEWS_LEASE_TTL_S", LEASE_TTL_DEFAULT_S))
+
+
 def _acquire_lease(articles, holder: str) -> bool | None:
     """True: ours. False: another run holds it. None: Firestore error, logged
     at error level; the run goes on without it (as the builder does)."""
     try:
-        return lease.acquire(articles.db, LOCK_DOC, holder,
-                             float(_env_int("NEWS_LEASE_TTL_S", LEASE_TTL_DEFAULT_S)))
+        return lease.acquire(articles.db, LOCK_DOC, holder, _lease_ttl_s())
     except Exception:
         log.exception("news: couldn't acquire %s; running WITHOUT the lease", LOCK_DOC)
         return None
@@ -847,10 +876,14 @@ def main(argv: list[str] | None = None) -> int:
             log.warning("news: %s is held by another run; skipping this tick", LOCK_DOC)
             print(json.dumps({"type": "news_summary", "status": NewsRunStatus.SKIPPED_OVERLAP}))
             return 0
+    beat = (lease.Heartbeat(articles.db, LOCK_DOC, holder, _lease_ttl_s()).start()
+            if acquired else None)
     try:
         return _run(a, live=live, gated=gated, articles=articles,
                     lease_state=None if not gated else "held" if acquired else "error")
     finally:
+        if beat:
+            beat.stop()
         if acquired:
             _release_lease(articles, holder)
 

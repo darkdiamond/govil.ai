@@ -151,7 +151,16 @@ def test_lookup_failure_or_no_date_does_not_signal_and_the_run_goes_on(tmp_path)
                                                                                "nodoc", "ok"]
 
 
-def test_first_seen_is_the_fallback_date_for_a_provider_source(tmp_path):
+def test_a_provider_source_never_signals(tmp_path):
+    """Its doc is created by our first sync: the date says when we added the
+    page, not when the publication began."""
+    _snap(tmp_path, "cbs-new-report", IN_WINDOW)
+    doc = _source(1) | {"provider": "cbs_releases", "page_slug_suffix": "new-report"}
+    sigs, stats = _find(tmp_path, _Lookup({"cbs-new-report": doc}), new_datasets=True)
+    assert _new(sigs) == [] and stats["new_datasets"] == 0
+
+
+def test_first_seen_is_the_fallback_date(tmp_path):
     _snap(tmp_path, "cbs-new-report", IN_WINDOW)
     doc = {"title": "דוח חדש", "organization": {"title": "הלשכה המרכזית לסטטיסטיקה"},
            "page_slug_suffix": "new-report", "first_seen_at": (NOW - timedelta(days=5)).isoformat()}
@@ -369,3 +378,16 @@ def test_the_top_cut_never_drops_a_new_dataset():
     assert isinstance(nd, Signal)
     kept = rank([nd], top=0) + rank([nd], top=1)
     assert all(is_new_dataset(s) for s in kept) and len(kept) == 2
+
+
+def test_default_page_slug_matches_the_publisher_for_one_dataset():
+    from types import SimpleNamespace
+
+    from services.page_builder.publish import _build_page_slugs
+    from services.shared.slug import default_page_slug
+
+    cases = [("0b3e1f2a-1111-2222-3333-444455556666", "רישיונות עסק", None),
+             ("cbs-wage", "שכר ממוצע", "wage"), ("0b3e1f2a-1111", "", None), ("boi-x", "", "x")]
+    for sid, title, own in cases:
+        metas = {sid: SimpleNamespace(title=title, page_slug_suffix=own)}
+        assert _build_page_slugs(metas)[sid] == default_page_slug(sid, title, own)

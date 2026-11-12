@@ -126,3 +126,45 @@ def test_naive_expiry_reads_as_utc(fake):
     fake.docs["job_state/run"] = {"holder": "a",
                                   "expires_at": (T0 + timedelta(seconds=10)).replace(tzinfo=None)}
     assert lease.acquire(fake, "job_state/run", "b", 60, now=T0) is False
+
+
+def test_heartbeat_renews_until_stopped(monkeypatch):
+    import threading
+
+    calls, three = [], threading.Event()
+
+    def _acquire(client, path, holder, ttl_s, now=None):
+        calls.append((path, holder, ttl_s))
+        if len(calls) >= 3:
+            three.set()
+        return True
+
+    monkeypatch.setattr(lease, "acquire", _acquire)
+    beat = lease.Heartbeat(object(), "job_state/run", "me", 900, interval_s=0.01).start()
+    assert three.wait(5)
+    beat.stop()
+    n = len(calls)
+    assert calls[0] == ("job_state/run", "me", 900)
+    assert not beat._thread.is_alive() and len(calls) == n   # no beat after stop
+
+
+def test_heartbeat_survives_a_failed_renewal(monkeypatch):
+    import threading
+
+    calls, done = [], threading.Event()
+
+    def _acquire(client, path, holder, ttl_s, now=None):
+        calls.append(1)
+        if len(calls) == 1:
+            raise RuntimeError("firestore down")
+        done.set()
+        return False   # refused: logged, the run goes on
+
+    monkeypatch.setattr(lease, "acquire", _acquire)
+    beat = lease.Heartbeat(object(), "job_state/run", "me", 900, interval_s=0.01).start()
+    assert done.wait(5)
+    beat.stop()
+
+
+def test_default_heartbeat_interval_is_a_third_of_the_ttl():
+    assert lease.Heartbeat(object(), "x/y", "me", 900)._interval == 300

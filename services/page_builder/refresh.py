@@ -110,7 +110,7 @@ _DEFAULT_FILE_MAX_BYTES = 1_500_000_000
 _DEFAULT_WALL_BUDGET_S = 900.0
 # A wall-budget overrun is transient (slow CKAN); this many in a row since
 # the last full fetch means the dataset outgrew its budget → `too_large`.
-# Counted in RUNS: the job runs twice a day (06:00 + 14:00), so 6 ≈ 3 days.
+# Counted in RUNS: at two runs a day 6 was ≈ 3 days; at hourly ticks see REFRESH_STRIKE_MIN_HOURS.
 _DEFAULT_WALL_BUDGET_STRIKES = 6
 # Same idea for every `StrikeError` (a map-file download the WAF blocked):
 # this many runs in a row → its `escalate_to` reason, which opens an issue.
@@ -121,9 +121,10 @@ _DEFAULT_TRANSIENT_STRIKES = 6
 # have started at least that many hours ago; until then it stays transient
 # (retried next run, last-good page kept). 0 = count only.
 _DEFAULT_STRIKE_MIN_HOURS = 0.0
-# REFRESH_REPROBE_MIN_HOURS > 0: a bump the fingerprint skipped (A ∧ A′) is
-# left alone, with no CKAN call, until the source moves again or the probe is
-# that many hours old. 0 = re-probe it every run.
+# REFRESH_REPROBE_MIN_HOURS > 0: a bump the fingerprint skipped (A ∧ A′) and
+# that is itself older than this is left alone, with no CKAN call, until the
+# source moves again or the probe is that many hours old. A younger bump is
+# still probed every run. 0 = re-probe every pending bump every run.
 _DEFAULT_REPROBE_MIN_HOURS = 0.0
 # In-run second pass: a source whose CKAN fetch/preview failed transiently is
 # retried once at the end of the run instead of waiting for the next run (CKAN slowness
@@ -1315,8 +1316,13 @@ def _recently_probed(src, state: RefreshState, key: str) -> bool:
         return False
     if _aware(mm) != _aware(src.metadata_modified):
         return False
-    age = _utcnow() - _aware(at)
-    return timedelta(0) <= age < timedelta(hours=hours)
+    now, window = _utcnow(), timedelta(hours=hours)
+    # A young bump is probed every run: CKAN bumps metadata_modified at the
+    # upload, and the datastore (what the fingerprint reads) can load minutes
+    # later with no second bump. Only a bump older than the window backs off.
+    if now - _aware(src.metadata_modified) < window:
+        return False
+    return timedelta(0) <= now - _aware(at) < window
 
 
 def _same(new: str, old: str | None) -> bool | None:
