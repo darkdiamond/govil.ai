@@ -2,13 +2,7 @@
 import { SITE_URL } from "~/utils/paths";
 import type { NewsIndexEntry, NewsKind } from "~/types/news";
 import { loadNewsIndex } from "~/utils/news";
-import {
-  MONTH_RE,
-  buildFront,
-  editionLine,
-  monthKey,
-  monthLabel,
-} from "~/utils/news-front";
+import { MONTH_RE, buildFront, monthKey, monthLabel } from "~/utils/news-front";
 
 // Prerender and client-side navigation both (utils/news.ts).
 const { data } = await useAsyncData("news-index", async () => ({
@@ -27,16 +21,11 @@ const isKind = (v: string | null): v is NewsKind =>
   !!v && Object.prototype.hasOwnProperty.call(KINDS, v);
 
 // Filters live in the query string (?topic=, ?month=, ?kind=) so a filtered
-// view can be shared. The page is prerendered unfiltered: read the query (and
-// the clock) only after mount, or a deep link would hydrate against different
-// markup.
+// view can be shared. The page is prerendered unfiltered: read the query only
+// after mount, or a deep link would hydrate against different markup.
 const route = useRoute();
 const mounted = ref(false);
-const now = ref<Date | null>(null);
-onMounted(() => {
-  mounted.value = true;
-  now.value = new Date();
-});
+onMounted(() => (mounted.value = true));
 const queryValue = (k: string) => {
   const v = route.query[k];
   return mounted.value && typeof v === "string" && v ? v : null;
@@ -112,13 +101,6 @@ const sources = computed(() => {
 });
 
 const front = computed(() => buildFront(articles.value));
-// Before mount (and in the prerender) just the date; then "today" or not.
-const editionText = computed(() => {
-  const e = editionLine(front.value.lead?.published_at, now.value);
-  if (!e) return null;
-  if (e.today) return `המהדורה של היום, ${e.date}`;
-  return now.value ? `העדכון האחרון: ${e.date}` : e.date;
-});
 
 // The archive: what the front page didn't show, by month.
 const archiveShown = ref(PAGE);
@@ -199,10 +181,7 @@ useSeo({
         <h1 class="text-3xl sm:text-4xl font-display text-ink-deep m-0">
           חדשות
         </h1>
-        <p v-if="editionText" class="m-0 mt-2 text-lg text-ink">
-          {{ editionText }}
-        </p>
-        <p class="m-0 mt-1 text-subtle">
+        <p class="m-0 mt-2 text-lg text-subtle">
           מה השתנה במאגרי המידע הממשלתיים. כל מספר בכתבות מגיע מהנתונים הרשמיים.
           <NuxtLink to="/news/about/">איך אנחנו עובדים</NuxtLink>
         </p>
