@@ -56,16 +56,13 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      # Cache keys for the frontend, hashed now, before the rsync and the
-      # publisher fill frontend/public/ and before node_modules is restored
-      # (hashFiles would otherwise walk ~1,200 packages). `sources` is every
-      # frontend file that shapes the build: not public/ (data, rewritten each
-      # run), nor build output or installed deps.
-      - name: Hash frontend sources
+      # Cache key for the installed frontend deps, hashed now, before
+      # node_modules is restored (hashFiles would otherwise walk ~1,200
+      # packages).
+      - name: Hash frontend lockfile
         id: frontend-hash
         run: |
           echo "lock=${{ hashFiles('frontend/package-lock.json') }}" >> "$GITHUB_OUTPUT"
-          echo "sources=${{ hashFiles('frontend/**', '!frontend/public/**', '!frontend/.output/**', '!frontend/.nuxt/**', '!frontend/.cache/**', '!frontend/node_modules/**') }}" >> "$GITHUB_OUTPUT"
 
       - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
         with:
@@ -154,7 +151,7 @@ jobs:
       # Installed deps, keyed on the lockfile + OS + the exact Node the
       # setup-node step resolved. An exact hit skips `npm ci` (and its
       # postinstall `nuxt prepare`, which `nuxt generate` redoes anyway).
-      # node_modules/.cache is the build cache below, never part of this one.
+      # node_modules/.cache (build scratch) is never part of this cache.
       - name: Restore frontend node_modules
         id: node-modules-cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -180,26 +177,12 @@ jobs:
             sleep 10
           done
 
-      # Nuxt/Vite build caches, as cloudbuild-publish.yaml keeps in GCS:
-      # .nuxt and node_modules/.cache (Nuxt's build dir, which lives at
-      # node_modules/.cache/nuxt/.nuxt whenever .nuxt exists, and its
-      # experimental build cache, node_modules/.cache/nuxt/builds). Restored
-      # AFTER the install, since `npm ci` deletes node_modules. The lockfile
-      # hash is in the prefix, so a dependency change never restores a cache
-      # built against other packages; restore-keys warms a near miss (a
-      # source edit). NEVER .output: that is the deployable, and a stale
-      # restore would publish old pages. `nuxt generate` clears its build dir
-      # and output before building, so a restored cache can't leak old pages.
-      - name: Restore Nuxt build cache
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: |
-            frontend/.nuxt
-            frontend/node_modules/.cache
-          key: nuxt-build-${{ runner.os }}-${{ steps.frontend-hash.outputs.lock }}-${{ steps.frontend-hash.outputs.sources }}
-          restore-keys: |
-            nuxt-build-${{ runner.os }}-${{ steps.frontend-hash.outputs.lock }}-
-
+      # No Nuxt build cache here on purpose. `nuxt generate` clears its build
+      # dir, so caching .nuxt saves nothing, and `experimental.buildCache`
+      # (which would skip ~95s of bundling) is unsafe for this site: Tailwind
+      # scans public/datasets/**/*.html, Nuxt's cache key ignores public/, so
+      # a class first used by a new page would ship without its CSS rule
+      # (reproduced 2026-11-12; see TODO.md).
       - name: Generate site
         working-directory: frontend
         run: |
