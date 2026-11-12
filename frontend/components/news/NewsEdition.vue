@@ -10,7 +10,7 @@ defineProps<{ lead: NewsIndexEntry; side: NewsIndexEntry[] }>();
 
 <template>
   <div
-    class="grid gap-8 lg:gap-10 lg:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)]"
+    class="grid gap-8 lg:gap-10 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]"
   >
     <article class="group relative min-w-0">
       <img
