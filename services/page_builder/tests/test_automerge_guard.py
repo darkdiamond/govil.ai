@@ -531,3 +531,23 @@ def test_writer_refs_and_name_dispatch_are_rejected(corpus, src):
 ])
 def test_direct_calls_and_plain_strings_are_fine(corpus, src):
     assert _compute(src, corpus) == [], src
+
+
+@pytest.mark.parametrize("src", [
+    "def f(df):\n    return df.to_csv(**{'path_or_buf': '/tmp/x'})\n",
+    "def f(df, kw):\n    return df.to_json(**kw)\n",
+    "def f(df, a):\n    return df.to_string(*a)\n",
+    "def f(df):\n    return df.query('a > 1', **{'local_dict': {}})\n",
+    "def f(df, g):\n    return g(**{'storage_options': {}})\n",
+    "def f(df, g, k):\n    return g(**{k: 1})\n",
+])
+def test_star_args_cannot_hide_targets_or_kwargs(corpus, src):
+    assert _compute(src, corpus), src
+
+
+def test_named_aggregation_and_local_helpers_keep_working(corpus):
+    src = ("def _pick(a, b):\n    return a\n"
+           "def f(df, cols):\n"
+           "    x = df.agg(**{c: ('v', 'sum') for c in cols})\n"
+           "    return _pick(**{'a': 1, 'b': 2}), x\n")
+    assert _compute(src, corpus) == []
