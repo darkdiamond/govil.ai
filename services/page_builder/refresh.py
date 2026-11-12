@@ -53,6 +53,7 @@ from services.shared.states import (
     OutcomeStatus,
     RefreshState,
     RefreshStatus,
+    UnchangedReason,
 )
 
 from . import geo_snapshot
@@ -115,6 +116,15 @@ _DEFAULT_WALL_BUDGET_STRIKES = 6
 # this many runs in a row → its `escalate_to` reason, which opens an issue.
 # Also 6 runs ≈ 3 days at two runs a day.
 _DEFAULT_TRANSIENT_STRIKES = 6
+# Both counts are in runs, so at hourly ticks 6 strikes is 6 hours. With
+# REFRESH_STRIKE_MIN_HOURS > 0 an escalation also needs the run of strikes to
+# have started at least that many hours ago; until then it stays transient
+# (retried next run, last-good page kept). 0 = count only.
+_DEFAULT_STRIKE_MIN_HOURS = 0.0
+# REFRESH_REPROBE_MIN_HOURS > 0: a bump the fingerprint skipped (A ∧ A′) is
+# left alone, with no CKAN call, until the source moves again or the probe is
+# that many hours old. 0 = re-probe it every run.
+_DEFAULT_REPROBE_MIN_HOURS = 0.0
 # In-run second pass: a source whose CKAN fetch/preview failed transiently is
 # retried once at the end of the run instead of waiting for the next run (CKAN slowness
 # comes in bursts — 2026-11-02 lost 16 previews in a 40-minute window while
@@ -331,6 +341,43 @@ def _strikes_after_probe(state: RefreshState, probe: InputProbe | None) -> dict 
     if probe is None or _PREVIEW_STRIKE not in strikes or not probe.answered():
         return None
     return {k: v for k, v in strikes.items() if k != _PREVIEW_STRIKE}
+
+
+def _utcnow() -> datetime:
+    return datetime.now(UTC)
+
+
+def _aware(t: datetime) -> datetime:
+    return t if t.tzinfo else t.replace(tzinfo=UTC)
+
+
+def _strike_min_hours() -> float:
+    return max(0.0, _env_float("REFRESH_STRIKE_MIN_HOURS", _DEFAULT_STRIKE_MIN_HOURS))
+
+
+def _streak_start(count: int | None, since, now: datetime) -> datetime:
+    """When a run of strikes began: the stored time while that run is still
+    going (`count` > 0), else now. A stored run with no time (a doc from
+    before REFRESH_STRIKE_MIN_HOURS) starts now, so it waits out the window
+    instead of escalating at once."""
+    return _aware(since) if count and isinstance(since, datetime) else now
+
+
+def _transient_since(state: RefreshState, transient: dict, now: datetime) -> dict | None:
+    """`transient_strikes_since` to go with the `transient_strikes` map about
+    to be written: one start time per key still counted."""
+    old_n, old_t = state.transient_strikes or {}, state.transient_strikes_since or {}
+    out = {k: _streak_start(old_n.get(k), old_t.get(k), now) for k in transient}
+    return out or None
+
+
+def _since_fields(state: RefreshState, transient: dict | None, now: datetime) -> dict:
+    """The `transient_strikes_since` write that keeps the start times in step
+    with a `transient_strikes` write (`transient` not None). Only while the
+    knob is on, or a stored map needs pruning; else nothing (today's writes)."""
+    if transient is None or not (_strike_min_hours() > 0 or state.transient_strikes_since):
+        return {}
+    return {"transient_strikes_since": _transient_since(state, transient, now)}
 
 
 # Shared code between the data and the page: the compute runner, template
@@ -1244,6 +1291,34 @@ def _precheck_may_skip(trigger: str, state: RefreshState) -> bool:
     return datetime.now(UTC) - last <= timedelta(days=max_age)
 
 
+def _reprobe_min_hours() -> float:
+    return max(0.0, _env_float("REFRESH_REPROBE_MIN_HOURS", _DEFAULT_REPROBE_MIN_HOURS))
+
+
+def probe_key(recipe: Recipe, src) -> str:
+    """What a fingerprint skip's verdict rests on besides the previews: the
+    recipe's identity (its files + the render code) and the source doc's
+    resources (ids, names, CKAN md5/size). Any change re-probes."""
+    return _digest(["probe", src.resources or []], recipe_identity(recipe))
+
+
+def _recently_probed(src, state: RefreshState, key: str) -> bool:
+    """A pending bump the fingerprint skipped, with nothing moved since: the
+    same `metadata_modified`, recipe and resources, probed less than
+    REFRESH_REPROBE_MIN_HOURS ago. Any render, settled bump or failure clears
+    the recorded probe (firestore.py), so this never outlives one."""
+    hours = _reprobe_min_hours()
+    at, mm = state.probed_at, state.probed_metadata_modified
+    if hours <= 0 or not isinstance(at, datetime) or not isinstance(mm, datetime):
+        return False
+    if src.metadata_modified is None or state.probed_key != key:
+        return False
+    if _aware(mm) != _aware(src.metadata_modified):
+        return False
+    age = _utcnow() - _aware(at)
+    return timedelta(0) <= age < timedelta(hours=hours)
+
+
 def _same(new: str, old: str | None) -> bool | None:
     return None if old is None else new == old
 
@@ -1257,34 +1332,58 @@ def fetchable_resources(resources: list[dict]) -> list[dict]:
 
 def _count_strikes(
     e: RecipeError, state: RefreshState, probe: InputProbe | None,
-) -> tuple[RecipeError, int | None, dict | None]:
+) -> tuple[RecipeError, int | None, dict | None, dict]:
     """The strike counters a failure leaves behind: (the error to record,
-    `wall_budget_strikes`, `transient_strikes`). A run of strikes that reaches
-    its limit replaces `e` with its escalation (`too_large`, or the strike's
-    `escalate_to`) and resets that counter."""
+    `wall_budget_strikes`, `transient_strikes`, the strike-start fields to
+    write). A run of strikes that reaches its limit, and with
+    REFRESH_STRIKE_MIN_HOURS began at least that long ago, replaces `e` with
+    its escalation (`too_large`, or the strike's `escalate_to`) and resets
+    that counter and its start time. Past the count but inside the window,
+    `e` stays transient and the count keeps growing."""
+    min_hours = _strike_min_hours()
+    now = _utcnow()
+
+    def old_enough(since: datetime) -> bool:
+        return min_hours <= 0 or now - since >= timedelta(hours=min_hours)
+
+    since_out: dict = {}
     strikes = None
     if isinstance(e, WallBudgetExceeded):
-        strikes = int(state.wall_budget_strikes or 0) + 1
+        prior = int(state.wall_budget_strikes or 0)
+        strikes = prior + 1
+        since = _streak_start(prior, state.wall_budget_strikes_since, now)
         limit = _env_int("REFRESH_WALL_BUDGET_STRIKES", _DEFAULT_WALL_BUDGET_STRIKES)
-        if strikes >= limit:
+        if strikes >= limit and old_enough(since):
             # Reset, so a re-authored recipe gets a fresh run of tries.
             e = RecipeError(
                 f"{e} — {strikes} runs in a row since the last full fetch",
                 reason=FailReason.TOO_LARGE,
             )
             strikes = 0
+            since = None
+        elif strikes >= limit:
+            log.info("wall-budget strike %d of %d, but the run began %s (< %gh ago): "
+                     "still transient", strikes, limit, since.isoformat(), min_hours)
+        if min_hours > 0 or state.wall_budget_strikes_since is not None:
+            since_out["wall_budget_strikes_since"] = since
     transient = _strikes_after_probe(state, probe)
     if isinstance(e, StrikeError):
         # A preview strike (even one in fetch_inputs) continues the run.
         if transient is None or e.strike == _PREVIEW_STRIKE:
             transient = dict(state.transient_strikes or {})
         n = int(transient.get(e.strike) or 0) + 1
-        if n >= _env_int("REFRESH_TRANSIENT_STRIKES", _DEFAULT_TRANSIENT_STRIKES):
+        since = _streak_start(n - 1, (state.transient_strikes_since or {}).get(e.strike), now)
+        limit = _env_int("REFRESH_TRANSIENT_STRIKES", _DEFAULT_TRANSIENT_STRIKES)
+        if n >= limit and old_enough(since):
             transient.pop(e.strike, None)  # a fresh run of tries after the fix
             e = RecipeError(f"{e} — {n} runs in a row", reason=e.escalate_to)
         else:
+            if n >= limit:
+                log.info("%s strike %d of %d, but the run began %s (< %gh ago): still "
+                         "transient", e.strike, n, limit, since.isoformat(), min_hours)
             transient[e.strike] = n
-    return e, strikes, transient
+    since_out.update(_since_fields(state, transient, now))
+    return e, strikes, transient, since_out
 
 
 def refresh_one(
@@ -1326,6 +1425,25 @@ def refresh_one(
     state = previous_state if previous_state is not None else RefreshState()
     may_skip = mode != "off" and _precheck_may_skip(trigger, state)
     pc: dict = {"mode": mode} if mode != "off" else {}
+    # REFRESH_REPROBE_MIN_HOURS: only where a fingerprint skip could happen
+    # (a plain data bump on a page inside the max age, mode `full`), so a
+    # forced run, a new recipe version or an old page always goes on.
+    pkey = None
+    if mode == "full" and may_skip and _reprobe_min_hours() > 0:
+        try:
+            pkey = probe_key(recipe, src)
+        except Exception:
+            log.warning("refresh %s: hashing the probe key failed — probing",
+                        src.id[:8], exc_info=True)
+        if pkey is not None and _recently_probed(src, state, pkey):
+            # No CKAN call and no state write: the last probe's verdict stands.
+            log.info("refresh precheck %s: unchanged (%s) — probed %s",
+                     src.id[:8], UnchangedReason.RECENTLY_PROBED, state.probed_at)
+            return RefreshOutcome(
+                src.id, OutcomeStatus.UNCHANGED, trigger, UnchangedReason.RECENTLY_PROBED,
+                elapsed_s=round(time.monotonic() - started, 2),
+                precheck={**pc, "skipped": UnchangedReason.RECENTLY_PROBED},
+            )
     hashes: dict[str, str | None] = {}  # stored on success; names match mark_refreshed kwargs
     try:
         probe = None
@@ -1342,7 +1460,7 @@ def refresh_one(
             ff = hashes["file_fingerprint"] = file_fingerprint(recipe, probe, identity)
             pc["fp2_same"] = _same(ff, state.file_fingerprint) if ff else None
             if may_skip and mode == "full" and pc["fp_same"] and pc["fp2_same"]:
-                raise _Unchanged("fingerprint")
+                raise _Unchanged(UnchangedReason.FINGERPRINT)
 
             def after_fetch(inputs):
                 ih, iu = inputs_hashes(recipe, inputs, identity)
@@ -1350,7 +1468,7 @@ def refresh_one(
                 pc["inputs_same"] = _same(ih, state.inputs_hash)
                 pc["inputs_same_unordered"] = _same(iu, state.inputs_hash_unordered)
                 if may_skip and mode in ("inputs", "full") and pc["inputs_same"]:
-                    raise _Unchanged("inputs_hash")
+                    raise _Unchanged(UnchangedReason.INPUTS_HASH)
 
         page, inputs = build_page(
             recipe, resources, work_root,
@@ -1360,13 +1478,19 @@ def refresh_one(
         # Same inputs + same recipe ⇒ same page: keep the live one and report
         # `unchanged` (never triggers a publish). Only the exact check (B)
         # advances the version marker. After a fingerprint skip the bump stays
-        # pending, so it is re-probed each run (one cheap preview call) until
-        # the max age forces a real render. That is what bounds A's blind spot
+        # pending, so it is re-probed each run (one cheap preview call; with
+        # REFRESH_REPROBE_MIN_HOURS, once per that many hours) until the max
+        # age forces a real render. That is what bounds A's blind spot
         # even when CKAN never bumps the dataset again.
+        transient = _strikes_after_probe(state, probe)
+        extra: dict = _since_fields(state, transient, _utcnow())
+        extra = {"strike_since": extra} if extra else {}
+        if pkey is not None and u.reason == UnchangedReason.FINGERPRINT:
+            extra["probed_key"] = pkey  # REFRESH_REPROBE_MIN_HOURS
         return _mark_unchanged(
             store, src, trigger, u.reason, pc, hashes,
-            advance_version=u.reason == "inputs_hash", started=started,
-            transient_strikes=_strikes_after_probe(state, probe),
+            advance_version=u.reason == UnchangedReason.INPUTS_HASH, started=started,
+            transient_strikes=transient, **extra,
         )
     except ResourceRestrictedError as e:
         # Data went private upstream. Not the recipe's fault, not
@@ -1380,7 +1504,7 @@ def refresh_one(
                 src.id, OutcomeStatus.RETRY_LATER, trigger, e.reason, _clip(str(e)),
                 round(time.monotonic() - started, 2),
             )
-        e, strikes, transient = _count_strikes(e, state, probe)
+        e, strikes, transient, since = _count_strikes(e, state, probe)
         log.warning("refresh %s failed (%s): %s", src.id[:8], e.reason, e)
         try:
             store.mark_refresh_failed(
@@ -1390,6 +1514,8 @@ def refresh_one(
                 failed_version=failed_version_key(src, recipe),
                 wall_budget_strikes=strikes,
                 transient_strikes=transient,
+                # only when there is one: today's call is unchanged without the knobs
+                **({"strike_since": since} if since else {}),
             )
         except Exception as me:
             # Nothing recorded, so the next run retries it (and files the
@@ -1453,7 +1579,7 @@ def refresh_one(
         if (mode in ("inputs", "full") and trigger == "data_updated"
                 and pc["content_same"] and not staging_suspect):
             out = _mark_unchanged(
-                store, src, trigger, "content_hash", pc, hashes,
+                store, src, trigger, UnchangedReason.CONTENT_HASH, pc, hashes,
                 advance_version=True, started=started,
                 rows=snapshot["rows"],
             )
@@ -1531,13 +1657,15 @@ def refresh_one(
 def _mark_unchanged(
     store, src, trigger: str, reason: str, pc: dict, hashes: dict, *,
     advance_version: bool, started: float, rows: dict | None = None,
-    transient_strikes: dict | None = None,
+    transient_strikes: dict | None = None, **store_kw,
 ) -> RefreshOutcome:
     """Record a precheck skip (the live page stands). A failed state write is
     a staging failure like a failed `mark_refreshed`: this source only,
     retried next run, counted toward `staging_down`. `transient_strikes`
     (from `_strikes_after_probe`) matters only after a fingerprint skip: an
-    input-hash skip fetched everything, so the store clears them all."""
+    input-hash skip fetched everything, so the store clears them all.
+    `store_kw` (`strike_since`, `probed_key`) is passed only when a knob set
+    it, so the store call is today's without them."""
     pc["skipped"] = reason
     try:
         store.mark_refresh_unchanged(
@@ -1550,6 +1678,7 @@ def _mark_unchanged(
             reason=reason,
             advance_version=advance_version,
             transient_strikes=transient_strikes,
+            **store_kw,
         )
     except Exception as e:
         log.exception("refresh %s: recording the unchanged state failed", src.id[:8])
@@ -1663,7 +1792,8 @@ def _retry_later(e: RecipeError) -> bool:
 def _spends_cap(o: RefreshOutcome) -> bool:
     # A `retry_later` slot keeps its place: the retry pass refreshes it.
     return o.status != OutcomeStatus.SKIPPED and not (
-        o.status == OutcomeStatus.UNCHANGED and o.reason == "fingerprint"
+        o.status == OutcomeStatus.UNCHANGED
+        and o.reason in (UnchangedReason.FINGERPRINT, UnchangedReason.RECENTLY_PROBED)
     )
 
 
@@ -1716,6 +1846,8 @@ def run_refresh(
                     stage_failures,
                 )
                 staging_down = True
+        elif outcome.reason == UnchangedReason.RECENTLY_PROBED:
+            pass  # wrote nothing: says nothing about the store
         elif outcome.status in (OutcomeStatus.REFRESHED, OutcomeStatus.UNCHANGED) or (
             outcome.status == OutcomeStatus.FAILED and outcome.reason not in _NO_WRITE
         ):
@@ -1732,7 +1864,8 @@ def run_refresh(
             if staging_down:
                 outcomes.append(RefreshOutcome(dataset_id, OutcomeStatus.SKIPPED, reason="staging_down"))
                 continue
-            # A fingerprint skip made no export, so it doesn't spend the cap.
+            # A fingerprint skip made no export (a recently-probed one not even
+            # a preview), so it doesn't spend the cap.
             if len([o for o in outcomes if _spends_cap(o)]) >= cap:
                 outcomes.append(RefreshOutcome(dataset_id, OutcomeStatus.SKIPPED, reason="cap"))
                 continue

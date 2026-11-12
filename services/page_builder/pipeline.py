@@ -673,6 +673,11 @@ def summarize_for_log(summary: dict) -> list[str]:
         if (o.get("status") == "skipped" and o.get("reason") == "up_to_date"
                 and o.get("issue") is None):
             continue
+        # A pending no-op bump inside REFRESH_REPROBE_MIN_HOURS: nothing was
+        # fetched or written, and hourly runs would repeat the line all day.
+        if (o.get("status") == "unchanged" and o.get("reason") == "recently_probed"
+                and o.get("issue") is None):
+            continue
         kept = {k: v for k, v in o.items() if v is not None and v != {} and v != []}
         lines.append(line({"refresh_outcome": kept}))
     return lines
