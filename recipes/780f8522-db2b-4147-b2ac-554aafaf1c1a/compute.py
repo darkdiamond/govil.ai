@@ -12,7 +12,21 @@ import re
 import pandas as pd
 from govlib import fmt, frame
 
-NUM, NAME, LINK = "MonitoringStationNum", "MonitoringStationName", "File"
+NUM, NAME, LINK = "num", "name_raw", "link_raw"
+# The upstream column names have flipped between a Hebrew and an English set
+# more than once; accept either, mapped to the internal names above.
+COLUMN_SETS = [
+    {"מספר תחנת ניטור": NUM, "שם תחנת ניטור": NAME, "קישור לתחנת ניטור": LINK},
+    {"MonitoringStationNum": NUM, "MonitoringStationName": NAME, "File": LINK},
+]
+
+
+def _normalize_columns(df):
+    for mapping in COLUMN_SETS:
+        if all(c in df.columns for c in mapping):
+            return df[list(mapping)].rename(columns=mapping)
+    sets = " / ".join(", ".join(m) for m in COLUMN_SETS)
+    raise ValueError(f"stations: neither column set is complete ({sets}); got {list(df.columns)}")
 HREF_RE = re.compile(r'href\s*=\s*["\']([^"\']+)["\']', re.IGNORECASE)
 
 # Test records the ministry left in the list ("בדיקה", "תחנה חדשה", a bare
@@ -68,9 +82,10 @@ def place_of(name):
 
 
 def _prepare(df):
-    df = df.copy()
+    df = _normalize_columns(df)
     df["name"] = frame.clean_series(df[NAME])
-    # The File column holds an HTML anchor; the link is its href (or the bare URL).
+    # The Hebrew-set link column holds a bare URL; the English `File` column
+    # held an HTML anchor, so take its href when there is one.
     raw = frame.clean_series(df[LINK])
     href = raw.str.extract(HREF_RE)[0]
     df["link"] = href.where(href.notna(), raw.where(~raw.str.contains("<", regex=False), "")).fillna("").str.strip()

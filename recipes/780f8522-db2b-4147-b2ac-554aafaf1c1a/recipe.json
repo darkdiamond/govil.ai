@@ -1,21 +1,18 @@
 {
   "contract_version": 1,
   "dataset_id": "780f8522-db2b-4147-b2ac-554aafaf1c1a",
-  "recipe_version": 2,
-  "authored_at": "2026-11-12T06:35:00Z",
+  "recipe_version": 3,
+  "authored_at": "2026-11-12T14:45:00Z",
   "authored_against": {
-    "metadata_modified": "2026-11-11T20:00:57.258301+00:00",
-    "rows": { "stations": 159 }
+    "metadata_modified": "2026-11-12T08:01:09.635450+00:00",
+    "rows": {
+      "stations": 159
+    }
   },
   "inputs": [
     {
       "name": "stations",
-      "by_id": "57c61b80-a561-4e4c-a77d-e7e9bd4b2e15",
-      "required_columns": [
-        "MonitoringStationNum",
-        "MonitoringStationName",
-        "File"
-      ]
+      "by_id": "57c61b80-a561-4e4c-a77d-e7e9bd4b2e15"
     }
   ],
   "min_insights": 3,

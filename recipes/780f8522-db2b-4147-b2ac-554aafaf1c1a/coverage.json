@@ -1,5 +1,5 @@
 {
-  "stations.MonitoringStationNum": "chart-blocks, kpi:span, insight:numbering, insight:tests, insight:duplicates, insight:links, table:directory — numbering blocks of 100 (1000 once numbers pass 2000)",
-  "stations.MonitoringStationName": "chart-kinds, chart-places, kpi:stations, kpi:fixed, kpi:mobile, kpi:tests, insight:mix, insight:tests, insight:cluster, insight:operator, table:directory — kind (fixed/mobile/test) and place cluster derived from the name",
-  "stations.File": "insight:links — host, ZIP format and file name vs station number; the column holds an HTML anchor, href parsed; links point to a cdn-qa host, so not linked from the page (the explorer shows them)"
+  "stations.מספר תחנת ניטור": "chart-blocks, kpi:span, insight:numbering, insight:tests, insight:duplicates, insight:links, table:directory — numbering blocks of 100 (1000 once numbers pass 2000)",
+  "stations.שם תחנת ניטור": "chart-kinds, chart-places, kpi:stations, kpi:fixed, kpi:mobile, kpi:tests, insight:mix, insight:tests, insight:cluster, insight:operator, table:directory — kind (fixed/mobile/test) and place cluster derived from the name",
+  "stations.קישור לתחנת ניטור": "insight:links — host, ZIP format and file name vs station number; a bare URL (older uploads held an HTML anchor, href parsed); links point to an air-monitoring-dev host, so not linked from the page (the explorer shows them)"
 }

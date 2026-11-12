@@ -1,0 +1,25 @@
+{
+  "contract_version": 1,
+  "dataset_id": "a725b698-e7e2-4452-9c74-2e8d1a546d7f",
+  "recipe_version": 1,
+  "authored_at": "2026-11-12T15:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-11-12T07:01:39.027245+00:00",
+    "rows": { "labs": 93 }
+  },
+  "inputs": [
+    {
+      "name": "labs",
+      "by_id": "bfab076e-827a-4fc4-b5ba-9c27c9fc884c",
+      "required_columns": [
+        "certification_standard",
+        "lab_number",
+        "lab_name",
+        "recognition_validity",
+        "comments"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

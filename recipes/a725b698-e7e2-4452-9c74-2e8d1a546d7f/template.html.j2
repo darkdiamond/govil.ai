@@ -1,0 +1,276 @@
+{% import "gov.j2" as gov %}
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+{{ gov.lede(model.labels.lede) }}
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור מעבדה מוכרת לפי שם, מספר מעבדה או תקן ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר: התקן או סוג המערכת, מספר המעבדה, שם המעבדה, תוקף ההכרה והערות ההיקף.</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+  {{ gov.kpi(model.kpis.labs, "מעבדות מוכרות (עם מספר מעבדה)") }}
+  {{ gov.kpi(model.kpis.standards, "תקנים וסוגי בדיקה ברשימה") }}
+  {{ gov.kpi(model.kpis.recs, "הכרות (מעבדה ותקן)") }}
+  {{ gov.kpi(model.kpis.half, "מעבדות המוכרות בלפחות מחצית התקנים") }}
+  {{ gov.kpi(model.kpis.noted, "הכרות עם הערת היקף") }}
+  {{ gov.kpi(model.kpis.first, "תאריך התוקף המוקדם ביותר ברשימה") }}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("chart-bar", "כמה מעבדות מוכרות בכל תקן") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.std_lede }}</p>
+  {{ gov.chart("chart-std", model.labels.std_aria, "h-96 md:h-[460px]") }}
+  {{ gov.table(model.labels.std_aria, ["תקן", "מעבדות", "מהן עם הערה"], model.tables.std, ltr=(1, 2)) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("building-2", "היקף ההכרה של כל מעבדה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.lab_lede }}</p>
+  {{ gov.chart("chart-lab", model.labels.lab_aria, "h-96 md:h-[460px]") }}
+  {{ gov.table(model.labels.lab_aria, ["מעבדה", "תקנים", "מהם עם הערה"], model.tables.lab_chart, ltr=(1, 2)) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "מפת ההכרות: מעבדה מול תקן") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.matrix_lede }}</p>
+  <div id="chart-matrix" class="h-[480px] md:h-[520px]" role="img" data-fallback="explorer" aria-label="{{ model.labels.matrix_aria }}"></div>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ gov.head("chart-bar", "כמה תקנים למעבדה") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.breadth_lede }}</p>
+    {{ gov.chart("chart-breadth", model.labels.breadth_aria, "h-64 md:h-80") }}
+    {{ gov.table(model.labels.breadth_aria, ["מספר תקנים", "מעבדות"], model.tables.breadth, ltr=(0, 1)) }}
+  </section>
+{% if model.flags.has_valid %}
+  <section class="card p-5">
+    {{ gov.head("calendar", "מתי מסתיים תוקף ההכרות") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.valid_lede }}</p>
+    {{ gov.chart("chart-valid", model.labels.valid_aria, "h-64 md:h-80") }}
+    {{ gov.table(model.labels.valid_aria, ["תקופה", "הכרות", "מעבדות"], model.tables.valid, ltr=(1, 2)) }}
+  </section>
+{% endif %}
+</div>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "כל המעבדות המוכרות") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.labs_lede }}</p>
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <caption class="sr-only">{{ model.labels.labs_cap }}</caption>
+      <thead><tr>
+        <th scope="col" class="px-2 py-1 text-start">מעבדה</th>
+        <th scope="col" class="px-2 py-1 text-start">מספר</th>
+        <th scope="col" class="px-2 py-1 text-start">תקנים</th>
+        <th scope="col" class="px-2 py-1 text-start">עם הערה</th>
+        <th scope="col" class="px-2 py-1 text-start">תוקף ההכרה</th>
+      </tr></thead>
+      <tbody>
+{%- for r in model.tables.labs %}
+        <tr class="border-t border-rule"><th scope="row" class="px-2 py-1 text-start font-normal">{{ r[0] }}</th><td class="px-2 py-1 text-start tabular-nums" dir="ltr">{{ r[1] }}</td><td class="px-2 py-1 text-start tabular-nums" dir="ltr">{{ r[2] }}</td><td class="px-2 py-1 text-start tabular-nums" dir="ltr">{{ r[3] }}</td><td class="px-2 py-1 text-start tabular-nums whitespace-nowrap" dir="ltr">{{ r[4] }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+{% if model.flags.has_notes %}
+<section class="card p-5 mb-6">
+  {{ gov.head("tag", "הערות היקף נפוצות") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.notes_lede }}</p>
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <caption class="sr-only">{{ model.labels.notes_cap }}</caption>
+      <thead><tr>
+        <th scope="col" class="px-2 py-1 text-start">הערה</th>
+        <th scope="col" class="px-2 py-1 text-start">הכרות</th>
+        <th scope="col" class="px-2 py-1 text-start">תקנים</th>
+      </tr></thead>
+      <tbody>
+{%- for r in model.tables.notes %}
+        <tr class="border-t border-rule"><th scope="row" class="px-2 py-1 text-start font-normal">{{ r[0] }}</th><td class="px-2 py-1 text-start tabular-nums" dir="ltr">{{ r[1] }}</td><td class="px-2 py-1 text-start">{{ r[2] }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+
+{% if model.flags.has_others %}
+<section class="card p-5 mb-6">
+  {{ gov.head("info", "גופים ללא מספר מעבדה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.oth_lede }}</p>
+  <table class="w-full text-sm">
+    <caption class="sr-only">{{ model.labels.oth_cap }}</caption>
+    <thead><tr>
+      <th scope="col" class="px-2 py-1 text-start">גוף</th>
+      <th scope="col" class="px-2 py-1 text-start">תקנים</th>
+    </tr></thead>
+    <tbody>
+{%- for r in model.tables.others %}
+      <tr class="border-t border-rule"><th scope="row" class="px-2 py-1 text-start font-normal">{{ r[0] }}</th><td class="px-2 py-1 text-start tabular-nums" dir="ltr">{{ r[1] }}</td></tr>
+{%- endfor %}
+    </tbody>
+  </table>
+</section>
+{% endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("triangle-alert", "לפני שבוחרים מעבדה") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm text-subtle">
+    <li>הרשימה מתעדכנת מעת לעת. יש לבדוק את תוקף ההכרה מול הרשות הארצית לכבאות והצלה, במנוע החיפוש שלה או במסמך המלא.</li>
+    <li>מעבדה מוסמכת שהוכרה על ידי הרשות לפני פרסום הרשימה ושמה אינו מופיע בה רשאית לפנות לרשות הארצית לכבאות והצלה.</li>
+    <li>המעבדות מחויבות להכיר את השינויים בתקנים שלפיהם הוכרו ולהתאים את נהליהן אליהם.</li>
+    <li>הערת ההיקף של הכרה מגבילה או מרחיבה אותה (סעיפים מסוימים, סוג מערכת מסוים), ולכן כדאי לקרוא אותה לפני הזמנת בדיקה.</li>
+  </ul>
+</section>
+
+<style>
+  @media (max-width: 639px) {
+    #chart-std, #chart-lab { height: 30rem !important; }
+  }
+</style>
+
+<script>
+  (function () {
+    var d = {{ model.charts.std | tojson }};
+    var enc = echarts.format.encodeHTML;
+    var el = document.getElementById("chart-std");
+    var c = echarts.init(el);
+    function lw() { return el.clientWidth < 520 ? 130 : 280; }
+    function opt() {
+      return {
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+          var i = ps[0].dataIndex;
+          return enc(d.full[i]) + "<br>" + (d.plain[i] + d.noted[i]).toLocaleString("he-IL") + " מעבדות, מהן " +
+            d.noted[i].toLocaleString("he-IL") + " עם הערת היקף";
+        } },
+        legend: { bottom: 0, left: "center" },
+        grid: { left: 16, right: 32, top: 8, bottom: 36, containLabel: true },
+        xAxis: { type: "value", minInterval: 1, splitNumber: 4 },
+        yAxis: { type: "category", data: d.names, inverse: true,
+                 axisLabel: { width: lw(), overflow: "truncate", fontSize: 11 } },
+        series: [
+          { type: "bar", name: "ללא הערה", stack: "all", data: d.plain, itemStyle: { color: "#0068f5" } },
+          { type: "bar", name: "עם הערת היקף", stack: "all", data: d.noted, itemStyle: { color: "#0b3668" },
+            label: { show: true, position: "right", color: "#0c3058",
+                     formatter: function (p) { return (d.plain[p.dataIndex] + d.noted[p.dataIndex]).toLocaleString("he-IL"); } } }
+        ]
+      };
+    }
+    c.setOption(window.GovEcharts.option(opt()));
+    window.addEventListener("resize", function () { c.setOption(opt()); c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.lab | tojson }};
+    var enc = echarts.format.encodeHTML;
+    var el = document.getElementById("chart-lab");
+    var c = echarts.init(el);
+    function lw() { return el.clientWidth < 520 ? 130 : 260; }
+    function opt() {
+      return {
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+          var i = ps[0].dataIndex;
+          return enc(d.names[i]) + "<br>" + (d.plain[i] + d.noted[i]).toLocaleString("he-IL") + " מתוך " +
+            d.total.toLocaleString("he-IL") + " תקנים, מהם " + d.noted[i].toLocaleString("he-IL") + " עם הערת היקף";
+        } },
+        legend: { bottom: 0, left: "center" },
+        grid: { left: 16, right: 32, top: 8, bottom: 36, containLabel: true },
+        xAxis: { type: "value", minInterval: 1, max: d.total, splitNumber: 4 },
+        yAxis: { type: "category", data: d.names, inverse: true,
+                 axisLabel: { width: lw(), overflow: "truncate", fontSize: 11 } },
+        series: [
+          { type: "bar", name: "ללא הערה", stack: "all", data: d.plain, itemStyle: { color: "#0068f5" } },
+          { type: "bar", name: "עם הערת היקף", stack: "all", data: d.noted, itemStyle: { color: "#0b3668" },
+            label: { show: true, position: "right", color: "#0c3058",
+                     formatter: function (p) { return (d.plain[p.dataIndex] + d.noted[p.dataIndex]).toLocaleString("he-IL"); } } }
+        ]
+      };
+    }
+    c.setOption(window.GovEcharts.option(opt()));
+    window.addEventListener("resize", function () { c.setOption(opt()); c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.matrix | tojson }};
+    var enc = echarts.format.encodeHTML;
+    var el = document.getElementById("chart-matrix");
+    var c = echarts.init(el);
+    function narrow() { return el.clientWidth < 520; }
+    function opt() {
+      return {
+        tooltip: { position: "top", confine: true, extraCssText: "max-width:320px;white-space:normal;", formatter: function (p) {
+          var i = p.value[0], j = p.value[1];
+          return enc(d.x_names[i]) + " (" + enc(d.x[i]) + ")<br>" + enc(d.y[j]) +
+            (p.value[3] >= 0 ? "<br>הערת היקף: " + enc(d.notes[p.value[3]]) : "<br>הכרה ללא הערה");
+        } },
+        grid: { left: 8, right: 8, top: 8, bottom: 64, containLabel: true },
+        xAxis: { type: "category", data: d.x, name: "מספר מעבדה", nameLocation: "middle", nameGap: 28,
+                 splitArea: { show: true }, axisLabel: { interval: 0, fontSize: narrow() ? 9 : 11, rotate: narrow() ? 60 : 0 } },
+        yAxis: { type: "category", data: d.y, inverse: true, splitArea: { show: true },
+                 axisLabel: { width: narrow() ? 110 : 260, overflow: "truncate", fontSize: narrow() ? 9 : 11 } },
+        visualMap: { type: "piecewise", dimension: 2, orient: "horizontal", left: "center", bottom: 0,
+                     pieces: [{ value: 1, label: "הכרה", color: "#0068f5" },
+                              { value: 2, label: "הכרה עם הערת היקף", color: "#0b3668" }],
+                     textStyle: { fontFamily: "Rubik", color: "#0c3058" } },
+        series: [{ type: "heatmap", data: d.cells, itemStyle: { borderColor: "#fff", borderWidth: 2 },
+                   emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } } }]
+      };
+    }
+    c.setOption(window.GovEcharts.option(opt()));
+    window.addEventListener("resize", function () { c.setOption(opt()); c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.breadth | tojson }};
+    var c = echarts.init(document.getElementById("chart-breadth"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        return ps[0].value.toLocaleString("he-IL") + " מעבדות מוכרות ב-" + ps[0].name + " תקנים";
+      } },
+      grid: { left: 16, right: 16, top: 24, bottom: 32, containLabel: true },
+      xAxis: { type: "category", data: d.x, name: "תקנים", nameLocation: "middle", nameGap: 24, axisLabel: { interval: 0 } },
+      yAxis: { type: "value", minInterval: 1, splitNumber: 4 },
+      series: [{ type: "bar", name: "מעבדות", data: d.y, barMaxWidth: 40,
+                 label: { show: true, position: "top", color: "#0c3058" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+{% if model.flags.has_valid %}
+<script>
+  (function () {
+    var d = {{ model.charts.valid | tojson }};
+    var c = echarts.init(document.getElementById("chart-valid"));
+    c.setOption(window.GovEcharts.option({
+      color: ["#0068f5", "#0b3668"],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0, left: "center" },
+      grid: { left: 16, right: 16, top: 24, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { interval: 0, rotate: 45, fontSize: 10 } },
+      yAxis: { type: "value", minInterval: 1, splitNumber: 4 },
+      series: [
+        { type: "bar", name: "הכרות", data: d.rec, barMaxWidth: 32, label: { show: true, position: "top", color: "#0c3058" } },
+        { type: "bar", name: "מעבדות", data: d.labs, barMaxWidth: 32 }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{% endif %}
