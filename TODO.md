@@ -8,14 +8,6 @@ This repo is public: describe a security gap by what to change, never by how to 
 
 ## Recipes and refresh
 
-- **Auto-merged recipe code still runs with the builder SA's network reach.** The authoring
-  routine now merges its own batch PR when `services/page_builder/automerge_guard.py` passes,
-  so model-written `compute.py` reaches `main` with no human review. The guard limits paths,
-  imports and pandas/numpy I/O, but it is a static check, and the compute sandbox can still reach
-  the GCP metadata server (CLAUDE.md, "Sandbox boundary"). Fix: cut the sandbox's network
-  (run compute in a network namespace with no route out, or at least none to the metadata
-  server), so a bad recipe can't reach the SA token whatever the guard misses. (2026-11-12)
-
 - **`public_resource_url` raises on a malformed bracketed host.** `urlsplit` throws
   `ValueError` for a resource URL like `https://[::1/x`, so `Dataset.from_ckan_response` fails
   for the whole dataset instead of blanking that one URL (the frontend mirror just returns it).
@@ -330,15 +322,13 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
   would leave them behind. Fix: use the `FailReason` members, and add members for
   `staging_down` and the strike keys. (2026-11-11)
 
-- **Recipe compute can reach the builder SA's credentials, and those reach too far.** Compute
-  runs as its own uid with a scrubbed env, but it can reach the metadata server, and the builder
-  SA's grants cover the dispatch-token secret, project-wide Firestore (the `news` database too)
-  and the whole staging bucket (`news/`, `models/`). The publisher SA has `datastore.user`
-  where it only reads. Fix: condition the builder's `roles/datastore.user` to the `(default)`
-  database, give the publisher `roles/datastore.viewer`, optionally condition the bucket grant
-  to exclude `news/`, and run compute in a private network namespace so it can't reach the
-  metadata server (it gets its inputs as files). Until then CLAUDE.md's sandbox paragraph should
-  say what compute can reach. (2026-11-11)
+- **The builder SA's grants reach too far.** Recipe compute no longer reaches the metadata
+  server (netguard's seccomp filter), but the builder SA's grants still cover the
+  dispatch-token secret, project-wide Firestore (the `news` database too) and the whole
+  staging bucket (`news/`, `models/`), and the publisher SA has `datastore.user` where it only
+  reads. Fix: condition the builder's `roles/datastore.user` to the `(default)` database, give
+  the publisher `roles/datastore.viewer`, and optionally condition the bucket grant to exclude
+  `news/`. (2026-11-11)
 
 - **The sandbox fails open without its user, and its straggler reaper is narrow.** With no
   `sandbox` user in the image and `SANDBOX_USER` unset, `_resolve_sandbox_identity` warns and runs

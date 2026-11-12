@@ -68,6 +68,9 @@ REFRESH_PRECHECK_MAX_AGE_DAYS=${REFRESH_PRECHECK_MAX_AGE_DAYS:-14}
 # the trademarks registry (656f6e4c), whose main file exports at ~368MB;
 # REFRESH_TOTAL_BYTES (600MB) still bounds a whole dataset.
 REFRESH_MAX_BYTES=${REFRESH_MAX_BYTES:-450000000}
+# Recipe compute gets no network (seccomp filter, services/page_builder/netguard.py).
+# `allow` turns the filter off: an emergency rollback only.
+REFRESH_COMPUTE_NETWORK=${REFRESH_COMPUTE_NETWORK:-deny}
 # Strike counts are in runs, so at hourly ticks a few hours of CKAN trouble
 # would reach them: an escalation also needs the run of strikes to have begun
 # at least this many hours ago (0 = count only).
@@ -121,6 +124,7 @@ ENV_PAIRS=(
   "REFRESH_PRECHECK=${REFRESH_PRECHECK}"
   "REFRESH_PRECHECK_MAX_AGE_DAYS=${REFRESH_PRECHECK_MAX_AGE_DAYS}"
   "REFRESH_MAX_BYTES=${REFRESH_MAX_BYTES}"
+  "REFRESH_COMPUTE_NETWORK=${REFRESH_COMPUTE_NETWORK}"
   "PROVIDER_BOI_SDMX_ENABLED=${PROVIDER_BOI_SDMX_ENABLED}"
   "PROVIDER_CBS_RELEASES_ENABLED=${PROVIDER_CBS_RELEASES_ENABLED}"
   "PROVIDER_CBS_INDEX_ENABLED=${PROVIDER_CBS_INDEX_ENABLED}"

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+import platform
 
 import pytest
 
@@ -75,3 +76,13 @@ def _no_retry_pass_wait(monkeypatch):
     """The refresh's end-of-run retry pass waits REFRESH_RETRY_DELAY_S (120s)
     for CKAN to recover; tests that want the wait inject `sleep`."""
     monkeypatch.setenv("REFRESH_RETRY_DELAY_S", "0")
+
+
+@pytest.fixture(autouse=True)
+def _compute_network_where_unsupported(monkeypatch):
+    """Recipe compute denies itself the network with a Linux x86_64 seccomp
+    filter (netguard), which can't install elsewhere; there tests that spawn
+    real compute run it with REFRESH_COMPUTE_NETWORK=allow. On Linux x86_64
+    (CI, the builder) the default `deny` is exercised by every such test."""
+    if not (platform.system() == "Linux" and platform.machine() == "x86_64"):
+        monkeypatch.setenv("REFRESH_COMPUTE_NETWORK", "allow")

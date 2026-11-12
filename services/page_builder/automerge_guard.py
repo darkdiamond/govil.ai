@@ -111,7 +111,8 @@ BANNED_ATTRS = frozenset({
 # process, whatever the receiver: allowed modules carry others as attributes
 # (`calendar.sys.modules["os"]`, `pd.core.common.os`), which walks around the
 # import allowlist. With every `_`-prefixed attribute banned too, this is the
-# static half; cutting the sandbox's network is the real boundary (TODO.md).
+# static half; the run-time boundary is compute's seccomp no-network filter
+# (netguard.py, REFRESH_COMPUTE_NETWORK).
 ESCAPE_ATTRS = frozenset({
     "sys", "os", "posix", "nt", "modules", "environ", "environb", "getenv", "putenv",
     "importlib", "import_module", "builtins", "subprocess", "socket", "ssl", "select",

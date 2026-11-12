@@ -39,9 +39,13 @@ Accepted residual risk (documented in CLAUDE.md): with privilege
 separation, tool processes can no longer read the builder process's
 environment (/proc/<pid>/environ is same-uid only) or modify the image's
 code under /app (root-owned, not writable by `sandbox`) — including the
-host-side agent/skills/check.py gate. They CAN still reach the network,
-including the GCP metadata server, and so obtain the builder service
-account's token. The SA must therefore stay minimal: Firestore + the
+host-side agent/skills/check.py gate. Network: this class doesn't cut it;
+the refresh's compute prologue does (refresh.py `_network_guard`): under
+REFRESH_COMPUTE_NETWORK=deny (the default) the child installs a seccomp
+filter (netguard.py) that refuses every non-AF_UNIX socket before recipe
+code loads, so compute can't reach the GCP metadata server and the builder
+service account's token. Other code run through this class (none in prod
+today) has no such filter. The SA must still stay minimal: Firestore + the
 staging bucket + running the publish trigger only. Concurrent sessions
 share the one `sandbox` uid, so a hostile session could in principle
 tamper with a sibling session's workdir; each sibling's output still has
