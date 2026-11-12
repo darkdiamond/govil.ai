@@ -511,3 +511,23 @@ def test_module_walks_aliases_and_match_are_rejected(corpus, src):
 ])
 def test_known_chains_and_local_shadows_are_fine(corpus, src):
     assert _compute(src, corpus) == [], src
+
+
+@pytest.mark.parametrize("src", [
+    "def f(df):\n    w = df.to_csv\n    w('/tmp/x')\n",
+    "def f(df):\n    return [df.to_json][0]('/tmp/x')\n",
+    "def f(df):\n    q = df.query\n    return q('a > 1')\n",
+    "def f(df):\n    return df.agg('to_csv', '/tmp/x')\n",
+    "def f(df):\n    return df.apply('eval')\n",
+    "def f(df):\n    return df.agg({'a': 'read_csv'})\n",
+])
+def test_writer_refs_and_name_dispatch_are_rejected(corpus, src):
+    assert _compute(src, corpus), src
+
+
+@pytest.mark.parametrize("src", [
+    "def f(df):\n    return df.to_string(index=False)\n",
+    "def f(df):\n    return df.agg('sum'), {'k': 'to_date'}\n",
+])
+def test_direct_calls_and_plain_strings_are_fine(corpus, src):
+    assert _compute(src, corpus) == [], src
