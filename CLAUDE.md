@@ -175,7 +175,12 @@ landing pages. Six layers:
    per dataset. Issues an open same-repo PR already closes (an earlier
    batch awaiting merge) are skipped; nothing left → no PR. A batch still
    running in its worktree makes the next slot stop. A dataset it can't finish gets the `authoring-blocked`
-   label + a comment. A human merges; the next job run renders it.
+   label + a comment. It merges its own PR (never any other) only when
+   `automerge_guard.py <n>` (main's copy, run standalone) passes (CI green;
+   only recipe files + `dataset-tags.json`; allowlisted `compute.py` imports;
+   no recipe.json field or govlib helper main lacks) and the review left no
+   open findings; otherwise the PR stays open for a human. The next job run
+   renders it.
 4. **Publisher** — GitHub Actions workflow
    `.github/workflows/publish.yml` ($0 — free-tier minutes; keyless GCP
    auth via WIF, `infra/github-ci.setup.sh`). Fired two ways: the
@@ -810,8 +815,10 @@ must-revalidate, s-maxage=600` (browsers revalidate via ETag; Firebase's CDN
   it can't read the builder's `/proc/<pid>/environ` or modify `/app`
   (incl. the host-side `check.py`). It CAN still reach the network,
   including the GCP metadata server, i.e. the builder SA token. Recipe
-  code is model-written but human-reviewed and merged to `main` before
-  it runs; still, keep that SA minimal (Firestore + staging bucket +
+  code is model-written and merged to `main` before it runs, either
+  human-reviewed or auto-merged by the authoring routine through
+  `services/page_builder/automerge_guard.py` (paths, import allowlist, I/O
+  bans; TODO.md has the network fix); still, keep that SA minimal (Firestore + staging bucket +
   publish-trigger only) and never widen its roles for convenience.
 
 ## Gotchas + open issues
