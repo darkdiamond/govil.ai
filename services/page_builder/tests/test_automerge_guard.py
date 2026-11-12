@@ -460,3 +460,30 @@ def test_govlib_submodules_match_main():
     mods = {f"govlib.{p.stem}" for p in (ROOT / g.GOVLIB_DIR).glob("*.py")
             if p.stem != "__init__"}
     assert mods == set(g.ALLOWED_SUBMODULES)
+
+
+@pytest.mark.parametrize("src", [
+    "import pandas as pd\nx = pd.compat.pickle_compat.loads(b'')\n",
+    "import pandas as pd\nm = pd\nm.compat\n",
+    "import pandas as pd\ndef f():\n    return pd\n",
+    "import numpy as np\nnp.random.bit_generator.x\n",
+    "from pandas import compat\n",
+    "from pandas import DataFrame\n",
+    "import pandas as pd\npd.core.frame.DataFrame\n",
+    "def f(x):\n    match x:\n        case object(real=r):\n            return r\n",
+    "import pandas as pd\npd.unpickle_thing\n",
+    "from govlib import fmt\nf = fmt\n",
+])
+def test_module_walks_aliases_and_match_are_rejected(corpus, src):
+    assert _compute(src, corpus), src
+
+
+@pytest.mark.parametrize("src", [
+    "import pandas as pd\nx = pd.Timestamp.max.year\n",
+    "import numpy as np\ndef f(a, i, v):\n    np.add.at(a, i, v)\n",
+    "import pandas as pd\nx = pd.offsets.MonthEnd(0)\n",
+    "from govlib import fmt\ndef f(frames):\n    fmt = frames['fmt']\n    return fmt['x']\n",
+    "def f(rows):\n    return [r.core for r in rows]\n",
+])
+def test_known_chains_and_local_shadows_are_fine(corpus, src):
+    assert _compute(src, corpus) == [], src
