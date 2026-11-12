@@ -1,11 +1,17 @@
-"""Builder pipeline — what one job execution (06:00 or 14:00 tick) does.
+"""Builder pipeline — what one job execution (one Cloud Scheduler tick) does.
 
-Cloud Scheduler, 06:00 + 14:00 Asia/Jerusalem: scan CKAN → refresh every recipe'd
-source CKAN moved past (deterministic, no LLM — services/page_builder/
-refresh.py) → queue every new or changed source that has no recipe for
-authoring (one `needs-authoring` GitHub issue each, solved by the daily
-local Claude Code routine) → if ≥1 page re-rendered (or an earlier run's
-dispatch failed), trigger the publisher.
+Each tick (Asia/Jerusalem; see infra/ for the schedule): scan CKAN → refresh
+every recipe'd source CKAN moved past (deterministic, no LLM —
+services/page_builder/refresh.py) → queue every new or changed source that has
+no recipe for authoring (one `needs-authoring` GitHub issue each, solved by
+the daily local Claude Code routine) → if ≥1 page re-rendered (or an earlier
+run's dispatch failed), trigger the publisher.
+
+A scheduled run (not dry, no `--source`) first checks QUIET_WINDOW (ends
+`skipped_quiet`) and then takes the `job_state/run` lease (ends
+`skipped_overlap` while another execution holds it), so frequent ticks never
+overlap. AUTHORING_QUEUE_HOURS limits the authoring queue to listed Israel
+hours. Every knob unset = run every step on every tick.
 
 No model runs here. A recipe merged to main is picked up on the next run
 (the refresh reads recipes/ straight from git).
@@ -16,14 +22,23 @@ import argparse
 import asyncio
 import logging
 import os
+import time
+import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
 from services.scanner.config import ScannerSettings
 from services.scanner.main import Scanner
-from services.shared import github
+from services.shared import github, lease, schedule
+from services.shared.env import env_float, env_int
 from services.shared.firestore import FirestoreStateStore
-from services.shared.states import NO_DATA_STATUSES, AuthoringReason, RunStatus
+from services.shared.states import (
+    NO_DATA_STATUSES,
+    AuthoringReason,
+    OutcomeStatus,
+    RunStatus,
+    UnchangedReason,
+)
 
 from . import refresh as _refresh
 from . import selector
@@ -44,6 +59,16 @@ FAILED_RUN_STATUSES = frozenset({
     RunStatus.REFRESH_UNAVAILABLE, RunStatus.REFRESH_FAILED, RunStatus.PUBLISH_FAILED,
     RunStatus.SCAN_FAILED, RunStatus.AUTHORING_FAILED, RunStatus.RECONCILE_FAILED,
 })
+
+# The run lease (services/shared/lease.py): one scheduled execution at a time.
+# A heartbeat renews it while the run works, so its TTL (RUN_LEASE_TTL_S) is
+# short: it only bounds how long a run that died without releasing (task
+# timeout, OOM) keeps later ticks out.
+RUN_LEASE_DOC = "job_state/run"
+RUN_LEASE_TTL_DEFAULT_S = 900.0
+# Reconcile sweeps started per IL date (RECONCILE_MAX_ATTEMPTS): an aborted or
+# crashed sweep is retried by later runs that day, up to this many in all.
+RECONCILE_MAX_ATTEMPTS_DEFAULT = 2
 
 
 def _run_status(*, refresh_broken: bool, scan_failed: bool, authoring_broken: bool,
@@ -73,13 +98,38 @@ def _reconcile_due(now: datetime, *, enabled: bool, weekday: int) -> bool:
 
 def _reconciled_today(store, now: datetime) -> bool:
     """Whether a sweep already finished on `now`'s (IL) date: the job runs
-    twice a day, and one sweep a week is enough. A marker read failure
+    several times a day, and one sweep a week is enough. A marker read failure
     answers False, so the sweep runs rather than being skipped."""
     try:
         return store.get_job_marker("reconcile").get("last_date") == now.date().isoformat()
     except Exception:
         log.warning("reconcile: couldn't read the last-sweep marker", exc_info=True)
         return False
+
+
+def _claim_reconcile_attempt(store, now: datetime, max_attempts: int) -> bool:
+    """Count one more sweep attempt for `now`'s IL date in `job_state/reconcile`
+    (`attempt_date`, `attempts`), before the sweep starts, so a sweep that
+    crashes or is killed still counts. False (no sweep) once `max_attempts`
+    were made that date. A marker read or write failure answers True: the
+    sweep runs, as it did before attempts were counted."""
+    today = now.date().isoformat()
+    try:
+        marker = store.get_job_marker("reconcile")
+    except Exception:
+        log.warning("reconcile: couldn't read the attempts marker", exc_info=True)
+        return True
+    made = int(marker.get("attempts") or 0) if marker.get("attempt_date") == today else 0
+    if made >= max_attempts:
+        log.warning("reconcile: %d sweep attempt(s) already made on %s "
+                    "(RECONCILE_MAX_ATTEMPTS=%d); not sweeping again today",
+                    made, today, max_attempts)
+        return False
+    try:
+        store.set_job_marker("reconcile", {"attempt_date": today, "attempts": made + 1})
+    except Exception:
+        log.warning("reconcile: couldn't record the sweep attempt", exc_info=True)
+    return True
 
 
 def _publish_pending(store) -> bool | None:
@@ -191,6 +241,7 @@ class PipelineSettings:
     publish_region: str
     reconcile_enabled: bool
     reconcile_weekday: int
+    reconcile_max_attempts: int = RECONCILE_MAX_ATTEMPTS_DEFAULT
 
     @classmethod
     def from_env(cls, *, require_staging_bucket: bool) -> PipelineSettings:
@@ -199,7 +250,7 @@ class PipelineSettings:
         and falls back to Sunday. `require_staging_bucket` (a real run) raises
         when GCS_STAGING_BUCKET is unset, before the reconcile knobs are read."""
         # SCAN_LIMIT bounds how many CKAN datasets (sorted metadata_modified
-        # desc) the daily scan ingests into Firestore. The authoring queue can
+        # desc) each scan ingests into Firestore. The authoring queue can
         # only see what's been scanned, so this must cover the eligible window:
         # 2026 (~433) + 2025 (~92) → 800 with headroom. Raise it in lockstep
         # when MIN_MODIFIED_FLOOR drops to admit an older year.
@@ -251,6 +302,8 @@ class PipelineSettings:
             log.warning("invalid RECONCILE_WEEKDAY=%r — defaulting to 6 (Sunday)",
                         os.environ.get("RECONCILE_WEEKDAY"))
             reconcile_weekday = 6
+        reconcile_max_attempts = env_int("RECONCILE_MAX_ATTEMPTS",
+                                         RECONCILE_MAX_ATTEMPTS_DEFAULT)
         return cls(
             scan_limit=scan_limit,
             notify_cap=notify_cap,
@@ -265,6 +318,7 @@ class PipelineSettings:
             publish_region=publish_region,
             reconcile_enabled=reconcile_enabled,
             reconcile_weekday=reconcile_weekday,
+            reconcile_max_attempts=reconcile_max_attempts,
         )
 
 
@@ -290,7 +344,7 @@ async def _reconcile_sweep(store, config, il_now: datetime) -> tuple[dict | None
             reconcile_summary = await _reconcile.reconcile_sources(store, _ckan)
         log.info("reconcile: %s", reconcile_summary)
         if reconcile_summary.get("aborted"):
-            # No marker: the next run today sweeps again.
+            # No last_date: a later run today sweeps again (attempts allowing).
             reconcile_failed = True
         else:
             try:
@@ -304,6 +358,34 @@ async def _reconcile_sweep(store, config, il_now: datetime) -> tuple[dict | None
     return reconcile_summary, reconcile_failed
 
 
+def _lease_holder() -> str:
+    """A per-process unique lease holder id (the Cloud Run execution name
+    when there is one, for the logs)."""
+    execution = os.environ.get("CLOUD_RUN_EXECUTION", "local")
+    return f"{execution}:{os.getpid()}:{uuid.uuid4().hex[:12]}"
+
+
+def _acquire_run_lease(store, holder: str, ttl_s: float) -> bool | None:
+    """True: the lease is ours. False: another execution holds it. None: the
+    lease couldn't be read or written (Firestore error); logged at error
+    level, and the run goes on without it (a Firestore outage would fail the
+    run's own reads anyway, and skipping would hide it behind a green exit)."""
+    try:
+        return lease.acquire(store.client, RUN_LEASE_DOC, holder, ttl_s)
+    except Exception:
+        log.exception("run lease: couldn't acquire %s; running WITHOUT the lease "
+                      "(an overlapping execution is not excluded)", RUN_LEASE_DOC)
+        return None
+
+
+def _release_run_lease(store, holder: str) -> None:
+    try:
+        lease.release(store.client, RUN_LEASE_DOC, holder)
+    except Exception:
+        log.exception("run lease: couldn't release %s; it expires on its own "
+                      "(RUN_LEASE_TTL_S)", RUN_LEASE_DOC)
+
+
 async def run_pipeline(
     *,
     mode: str = "scheduled",
@@ -311,21 +393,79 @@ async def run_pipeline(
     dry_run: bool = False,
     skip_publish: bool = False,
 ) -> dict:
-    """The one entry point the job (CLI) uses."""
+    """The one entry point the job (CLI) uses. A scheduled run (not dry, no
+    override) is gated by QUIET_WINDOW and then by the run lease; the summary
+    always carries `started_at` (UTC ISO) and `duration_s`."""
+    started_at = datetime.now(UTC)
+    t0 = time.monotonic()
+    gated = mode == "scheduled" and not dry_run and not override_id
+
+    def _finish(summary: dict) -> dict:
+        summary["started_at"] = started_at.isoformat()
+        summary["duration_s"] = round(time.monotonic() - t0, 1)
+        return summary
+
+    def _skipped(status: RunStatus) -> dict:
+        return _finish({"mode": mode, "dry_run": dry_run, "status": status})
+
+    if gated and schedule.in_quiet_window("QUIET_WINDOW"):
+        log.info("inside QUIET_WINDOW=%s — nothing to do this tick",
+                 os.environ.get("QUIET_WINDOW"))
+        return _skipped(RunStatus.SKIPPED_QUIET)
+
     store = FirestoreStateStore()
+    if not gated:
+        return _finish(await _run_pipeline_body(
+            store, mode=mode, override_id=override_id, dry_run=dry_run,
+            skip_publish=skip_publish))
+
+    holder = _lease_holder()
+    ttl_s = env_float("RUN_LEASE_TTL_S", RUN_LEASE_TTL_DEFAULT_S)
+    acquired = _acquire_run_lease(store, holder, ttl_s)
+    if acquired is False:
+        log.warning("run lease %s is held by another execution — skipping this tick",
+                    RUN_LEASE_DOC)
+        return _skipped(RunStatus.SKIPPED_OVERLAP)
+    beat = lease.Heartbeat(store.client, RUN_LEASE_DOC, holder, ttl_s).start() if acquired else None
+    try:
+        summary = await _run_pipeline_body(
+            store, mode=mode, override_id=override_id, dry_run=dry_run,
+            skip_publish=skip_publish)
+    finally:
+        if beat:
+            beat.stop()
+        if acquired:
+            _release_run_lease(store, holder)
+    summary["lease"] = "held" if acquired else "error"
+    return _finish(summary)
+
+
+async def _run_pipeline_body(
+    store,
+    *,
+    mode: str,
+    override_id: str | None,
+    dry_run: bool,
+    skip_publish: bool,
+) -> dict:
+    """The run itself, once the gates in `run_pipeline` let it through."""
     config = ScannerSettings()
     settings = PipelineSettings.from_env(require_staging_bucket=not dry_run)
 
     # [0] weekly reconcile — probe already-published sources and flag those
     # removed upstream (they vanish from CKAN's list, so the scan below
     # never revisits them). Gated by RECONCILE_ENABLED + RECONCILE_WEEKDAY
-    # (Asia/Jerusalem), default off / Sunday. Full sweep, no cursor.
+    # (Asia/Jerusalem), default off / Sunday. Full sweep, no cursor. Once a
+    # sweep finished that IL date, no more; an aborted or crashed one is
+    # retried by later runs, RECONCILE_MAX_ATTEMPTS sweeps per date in all.
     reconcile_summary = None
     reconcile_failed = False
     il_now = _il_now()
     if not dry_run and not override_id and _reconcile_due(
         il_now, enabled=settings.reconcile_enabled, weekday=settings.reconcile_weekday
-    ) and not _reconciled_today(store, il_now):
+    ) and not _reconciled_today(store, il_now) and _claim_reconcile_attempt(
+        store, il_now, settings.reconcile_max_attempts
+    ):
         log.info("reconcile: due (weekday=%s) — running sweep", settings.reconcile_weekday)
         reconcile_summary, reconcile_failed = await _reconcile_sweep(store, config, il_now)
 
@@ -441,12 +581,20 @@ async def run_pipeline(
 
     # [5] authoring queue: one issue per source, idempotent. A failure here
     # (selector query, Firestore, GitHub) must not cost the publish below.
+    # AUTHORING_QUEUE_HOURS (Israel hours; unset = every run) gates it on
+    # scheduled runs; a skipped queue is not a failure. `--source` ignores it.
     authoring_broken = False
-    try:
-        to_queue = await _authoring_candidates()
-    except Exception:
-        log.exception("authoring selector failed — no issues queued this run")
-        to_queue, authoring_broken = [], True
+    if not override_id and not schedule.due_this_hour("AUTHORING_QUEUE_HOURS"):
+        log.info("authoring queue: not due this hour (AUTHORING_QUEUE_HOURS=%s)",
+                 os.environ.get("AUTHORING_QUEUE_HOURS"))
+        summary["authoring_skipped"] = "not_due_this_hour"
+        to_queue = []
+    else:
+        try:
+            to_queue = await _authoring_candidates()
+        except Exception:
+            log.exception("authoring selector failed — no issues queued this run")
+            to_queue, authoring_broken = [], True
     summary["selected_for_authoring"] = [s.id for s, _ in to_queue]
     # queue_authoring answers None only when it tried to open an issue and
     # couldn't. Without a token (a local run) that is expected; with one it
@@ -494,7 +642,7 @@ async def run_pipeline(
 
 
 def _scan_summary_dict(s) -> dict:
-    return {
+    out = {
         "sources_seen": s.datasets_scanned,
         "new": s.datasets_new,
         "updated": s.datasets_updated,
@@ -502,6 +650,10 @@ def _scan_summary_dict(s) -> dict:
         "errors": list(s.errors or []),
         "error_count": s.error_count,
     }
+    since = getattr(s, "incremental_since", None)
+    if since is not None:  # SCAN_INCREMENTAL: where the listing could stop
+        out["incremental_since"] = since.isoformat()
+    return out
 
 
 def summarize_for_log(summary: dict) -> list[str]:
@@ -532,13 +684,19 @@ def summarize_for_log(summary: dict) -> list[str]:
         if (o.get("status") == "skipped" and o.get("reason") == "up_to_date"
                 and o.get("issue") is None):
             continue
+        # A pending no-op bump inside REFRESH_REPROBE_MIN_HOURS: nothing was
+        # fetched or written, and hourly runs would repeat the line all day.
+        if (o.get("status") == OutcomeStatus.UNCHANGED
+                and o.get("reason") == UnchangedReason.RECENTLY_PROBED
+                and o.get("issue") is None):
+            continue
         kept = {k: v for k, v in o.items() if v is not None and v != {} and v != []}
         lines.append(line({"refresh_outcome": kept}))
     return lines
 
 
 def _cli() -> None:
-    p = argparse.ArgumentParser(description="Run the daily refresh pipeline locally.")
+    p = argparse.ArgumentParser(description="Run the refresh pipeline locally.")
     p.add_argument("--source",
                    help="One dataset_id: refresh it if it has a recipe, else queue "
                         "it for authoring (skips scan)")
@@ -547,9 +705,11 @@ def _cli() -> None:
     p.add_argument("--no-trigger-publish", action="store_true",
                    help="Skip the publish trigger after a refresh")
     # `--mode scheduled` is what the Cloud Run job passes, so its scan_runs
-    # bookkeeping reads as the production daily run, not a local debug run.
+    # bookkeeping reads as a production run, not a local debug run.
     p.add_argument("--mode", default="manual", choices=("manual", "scheduled"),
-                   help="Run mode recorded on the scan_runs doc")
+                   help="Run mode recorded on the scan_runs doc. `scheduled` also "
+                        "lets SCAN_INCREMENTAL apply, and (not dry, no --source) "
+                        "QUIET_WINDOW and the run lease")
     args = p.parse_args()
 
     summary = asyncio.run(

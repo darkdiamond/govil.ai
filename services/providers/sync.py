@@ -11,6 +11,12 @@ A provider with a cheap `listing_key()` (CBS) skips all of that while the key
 matches the one its last full sync stored and that sync is younger than
 `listing_recheck_days`: the doc is left as it is, with no download.
 
+`PROVIDER_<KEY>_SYNC_HOURS` (Israel-time hours, e.g. `6,12,18`) limits a
+provider's sync to those hourly ticks: in any other hour its datasets are
+skipped before the healthcheck (no network call, docs untouched), so their
+`metadata_modified` holds and the refresh has nothing new to fetch. Unset =
+every run. A run for chosen ids (`--source`) ignores it.
+
 Never raises for one dataset: a bad config or a failed download leaves that
 doc untouched (its last-good page stays live) and is reported in the summary.
 """
@@ -22,6 +28,7 @@ import logging
 from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
 
+from services.shared.schedule import due_this_hour
 from services.shared.slug import slugify
 
 from .base import ProviderError, SourceProvider
@@ -44,6 +51,7 @@ def sync_provider_sources(
     ids = repo.provider_source_ids()
     if only_ids is not None:
         ids = [i for i in ids if i in set(only_ids)]
+    due: dict[str, bool] = {}  # provider key → due this hour (asked once a run)
     for dataset_id in ids:
         try:
             source = repo.source_config(dataset_id)
@@ -56,6 +64,11 @@ def sync_provider_sources(
         p = providers.get(source.provider)
         if p is None:
             summary["skipped"].append({"id": dataset_id, "reason": f"provider_disabled:{source.provider}"})
+            continue
+        if only_ids is None and p.key not in due:
+            due[p.key] = _sync_due(p.key)
+        if only_ids is None and not due[p.key]:
+            summary["skipped"].append({"id": dataset_id, "reason": f"provider_gated:{p.key}"})
             continue
         if not p.healthy():
             summary["skipped"].append({"id": dataset_id, "reason": f"provider_unhealthy:{p.key}"})
@@ -117,6 +130,18 @@ def sync_provider_sources(
         log.info("provider sync %s (%s): %s, %d rows", dataset_id, p.key,
                  "changed" if changed else "unchanged", payload["record_count"])
     return summary
+
+
+def sync_hours_env(key: str) -> str:
+    return f"PROVIDER_{key.upper()}_SYNC_HOURS"
+
+
+def _sync_due(key: str) -> bool:
+    ok = due_this_hour(sync_hours_env(key))
+    if not ok:
+        log.info("provider sync: %s gated this hour (%s) — docs left as they are",
+                 key, sync_hours_env(key))
+    return ok
 
 
 def _listing_key(p: SourceProvider, dataset_id: str, source, cfg) -> str | None:

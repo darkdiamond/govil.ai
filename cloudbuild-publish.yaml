@@ -172,14 +172,21 @@ steps:
         # firebase.json.
         node frontend/scripts/gen-redirects.mjs
 
+        # IndexNow baseline: the sitemap live right before this deploy, kept
+        # in the shared /workspace for step [4] (which submits only new URLs
+        # and URLs whose lastmod moved). Fail-soft: the script always exits 0,
+        # and with no file step [4] submits every URL.
+        node frontend/scripts/fetch-live-sitemap.mjs live-sitemap.xml || true
+
         firebase deploy \
           --only hosting \
           --project "${_FIREBASE_PROJECT}" \
           --non-interactive
 
-  # [4] Tell Bing/Yandex/etc. about every URL right after deploy (IndexNow).
-  #     Reads frontend/.output/public/sitemap.xml from the shared workspace;
-  #     a failure never fails the build.
+  # [4] Tell Bing/Yandex/etc. about new and changed URLs right after deploy
+  #     (IndexNow). Reads frontend/.output/public/sitemap.xml and step [3]'s
+  #     live-sitemap.xml baseline from the shared workspace; a failure never
+  #     fails the build.
   - id: "indexnow"
     name: "${_PUBLISHER_IMAGE}"
     entrypoint: "bash"
@@ -188,7 +195,7 @@ steps:
     args:
       - "-c"
       - |
-        node frontend/scripts/indexnow-ping.mjs
+        node frontend/scripts/indexnow-ping.mjs --previous live-sitemap.xml
 
 substitutions:
   _STAGING_BUCKET: "govdata-il-staging"

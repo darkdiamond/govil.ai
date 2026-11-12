@@ -617,6 +617,6 @@ When done, `preview stop`. The previewed page also carries a small "תצוגה
 - PR title `recipe: <short Hebrew/English title> (<id8>)`; body: what the page
   shows, the insight rules and their thresholds, how it handles growth, the
   `verify` output. Add `Closes #N` when authoring from an issue.
-- Once merged to `main`, the next daily job (`govdata-builder-job`, 06:00
-  Israel time) reads the recipe straight from git and renders the page; no
-  redeploy.
+- Once merged to `main`, the next builder run (`govdata-builder-job`, hourly
+  06:00 to 21:00 Israel time) reads the recipe straight from git and renders
+  the page; no redeploy.

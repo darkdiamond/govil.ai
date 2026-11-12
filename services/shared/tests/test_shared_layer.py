@@ -73,6 +73,7 @@ def test_lower_packages_do_not_import_page_builder():
         "import services.providers, services.scanner.client\n"
         "import services.shared.ckan, services.shared.fetch_types, services.shared.github\n"
         "import services.shared.model_history, services.shared.states\n"
+        "import services.shared.lease, services.shared.schedule\n"
         "bad = sorted(m for m in sys.modules if m.startswith('services.page_builder'))\n"
         "assert not bad, bad\n"
     )
@@ -84,6 +85,7 @@ def test_shared_modules_import_nothing_heavy():
         "import sys\n"
         "import services.shared.ckan, services.shared.fetch_types, services.shared.github\n"
         "import services.shared.model_history, services.shared.states\n"
+        "import services.shared.lease, services.shared.schedule\n"
         "bad = sorted(m for m in sys.modules if m.startswith(('services.scanner',"
         " 'services.page_builder', 'google.cloud.', 'google.api_core', 'grpc', 'httpx',"
         " 'pydantic')))\n"  # bare `google`/`google.cloud` come from a site .pth

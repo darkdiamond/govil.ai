@@ -34,7 +34,7 @@ def _fake_client(datasets: list[Dataset], *, listing_error_at: int | None = None
         async def get_package_count(self):
             return len(datasets)
 
-        async def iter_all_packages(self, limit, on_error=None):
+        async def iter_all_packages(self, limit, on_error=None, **_kw):
             for i, d in enumerate(datasets[:limit]):
                 if i == listing_error_at:
                     raise RuntimeError("CKAN listing broke")

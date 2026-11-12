@@ -31,7 +31,7 @@ PATHS = (
 # the command itself.
 COMMANDS = {
     "publish from Firestore", "news images rsync", "nuxt generate",
-    "redirects", "firebase deploy", "IndexNow",
+    "redirects", "IndexNow baseline", "firebase deploy", "IndexNow",
 }
 
 # step → a regex that must match the file once continuation lines are joined
@@ -43,6 +43,7 @@ MARKERS = {
     "NUXT_PUBLIC_ADSENSE_ID": r"NUXT_PUBLIC_ADSENSE_ID",
     "NUXT_PUBLIC_CLARITY_ID": r"NUXT_PUBLIC_CLARITY_ID",
     "redirects": r"node\s+frontend/scripts/gen-redirects\.mjs",
+    "IndexNow baseline": r"node\s+frontend/scripts/fetch-live-sitemap\.mjs",
     "firebase deploy": r"firebase\s+deploy\b",
     "IndexNow": r"node\s+frontend/scripts/indexnow-ping\.mjs",
 }
@@ -92,12 +93,18 @@ STALE_JSON_DELETE = (
 NO_STALE_JSON = {"cloudbuild-publish.yaml"}
 
 
-def _first(pattern: str, text: str) -> int | None:
+def _first_match(pattern: str, text: str) -> re.Match | None:
+    """The first match outside a string (see `_unquoted_match`)."""
     for m in re.finditer(pattern, text):
         prefix = text[text.rfind("\n", 0, m.start()) + 1:m.start()]
         if prefix.count('"') % 2 == 0 and prefix.count("'") % 2 == 0:
-            return m.start()
+            return m
     return None
+
+
+def _first(pattern: str, text: str) -> int | None:
+    m = _first_match(pattern, text)
+    return m.start() if m else None
 
 
 @pytest.mark.parametrize("rel", PATHS)
@@ -120,6 +127,35 @@ def test_publish_path_step_order(rel):
     )
     assert rsync <= delete < publish, (
         f"{rel}: the stale-JSON delete must run after the rsync, before publish"
+    )
+
+
+LIVE_SITEMAP_FETCH = r"node\s+frontend/scripts/fetch-live-sitemap\.mjs\s+(\S+)"
+INDEXNOW_PING = r"node\s+frontend/scripts/indexnow-ping\.mjs\b([^\n]*)"
+
+
+@pytest.mark.parametrize("rel", PATHS)
+def test_indexnow_diffs_against_the_sitemap_live_before_the_deploy(rel):
+    # IndexNow submits only URLs new or changed since the previous sitemap, so
+    # each path saves the live sitemap BEFORE `firebase deploy` replaces it,
+    # and hands that same file to the post-deploy ping as `--previous`.
+    text = _joined(rel)
+    fetch = _first_match(LIVE_SITEMAP_FETCH, text)
+    deploy = _first(MARKERS["firebase deploy"], text)
+    ping = _first_match(INDEXNOW_PING, text)
+    assert fetch and deploy is not None and ping, rel
+    assert fetch.start() < deploy < ping.start(), (
+        f"{rel}: expected the live-sitemap fetch, then firebase deploy, then IndexNow"
+    )
+    previous = re.search(r"--previous\s+(\S+)", ping.group(1))
+    assert previous, f"{rel}: IndexNow must get the live sitemap as --previous"
+
+    def unquote(s: str) -> str:
+        return s.strip("\"'")
+
+    assert unquote(previous.group(1)) == unquote(fetch.group(1)), (
+        f"{rel}: IndexNow's --previous {previous.group(1)} is not the file the "
+        f"live-sitemap fetch wrote ({fetch.group(1)})"
     )
 
 

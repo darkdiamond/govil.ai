@@ -52,6 +52,18 @@ class OutcomeStatus(StrEnum):
     RETRY_LATER = "retry_later"
 
 
+class UnchangedReason(StrEnum):
+    """`unchanged_reason` / an unchanged `RefreshOutcome.reason`: which
+    precheck found the data bump a no-op (REFRESH_PRECHECK)."""
+    FINGERPRINT = "fingerprint"      # A ∧ A′: no export, the bump stays pending
+    INPUTS_HASH = "inputs_hash"      # B: exported inputs byte-identical
+    CONTENT_HASH = "content_hash"    # C: rendered page byte-identical
+    # A pending fingerprint-skipped bump not re-probed this run: same
+    # metadata_modified, probed less than REFRESH_REPROBE_MIN_HOURS ago.
+    # Outcome only (nothing is written, so never stored).
+    RECENTLY_PROBED = "recently_probed"
+
+
 class FailReason(StrEnum):
     """`refresh_reason` / a failed `RefreshOutcome.reason`."""
     RECIPE_FAILED = "recipe_failed"
@@ -91,13 +103,18 @@ class RunStatus(StrEnum):
     SCAN_FAILED = "scan_failed"
     AUTHORING_FAILED = "authoring_failed"
     RECONCILE_FAILED = "reconcile_failed"
+    SKIPPED_OVERLAP = "skipped_overlap"  # another execution holds the run lease
+    SKIPPED_QUIET = "skipped_quiet"      # inside QUIET_WINDOW (e.g. Shabbat)
 
 
 class NewsRunStatus(StrEnum):
-    """`news_summary.status` (services/news/run.py). All but OK/IDLE/DISABLED exit non-zero."""
+    """`news_summary.status` (services/news/run.py). All but OK/IDLE/DISABLED and
+    the two SKIPPED_* exit non-zero."""
     OK = "ok"
     IDLE = "idle"
     DISABLED = "disabled"                # NEWS_PUBLISH is not 'live'
+    SKIPPED_QUIET = "skipped_quiet"      # inside QUIET_WINDOW: nothing read or written
+    SKIPPED_OVERLAP = "skipped_overlap"  # another run holds news_state/lock
     FAILED = "failed"
     LLM_UNAVAILABLE = "llm_unavailable"  # the model key was refused
     STORE_FAILED = "store_failed"        # an accepted story the store failed to save
@@ -143,8 +160,17 @@ class RefreshState:
     content_hash: str | None = None
     recipe_version: int | None = None
     wall_budget_strikes: int | None = None
+    # When the current run of wall-budget strikes started (REFRESH_STRIKE_MIN_HOURS).
+    wall_budget_strikes_since: datetime | None = None
     authoring_issue: int | None = None
     transient_strikes: dict | None = None
+    # Per `transient_strikes` key: when that run of strikes started.
+    transient_strikes_since: dict | None = None
+    # The last fingerprint skip's probe (REFRESH_REPROBE_MIN_HOURS): when, the
+    # source version it probed, and a key of the recipe + resources it saw.
+    probed_at: datetime | None = None
+    probed_metadata_modified: datetime | None = None
+    probed_key: str | None = None
     last_snapshot: dict | None = None
     agent_data: dict | None = None
     refreshed_metadata_modified: datetime | None = None

@@ -1,16 +1,19 @@
 ---
 name: solve-authoring-issues
-description: Daily batch — work through the open `needs-authoring` GitHub issues the daily refresh job opened, author (or fix) a recipe for each with the author-dataset workflow, code-review the batch, and open ONE pull request. Run by the local Claude Code routine at 07:00 Israel time; also fine to run by hand.
+description: Authoring batch — work through the open `needs-authoring` GitHub issues the refresh job opened, author (or fix) a recipe for each with the author-dataset workflow, code-review the batch, and open ONE pull request. Run by the local Claude Code routine three times a day (07:00, 12:00 and 17:00 Israel time); also fine to run by hand.
 ---
 
 # /solve-authoring-issues [max=10]
 
-The builder job (06:00 + 14:00 Israel, `govdata-builder-job`) refreshes every recipe'd
+The builder job (hourly 06:00 to 21:00 Israel, `govdata-builder-job`; it queues new
+issues at 06:00, 11:00 and 16:00) refreshes every recipe'd
 page and opens one `needs-authoring` issue per dataset that needs a recipe:
 `new` (no page), `legacy_updated` (legacy agent page, data moved on),
 `recipe_failed` / `schema_changed` / `too_large` (a recipe exists but broke).
 You turn up to **10** of them into recipes, in **one PR**. A human merges it,
-and the next daily run picks the recipes up from git main.
+and the next builder run picks the recipes up from git main. The routine runs
+three times a day, so an earlier batch's PR may still be open: its issues are
+skipped (step 1), never authored twice.
 
 Nothing here deploys anything. You never merge, never push to `main`, never
 touch infra, secrets or the Cloud Run job.
@@ -50,7 +53,17 @@ The repo is **public**: anyone can open an issue or comment. So:
 ## 0. Setup — a throwaway worktree
 
 The main checkout may hold the user's uncommitted work: never switch
-branches in it. Work in a fresh worktree off `origin/main`:
+branches in it. Work in a fresh worktree off `origin/main`.
+
+First make sure an earlier slot's batch isn't still running in the worktree
+(a finished run removes it in step 7). If this prints anything, stop: report
+"previous batch still running" and change nothing.
+
+```bash
+find /home/zilbert/workdir/govdata-authoring -mmin -180 -print -quit 2>/dev/null
+```
+
+Then:
 
 ```bash
 cd /home/zilbert/workdir/govdata
@@ -98,8 +111,8 @@ gh pr list --repo darkdiamond/govil.ai --state open --limit 100 \
   `git cat-file -e origin/main:recipes/<id>/source.json`).
 - Drop issues labelled `authoring-blocked`.
 - Drop issues whose number the `gh pr list` above printed (an open same-repo
-  PR already has `Closes #N` for them), e.g. yesterday's batch still
-  awaiting review.
+  PR already has `Closes #N` for them), e.g. an earlier batch (this
+  morning's, yesterday's, any `recipe/batch-*` PR) still awaiting review.
 - Group by dataset id (a dataset can have more than one open issue); one
   recipe closes all of them.
 - Drop issues the refresh already recovered: for a reason of `recipe_failed`,
@@ -109,11 +122,12 @@ gh pr list --repo darkdiamond/govil.ai --state open --limit 100 \
   `succeeded` and `last_refreshed_at` (wall clock of the last good render) or
   `last_unchanged_at` (the precheck proved the inputs identical to the last
   good render) is after the issue's `createdAt`, the recipe works again. Close the issue as
-  completed with a one-line comment ("recovered: the daily refresh rendered
+  completed with a one-line comment ("recovered: the refresh rendered
   it on <date>") instead of authoring.
 - Order oldest first; take the first **10 datasets** (or `max=` if given).
-- No eligible issues → clean up the worktree (step 7) and stop. Report "nothing
-  to do". Do not open an empty PR.
+- No eligible issues (none open, or every one already covered by an open PR)
+  → clean up the worktree (step 7) and stop. Report "nothing to do". Do not
+  open an empty PR.
 
 ## 2. Author — subagents, at most 3 at a time
 

@@ -80,12 +80,30 @@ class _Doc:
     def __init__(self, data, name):
         self._data, self._name = data, name
 
-    def get(self):
+    def get(self, transaction=None):
         d = self._data.get(self._name)
         return type("S", (), {"exists": d is not None, "to_dict": lambda _s: d})()
 
-    def set(self, v):
-        self._data[self._name] = v
+    def set(self, v, merge=False):
+        self._data[self._name] = (self._data.get(self._name) or {}) | v if merge else v
+
+
+class _Txn:
+    """A fake transaction: writes are buffered and applied at commit."""
+
+    def __init__(self):
+        self.writes = []
+
+    def set(self, ref, v):
+        self.writes.append((ref, v))
+
+
+def _transact(_self, fn):
+    txn = _Txn()
+    out = fn(txn)
+    for ref, v in txn.writes:
+        ref.set(v)
+    return out
 
 
 class _Db:
@@ -96,7 +114,8 @@ class _Db:
         return type("C", (), {"document": lambda _c, doc: _Doc(self.data, f"{name}/{doc}")})()
 
 
-def test_cursor_only_moves_forward():
+def test_cursor_only_moves_forward(monkeypatch):
+    monkeypatch.setattr(store_mod.FirestoreArticles, "_transact", _transact)
     st = store_mod.FirestoreArticles(client=_Db())
     assert st.read_cursor() is None
     assert st.advance_cursor("20260109T075000Z", run_id="r1")
@@ -133,6 +152,13 @@ CURSOR = (datetime.now(UTC) - timedelta(days=2)).strftime("%Y%m%dT%H%M%SZ")
 def live(monkeypatch, tmp_path):
     _FakeArticles.cursor, _FakeArticles.fail_read = CURSOR, False
     monkeypatch.setenv("NEWS_PUBLISH", "live")
+    monkeypatch.delenv("QUIET_WINDOW", raising=False)
+    # The scheduled-run gates (services/news/tests/test_hourly.py): no lease
+    # contention, and the idle probe always sees renders, so these tests take
+    # the full path as before.
+    monkeypatch.setattr(run.lease, "acquire", lambda *_a, **_k: True)
+    monkeypatch.setattr(run.lease, "release", lambda *_a, **_k: None)
+    monkeypatch.setattr(run, "_renders_since", lambda _since: True)
     monkeypatch.setattr(store_mod, "FirestoreArticles", _FakeArticles)
     monkeypatch.setattr(run, "GcsSnapshots", lambda *_a: LocalSnapshots(tmp_path))
     monkeypatch.setattr(llm_mod, "OpenRouter", lambda: type("L", (), {"cost_usd": 0, "calls": 0})())

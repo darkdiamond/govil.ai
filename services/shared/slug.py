@@ -92,3 +92,16 @@ def hebrew_slugify(text: str) -> str:
     s = _NON_HEB_SLUG_RE.sub("-", s)
     s = _MULTI_HYPHEN_RE.sub("-", s).strip("-")
     return s
+
+
+def default_page_slug(dataset_id: str, title: str | None, own_suffix: str | None = None) -> str:
+    """A dataset's `/datasets/<page_slug>/` segment when nothing clashes: the
+    Hebrew title slug plus the provider's own suffix, else the first 8 hex
+    characters of the id. The publisher (`publish._build_page_slugs`) widens
+    the id slice only on a clash across the corpus; a parity test keeps the
+    two in step."""
+    base = hebrew_slugify(title or "")
+    if own_suffix:
+        return f"{base}-{own_suffix}" if base else dataset_id
+    suffix = dataset_id.replace("-", "")[:8] or dataset_id
+    return f"{base}-{suffix}" if base else suffix

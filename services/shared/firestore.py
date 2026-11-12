@@ -32,6 +32,10 @@ SOURCES_COLL = "sources"
 SCAN_RUNS_COLL = "scan_runs"
 # Small per-job markers, one doc each (`job_state/reconcile`: last sweep date).
 JOB_STATE_COLL = "job_state"
+# Refresh fields cleared together (see RefreshState): the strike-start times
+# when the strike counts reset, the fingerprint probe once its bump settles.
+_CLEAR_STRIKE_SINCE = {"wall_budget_strikes_since": None, "transient_strikes_since": None}
+_CLEAR_PROBE = {"probed_at": None, "probed_metadata_modified": None, "probed_key": None}
 
 
 def _count(query) -> int:
@@ -617,6 +621,8 @@ class FirestoreStateStore:
             "inputs_hash_unordered": inputs_hash_unordered,
             "wall_budget_strikes": None,
             "transient_strikes": None,
+            **_CLEAR_STRIKE_SINCE,
+            **_CLEAR_PROBE,
             "analysis_status": AnalysisStatus.SUCCEEDED,
             "last_analyzed_at": now,
             "analyzed_metadata_modified": metadata_modified,
@@ -642,6 +648,8 @@ class FirestoreStateStore:
         reason: str,
         advance_version: bool,
         transient_strikes: dict[str, int] | None = None,
+        strike_since: dict[str, Any] | None = None,
+        probed_key: str | None = None,
     ) -> None:
         """Record that CKAN bumped the version but the precheck found the
         recipe's inputs — or, for `content_hash`, the rendered page —
@@ -661,7 +669,12 @@ class FirestoreStateStore:
         `inputs_hash` is None after a fingerprint skip (nothing was fetched);
         the stored one still holds. `transient_strikes`, when given, replaces
         the stored map after a fingerprint skip (the previews answered, so a
-        run of `preview_unavailable` strikes restarts).
+        run of `preview_unavailable` strikes restarts). `strike_since` (only
+        with REFRESH_STRIKE_MIN_HOURS, see `refresh._count_strikes`) writes the
+        strike-start fields it names, as given. `probed_key` (a fingerprint
+        skip with REFRESH_REPROBE_MIN_HOURS) records the probe: `probed_at`,
+        `probed_metadata_modified` and `probed_key`, so later runs can leave
+        the same pending bump alone for a while.
         """
         payload: dict[str, Any] = {
             "last_unchanged_at": datetime.now(UTC),
@@ -674,8 +687,16 @@ class FirestoreStateStore:
             payload["inputs_hash_unordered"] = inputs_hash_unordered
             payload["wall_budget_strikes"] = None  # the full fetch completed
             payload["transient_strikes"] = None  # …downloads included
-        elif transient_strikes is not None:
-            payload["transient_strikes"] = transient_strikes or None
+            payload.update(_CLEAR_STRIKE_SINCE)
+        else:
+            if transient_strikes is not None:
+                payload["transient_strikes"] = transient_strikes or None
+            if strike_since:
+                payload.update(strike_since)
+        if probed_key is not None:
+            payload.update(probed_at=payload["last_unchanged_at"],
+                           probed_metadata_modified=metadata_modified,
+                           probed_key=probed_key)
         if reason == "content_hash":
             payload["last_verified_at"] = payload["last_unchanged_at"]
         if advance_version:
@@ -689,6 +710,7 @@ class FirestoreStateStore:
                     "authoring_reason": None,
                     "authoring_issue": None,
                     "analyzed_metadata_modified": metadata_modified,
+                    **_CLEAR_PROBE,
                 }
             )
         # merge= field paths: `transient_strikes` is replaced whole (merge=True
@@ -704,6 +726,7 @@ class FirestoreStateStore:
         failed_version: str,
         wall_budget_strikes: int | None = None,
         transient_strikes: dict[str, int] | None = None,
+        strike_since: dict[str, Any] | None = None,
     ) -> None:
         """Record a failed refresh. Never touches `analysis_status`: the
         last-good page stays live. `failed_version`
@@ -713,7 +736,10 @@ class FirestoreStateStore:
         deployed builder moves. `wall_budget_strikes`
         (wall-budget overruns since the last full fetch) and
         `transient_strikes` (consecutive runs per refresh `StrikeError`
-        kind) are written only when given; other failures leave them alone."""
+        kind) are written only when given; other failures leave them alone.
+        `strike_since` (only with REFRESH_STRIKE_MIN_HOURS) writes the
+        strike-start fields it names, as given. Any failure drops a recorded
+        fingerprint probe, so the next run probes again."""
         payload: dict[str, Any] = {
             "refresh_status": RefreshStatus.FAILED,
             "refresh_error": (error or "")[:1000],
@@ -725,6 +751,9 @@ class FirestoreStateStore:
             payload["wall_budget_strikes"] = wall_budget_strikes
         if transient_strikes is not None:
             payload["transient_strikes"] = transient_strikes or None
+        if strike_since:
+            payload.update(strike_since)
+        payload.update(_CLEAR_PROBE)
         # merge= field paths, not merge=True: each listed field is replaced
         # whole, so a key popped from `transient_strikes` is really gone
         # (merge=True deep-merges maps). Unlisted fields are left alone.

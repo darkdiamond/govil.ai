@@ -1,18 +1,23 @@
 # Deployment
 
-Three one-time setups, then the runtime flow is: Cloud Scheduler (06:00 and
-14:00 Asia/Jerusalem) → Cloud Run **job** `govdata-builder-job` (scan
+Three one-time setups, then the runtime flow is: Cloud Scheduler (hourly,
+06:00–21:00 Asia/Jerusalem) → Cloud Run **job** `govdata-builder-job` (scan
 CKAN → re-render every recipe'd page whose data moved, no LLM → open a
 `needs-authoring` GitHub issue per new/changed dataset without a recipe →
 stage to GCS + Firestore) → GitHub Actions publisher (generate Nuxt site →
 deploy to Firebase Hosting), which fires only when ≥1 page re-rendered.
-Recipes are authored locally with Claude Code (a daily routine at 07:00
-works the open issues into one PR); merging that PR is the deploy — the
-job reads `recipes/` from git `main` at run time.
+Recipes are authored locally with Claude Code (a routine at 07:00, 12:00
+and 17:00 works the open issues into one PR per run); merging that PR is
+the deploy — the job reads `recipes/` from git `main` at run time. The news
+job (`infra/news-job.deploy.sh`) ticks at :25 each hour.
 
 One execution, one task (`--tasks=1 --parallelism=1 --max-retries=0`);
-recipes refresh sequentially inside it. `AUTHORING_NOTIFY_CAP` (100) is
-the per-run fuse on new issues.
+recipes refresh sequentially inside it. A scheduled run takes the
+`job_state/run` Firestore lease first, so a tick that finds a run still
+going ends `skipped_overlap`; inside `QUIET_WINDOW` (Friday 15:00 to
+Saturday 21:00) it ends `skipped_quiet`. Both exit 0. `AUTHORING_NOTIFY_CAP`
+(30) is the per-run fuse on new issues; the queue runs only in
+`AUTHORING_QUEUE_HOURS` (6, 11, 16).
 
 ## 1. Project bootstrap — `infra/bootstrap.sh`
 
@@ -63,19 +68,19 @@ not baked in: each run lists and loads them from git `main`
 bash infra/builder-job.deploy.sh
 # knobs (defaults shown; see the script for the full list):
 #   SCAN_LIMIT=800 MIN_MODIFIED_FLOOR=2025-01-01 MAX_AGE_DAYS=100000 \
-#   AUTHORING_NOTIFY_CAP=100 REFRESH_PRECHECK=full bash infra/builder-job.deploy.sh
+#   AUTHORING_NOTIFY_CAP=30 REFRESH_PRECHECK=full bash infra/builder-job.deploy.sh
 ```
 
 `--set-env-vars` **replaces** the job's whole env: a var you set by hand
 on the live job and that isn't in the script is dropped on the next
 deploy. Diff against `gcloud run jobs describe` first.
 
-| Flag                        | Value                                          |
-| --------------------------- | ---------------------------------------------- |
-| `--tasks` / `--parallelism` | 1 / 1 (one container per execution)            |
-| `--max-retries`             | 0 (a failed run is retried by the next tick)   |
-| `--cpu / --memory`          | 2 / 4Gi (full CKAN exports are held in memory) |
-| `--task-timeout`            | 14400 s (4 h; must stay < the 5 h tick gap)    |
+| Flag                        | Value                                            |
+| --------------------------- | ------------------------------------------------ |
+| `--tasks` / `--parallelism` | 1 / 1 (one container per execution)              |
+| `--max-retries`             | 0 (a failed run is retried by the next tick)     |
+| `--cpu / --memory`          | 2 / 4Gi (full CKAN exports are held in memory)   |
+| `--task-timeout`            | 7200 s (2 h; the run lease is heartbeat-renewed) |
 
 Manual runs after deploy:
 
@@ -94,19 +99,26 @@ one whose refresh crashed or hit 3 staging (GCS/Firestore) failures in a
 row ends `status: refresh_failed`; one whose authoring queue broke
 (selector/Firestore/GitHub) ends `status: authoring_failed`, after
 publishing what refreshed. All three exit non-zero, so the execution
-shows FAILED; an idle day (nothing re-rendered) is a success.
+shows FAILED; an idle run (nothing re-rendered) is a success, and so are
+`skipped_quiet` and `skipped_overlap`.
 
 ## 3. Cloud Scheduler — `infra/scheduler.setup.sh`
 
-Creates the scheduler job **PAUSED** (`0 6,14 * * *`, Asia/Jerusalem —
-Cloud Scheduler applies DST). Each tick starts a job execution via the
-Admin API's `:run` method. Enable it only after a manual execution looks
-good.
+Owns both ticks: `govdata-pipeline-daily` (builder, `0 6-21 * * *`) and
+`govdata-news-daily` (news, `25 6-21 * * *`), Asia/Jerusalem (Cloud
+Scheduler applies DST). It creates a missing tick **PAUSED**, updates an
+existing one in place (its state kept), and deletes the retired
+`govdata-pipeline-cbs-release` / `govdata-news-cbs-release` ticks (the 19:00
+and 19:25 hourly ticks see CBS's release evening). Each tick starts a job
+execution via the Admin API's `:run` method. Enable a new tick only after a
+manual execution looks good. `SCHEDULER_JOB=…` (with `CLOUD_RUN_JOB`,
+`SCHEDULE`, `SCHEDULER_MESSAGE_BODY`) sets up one ad-hoc tick instead.
 
 ```sh
 bash infra/scheduler.setup.sh
 # ... when ready to flip on:
 gcloud scheduler jobs resume govdata-pipeline-daily --location=me-west1
+gcloud scheduler jobs resume govdata-news-daily --location=me-west1
 ```
 
 ## Publishing
@@ -120,6 +132,11 @@ free-tier minutes):
 - pushing to main with changes under `frontend/**` (or the publisher
   code) deploys automatically; rapid pushes cancel the in-flight run
   so a burst costs one build.
+
+After the deploy, IndexNow gets only the URLs that are new or whose
+`<lastmod>` moved against the sitemap fetched from the live site just
+before it (`frontend/scripts/fetch-live-sitemap.mjs`; no baseline → every
+URL).
 
 One-time setup: `infra/github-ci.setup.sh` (WIF + govdata-ci SA + repo
 variables) plus a fine-grained PAT (this repo, Actions read+write)

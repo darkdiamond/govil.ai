@@ -56,6 +56,14 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      # Cache key for the installed frontend deps, hashed now, before
+      # node_modules is restored (hashFiles would otherwise walk ~1,200
+      # packages).
+      - name: Hash frontend lockfile
+        id: frontend-hash
+        run: |
+          echo "lock=${{ hashFiles('frontend/package-lock.json') }}" >> "$GITHUB_OUTPUT"
+
       - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
         with:
           workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
@@ -130,6 +138,7 @@ jobs:
       # git main (services/page_builder/refresh.py::GithubRecipeRepo), so
       # this workflow keeps read-only access to the staging bucket.
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        id: setup-node
         with:
           # Pin exact patch: Node 22.23.0 shipped a keep-alive socket-reuse
           # regression (nodejs/node#63989) that breaks WIF/ADC token exchange,
@@ -139,10 +148,44 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
+      # Installed deps, keyed on the lockfile + OS + the exact Node the
+      # setup-node step resolved. An exact hit skips `npm ci` (and its
+      # postinstall `nuxt prepare`, which `nuxt generate` redoes anyway).
+      # node_modules/.cache (build scratch) is never part of this cache.
+      - name: Restore frontend node_modules
+        id: node-modules-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            frontend/node_modules
+            !frontend/node_modules/.cache
+          key: node-modules-${{ runner.os }}-node${{ steps.setup-node.outputs.node-version }}-${{ steps.frontend-hash.outputs.lock }}
+
+      - name: Install frontend dependencies
+        if: steps.node-modules-cache.outputs.cache-hit != 'true'
+        working-directory: frontend
+        run: |
+          npm config set fetch-retries 5
+          npm config set fetch-retry-mintimeout 10000
+          for i in 1 2 3; do
+            npm ci --prefer-offline --no-audit --no-fund && break
+            if [ "$i" -eq 3 ]; then
+              echo "npm ci failed 3 times; giving up" >&2
+              exit 1
+            fi
+            echo "npm ci retry $i/3"
+            sleep 10
+          done
+
+      # No Nuxt build cache here on purpose. `nuxt generate` clears its build
+      # dir, so caching .nuxt saves nothing, and `experimental.buildCache`
+      # (which would skip ~95s of bundling) is unsafe for this site: Tailwind
+      # scans public/datasets/**/*.html, Nuxt's cache key ignores public/, so
+      # a class first used by a new page would ship without its CSS rule
+      # (reproduced 2026-11-12; see TODO.md).
       - name: Generate site
         working-directory: frontend
         run: |
-          npm ci --prefer-offline --no-audit --no-fund
           npm run generate
         env:
           # Optional analytics/ads — repo variables, unset in forks (the
@@ -158,13 +201,21 @@ jobs:
       - name: Regenerate redirects from manifest
         run: node frontend/scripts/gen-redirects.mjs
 
+      # IndexNow baseline: the sitemap live right before this deploy, so the
+      # ping submits only new URLs and URLs whose <lastmod> moved. Fail-soft
+      # (the script always exits 0; no file → IndexNow submits every URL).
+      - name: Fetch live sitemap (IndexNow baseline)
+        continue-on-error: true
+        run: node frontend/scripts/fetch-live-sitemap.mjs "$RUNNER_TEMP/live-sitemap.xml"
+
       - name: Deploy to Firebase Hosting
         run: |
           ./frontend/node_modules/.bin/firebase deploy --only hosting \
             --project "${PROJECT}" --non-interactive
 
-      # Tell Bing/Yandex/etc. about every URL right after deploy (IndexNow).
-      # Key file ships in frontend/public/; failures never block the deploy.
+      # Tell Bing/Yandex/etc. about new and changed URLs right after deploy
+      # (IndexNow). Key file ships in frontend/public/; failures never block
+      # the deploy.
       - name: Ping IndexNow
         continue-on-error: true
-        run: node frontend/scripts/indexnow-ping.mjs
+        run: node frontend/scripts/indexnow-ping.mjs --previous "$RUNNER_TEMP/live-sitemap.xml"
