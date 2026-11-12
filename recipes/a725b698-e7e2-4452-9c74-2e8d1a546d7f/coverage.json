@@ -1,0 +1,7 @@
+{
+  "labs.certification_standard": "chart-std, chart-lab, chart-matrix, chart-breadth, kpi:standards, kpi:recs, kpi:half, insight:leader, insight:widest, insight:thin, insight:others — whitespace-normalised; short axis labels derived from the name and its Israeli Standard number",
+  "labs.lab_number": "chart-lab, chart-matrix, chart-std, kpi:labs, kpi:recs, insight:leader, insight:conc, insight:respell, table:labs — the lab key; rows without a number (Standards Institution, a profession) are counted apart, table:others",
+  "labs.lab_name": "chart-lab, chart-matrix, insight:leader, insight:thin, insight:valid, insight:others, insight:respell, table:labs, table:others — spellings unified per lab number (most frequent spelling shown)",
+  "labs.recognition_validity": "chart-valid, kpi:first, insight:valid, table:labs — dd/mm/yyyy; shown as dates only, no expiry claim (no clock)",
+  "labs.comments": "chart-std, chart-lab, chart-matrix, kpi:noted, insight:notes, table:notes — free-text scope note; presence counted, top notes listed"
+}
