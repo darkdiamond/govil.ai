@@ -1,0 +1,78 @@
+{% import "gov.j2" as gov %}
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+{{ gov.lede(model.agent_data.summary_he) }}
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור יצרן לפי קוד, שם או מספר חברה ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר: קוד יצרן, שם המפעל, מספר חברה וכתובת.</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  {{ gov.kpi(model.kpis.total, "יצרנים ברשימה") }}
+  {{ gov.kpi(model.kpis.valid, "קודים תקפים") }}
+  {{ gov.kpi(model.kpis.companies, "חברות שונות (לפי מספר חברה)") }}
+  {{ gov.kpi(model.kpis.codes, "קודים שונים") }}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "תקפות הקודים") }}
+  {{ gov.chart("chart-valid", model.labels.valid_aria, "h-64 md:h-80") }}
+  {{ gov.table(model.labels.valid_aria, ["סטטוס", "מספר קודים"], model.tables.valid) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "אורך הקוד") }}
+  {{ gov.chart("chart-length", model.labels.length_aria, "h-64 md:h-80") }}
+  {{ gov.table(model.labels.length_aria, ["אורך בתווים", "מספר קודים"], model.tables.length) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "סוג הכתובת") }}
+  <p class="m-0 mb-3 text-sm text-subtle">הסיווג נעשה לפי מילות מפתח בכתובת (אזור תעשייה, קיבוץ או מושב) ואינו נתון רשמי.</p>
+  {{ gov.chart("chart-premises", model.labels.premises_aria, "h-64 md:h-80") }}
+  {{ gov.table(model.labels.premises_aria, ["סוג כתובת", "מספר יצרנים"], model.tables.premises) }}
+</section>
+
+<script>
+  (function () {
+    const d = {{ model.charts.valid | tojson }};
+    const chart = echarts.init(document.getElementById("chart-valid"));
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item" },
+      legend: { bottom: 0 },
+      series: [{ type: "pie", radius: ["40%", "70%"],
+        data: d.names.map(function (n, i) { return { name: n, value: d.values[i] }; }) }]
+    }));
+  })();
+  (function () {
+    const d = {{ model.charts.length | tojson }};
+    const chart = echarts.init(document.getElementById("chart-length"));
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      grid: { left: 16, right: 16, top: 24, bottom: 32, containLabel: true },
+      xAxis: { type: "category", data: d.x, name: "תווים" },
+      yAxis: { type: "value" },
+      series: [{ type: "bar", data: d.y }]
+    }));
+  })();
+  (function () {
+    const d = {{ model.charts.premises | tojson }};
+    const chart = echarts.init(document.getElementById("chart-premises"));
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      grid: { left: 16, right: 16, top: 24, bottom: 32, containLabel: true },
+      xAxis: { type: "category", data: d.names },
+      yAxis: { type: "value" },
+      series: [{ type: "bar", data: d.values }]
+    }));
+  })();
+</script>

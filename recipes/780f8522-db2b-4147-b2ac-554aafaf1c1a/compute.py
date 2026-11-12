@@ -12,7 +12,8 @@ import re
 import pandas as pd
 from govlib import fmt, frame
 
-NUM, NAME, LINK = "מספר תחנת ניטור", "שם תחנת ניטור", "קישור לתחנת ניטור"
+NUM, NAME, LINK = "MonitoringStationNum", "MonitoringStationName", "File"
+HREF_RE = re.compile(r'href\s*=\s*["\']([^"\']+)["\']', re.IGNORECASE)
 
 # Test records the ministry left in the list ("בדיקה", "תחנה חדשה", a bare
 # "תחנה 1", and a few named after the person who keyed them).
@@ -69,7 +70,10 @@ def place_of(name):
 def _prepare(df):
     df = df.copy()
     df["name"] = frame.clean_series(df[NAME])
-    df["link"] = frame.clean_series(df[LINK])
+    # The File column holds an HTML anchor; the link is its href (or the bare URL).
+    raw = frame.clean_series(df[LINK])
+    href = raw.str.extract(HREF_RE)[0]
+    df["link"] = href.where(href.notna(), raw.where(~raw.str.contains("<", regex=False), "")).fillna("").str.strip()
     df["num_s"] = frame.clean_series(df[NUM])
     df["n"] = pd.to_numeric(df["num_s"], errors="coerce")
     df = df[(df["name"] != "") | (df["num_s"] != "")].copy()
