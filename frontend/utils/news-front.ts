@@ -72,10 +72,12 @@ export function buildFront(articles: NewsIndexEntry[]): FrontPage {
       : newsPool,
     SECTION_MIN
   );
+  // Analyses sit two to a row: an even count, so no row is half empty.
+  const analysesPool = pool()
+    .filter((a) => kindOf(a) === "feature")
+    .slice(0, ANALYSES_CAP);
   const analyses = section(
-    pool()
-      .filter((a) => kindOf(a) === "feature")
-      .slice(0, ANALYSES_CAP),
+    analysesPool.slice(0, analysesPool.length - (analysesPool.length % 2)),
     SECTION_MIN
   );
 

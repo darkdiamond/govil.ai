@@ -14,16 +14,18 @@ defineProps<{
 
 <template>
   <article
-    class="group relative grid grid-cols-[minmax(0,1fr)_6.5rem] sm:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-4 sm:gap-5"
-    :class="
+    class="group relative grid gap-4 sm:gap-5"
+    :class="[
+      thumbOf(article) &&
+        'grid-cols-[minmax(0,1fr)_6.5rem] sm:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]',
       !plain &&
-      'bg-white rounded-gov p-3 sm:p-4 shadow-card hover:shadow-card-hover transition-shadow'
-    "
+        'bg-white rounded-gov p-3 sm:p-4 shadow-card hover:shadow-card-hover transition-shadow',
+    ]"
   >
     <img
       v-if="thumbOf(article)"
       :src="thumbOf(article)!"
-      :alt="article.hero_alt || ''"
+      alt=""
       width="480"
       height="360"
       loading="lazy"

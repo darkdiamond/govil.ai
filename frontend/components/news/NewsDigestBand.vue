@@ -9,7 +9,8 @@ defineProps<{ article: NewsIndexEntry }>();
 
 <template>
   <article
-    class="group relative grid md:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)] overflow-hidden rounded-gov bg-ink text-white"
+    class="group relative grid overflow-hidden rounded-gov bg-ink text-white"
+    :class="article.hero && 'md:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)]'"
   >
     <img
       v-if="article.hero"

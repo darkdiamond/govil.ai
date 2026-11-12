@@ -206,3 +206,10 @@ test("news fills whole rows of three", () => {
   assert.equal(f.news.length, 3);
   assert.equal(f.archive.length, 2);
 });
+
+test("analyses fill whole rows of two", () => {
+  n = 0;
+  const f = buildFront([...many(4, "news"), ...many(3, "feature")]);
+  assert.equal(f.analyses.length, 2);
+  assert.equal(f.archive.length, 1);
+});

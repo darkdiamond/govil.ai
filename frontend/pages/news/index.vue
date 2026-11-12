@@ -22,7 +22,9 @@ const KINDS: Record<NewsKind, string> = {
   feature: "ניתוחי נתונים",
   digest: "סיכומים שבועיים",
 };
-const isKind = (v: string | null): v is NewsKind => !!v && v in KINDS;
+// Own keys only: `in` would also accept ?kind=constructor.
+const isKind = (v: string | null): v is NewsKind =>
+  !!v && Object.prototype.hasOwnProperty.call(KINDS, v);
 
 // Filters live in the query string (?topic=, ?month=, ?kind=) so a filtered
 // view can be shared. The page is prerendered unfiltered: read the query (and
