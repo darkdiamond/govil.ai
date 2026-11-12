@@ -18,7 +18,7 @@ ministries and topics. The live site is [govil.ai](https://govil.ai).
 ## How it works
 
 ```
-Cloud Scheduler (06:00 + 14:00 Asia/Jerusalem)
+Cloud Scheduler (hourly 06:00–21:00 Asia/Jerusalem; Shabbat skipped)
         │
         ▼
 Cloud Run job: govdata-builder-job (1 task, no LLM)
@@ -40,12 +40,12 @@ Cloud Run job: govdata-builder-job (1 task, no LLM)
     (the same workflow also runs on every push to main touching
      frontend/** — push-to-deploy, bursts collapse to one run)
 
-Local Claude Code routine (daily 07:00 Asia/Jerusalem)
+Local Claude Code routine (07:00, 12:00, 17:00 Asia/Jerusalem)
     /solve-authoring-issues: open needs-authoring issues → author a recipe
     per dataset (/author-dataset workflow) → review → ONE pull request
-    → a human merges → the next daily job renders the new pages
+    → a human merges → the next job run renders the new pages
 
-Cloud Run job: govdata-news-job (08:00 Asia/Jerusalem, services/news/)
+Cloud Run job: govdata-news-job (hourly at :25, services/news/)
     signals from the render history → editor + writer models (OpenRouter)
     → mechanical gates → news articles in Firestore → shown on /news/
     at the next publish
@@ -87,10 +87,10 @@ agent/
   skills/check.py              static page gate enforcing the hard rules
 .claude/skills/
   author-dataset/              author one recipe (Claude Code skill)
-  solve-authoring-issues/      daily batch over open needs-authoring issues
+  solve-authoring-issues/      batch over open needs-authoring issues
 infra/
   builder-job.deploy.sh        Cloud Run job deploy (env: SCAN_LIMIT, REFRESH_PRECHECK, …)
-  scheduler.setup.sh           Cloud Scheduler (0 6,14 * * *, Asia/Jerusalem)
+  scheduler.setup.sh           Cloud Scheduler (0 6-21 / 25 6-21, Asia/Jerusalem)
   publish-local.sh             manual publish path (same steps as CI)
   DEPLOY.md                    full runbook
 frontend/                      Nuxt 4 (shell + home + category pages)
@@ -138,9 +138,10 @@ npx serve .output/public
   tag-overlap score in `related.py`.
 - **Firebase Hosting** serves everything. Nuxt-generated shell + home +
   category pages wrap the recipe-rendered bodies at generate time.
-- **Cloud Run jobs** run the builder twice a day (`--task-timeout` 4h
-  bounds the run; each recipe's `compute()` is capped at 300s) and the
-  news job once a day.
+- **Cloud Run jobs** run the builder hourly (`--task-timeout` 2h bounds
+  the run, a Firestore lease keeps ticks from overlapping; each recipe's
+  `compute()` is capped at 300s) and the news job 25 minutes after it.
+  Both skip Shabbat (`QUIET_WINDOW`).
 
 ## Configuration / self-hosting
 
@@ -190,7 +191,7 @@ bodies from GCS → rebuild `manifest.json` from Firestore → `nuxt generate`
 
 - **GitHub Actions** (default) — [`.github/workflows/publish.yml`](.github/workflows/publish.yml)
   runs on every push to `main` touching the frontend/publisher, and is
-  dispatched by the daily builder job after any page re-rendered. Auth is
+  dispatched by the hourly builder job after any page re-rendered. Auth is
   keyless via Workload Identity Federation (`infra/github-ci.setup.sh`);
   a Cloud Build fallback exists in `cloudbuild-publish.yaml`.
 - **Local** — `./infra/publish-local.sh` runs the same four steps from
@@ -219,7 +220,7 @@ Recipes are authored locally with Claude Code — once per dataset:
 ```sh
 # in Claude Code
 /author-dataset <dataset_id>          # one dataset, end to end
-/solve-authoring-issues               # the daily batch: open issues → one PR
+/solve-authoring-issues               # the batch: open issues → one PR
 
 # the host-side helpers the skill drives
 python -m services.page_builder.author prepare <dataset_id>   # full data + BRIEF.md

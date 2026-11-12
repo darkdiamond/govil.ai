@@ -303,7 +303,8 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
 - **The refresh ignores a provider's failed healthcheck.** The sync skips an unhealthy provider,
   but `fetch_fns`/`preview` never ask `healthy()`, so a provider source with a pending refresh is
   fetched during the outage, records `preview_unavailable` strikes, and after
-  `REFRESH_TRANSIENT_STRIKES` runs (about 3 days) opens a `schema_changed` issue and locks until
+  `REFRESH_TRANSIENT_STRIKES` runs over at least `REFRESH_STRIKE_MIN_HOURS` (3 days in prod)
+  opens a `schema_changed` issue and locks until
   the data version moves (weeks for the monthly CBS pages). Fix: when `healthy()` is false, have
   `fetch_fns` raise a dedicated transient error that `refresh_one` records as skipped with no
   strike. (2026-11-11)
@@ -475,6 +476,19 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
   included files (`gcloud builds triggers update`), or an edit to the publish requirements
   won't rebuild the image. (2026-11-11)
 
+- **Provider sources with a pending bump still fetch in a gated hour.**
+  `PROVIDER_<KEY>_SYNC_HOURS` gates only the sync (`providers/sync.py`); the refresh doesn't
+  consult it, so a provider source whose doc already carries a newer version is previewed and
+  fetched on any tick until it renders or settles. No-op bumps are bounded by
+  `REFRESH_REPROBE_MIN_HOURS`; a bump that keeps failing transiently retries hourly. Fix: have
+  `run_refresh` skip a provider source outside its sync hours unless forced. (2026-11-12)
+
+- **The run lease and the news cursor transactions have run only against fakes.**
+  `services/shared/lease.py` (`job_state/run`, `news_state/lock`) and
+  `FirestoreArticles.advance_cursor` use `firestore.transactional`, tested through fake
+  transactions because the dev machine had no emulator. Run `services/shared/tests/test_lease.py`
+  (and a cursor compare-and-set) once against the Firestore emulator. (2026-11-12)
+
 ## CBS reports (cbs_releases provider)
 
 - **Yearly CBS reports (~50) have no pages.** Run `catalog --months 38` to find the ones
@@ -613,11 +627,28 @@ family found in the corpus survey of 2026-11-01, with the behaviour it should co
   "הקשה על Enter תפתח את כל התוצאות". Fix: start the highlight at -1 (Enter opens the full list,
   ArrowDown picks a hit), or change the footer text. A product choice. (2026-11-11)
 
-- **IndexNow resubmits every URL on every deploy.** `frontend/scripts/indexnow-ping.mjs` posts
-  every `<loc>` in the sitemap (~1,100 URLs) after each deploy, two or three times a day plus
-  every push-to-deploy, while the protocol asks for changed URLs only; engines throttle or
-  discount mass resubmission. Fix: keep the last ping time (an actions/cache entry, or the live
-  sitemap fetched before deploy) and submit only URLs whose `<lastmod>` is newer. (2026-11-11)
+- **Nuxt build cache.** ~95s of each ~118s "Generate site" step is Vite bundling that
+  `experimental.buildCache` would skip, but it is unsafe as is: Tailwind scans
+  `public/datasets/**/*.html` and Nuxt's cache key ignores `public/`, so a class first used by a
+  new page ships without its CSS rule (reproduced 2026-11-12). A safe version: key the CI cache on
+  the lockfile + frontend sources + a hash of the CSS Tailwind generates from
+  `public/datasets/**/*.html`, restore `node_modules/.cache/nuxt/builds` only on an exact key,
+  then enable the flag. Local timings 12.4s → 5.6s on a hit. (2026-11-12)
+
+- **IndexNow's delta is date-granular.** `indexnow-ping.mjs` submits URLs whose `<lastmod>`
+  moved against the live sitemap, and `<lastmod>` is a date, so a page that changes twice in one
+  day is submitted once (the first time). Fix, if it matters: a full timestamp in `<lastmod>`
+  (`build-sitemap.mjs`). (2026-11-12)
+
+- **A publish run cancelled between the deploy and the IndexNow step never pings its URLs.**
+  `publish.yml` runs with `cancel-in-progress`, and the next run's baseline is the live sitemap,
+  which already holds the cancelled run's changes (a builder dispatch followed within seconds
+  by a news dispatch). Those pages wait for their next change. Fix, if it matters: keep the
+  last pinged sitemap in the actions cache and diff against that. (2026-11-12)
+
+- **Partial Hosting deploys were considered and rejected for now.** Deploying only changed
+  pages would save little: `firebase deploy` takes ~9s and already uploads files by hash; the
+  cost of a publish is the build. Revisit only if the deploy step itself grows. (2026-11-12)
 
 - **The publish cache can carry stale `index.html` and orphan dataset dirs.** `publish.yml`'s
   "Drop cached publisher JSON" step deletes only `data.json`/`agent_data.json`, while
@@ -719,13 +750,6 @@ family found in the corpus survey of 2026-11-01, with the behaviour it should co
   user-approved, see CLAUDE.md layer 5), get the user's approval for that client, and until then
   tell the writer in `prompts/writer.md` that gov.il fetches fail. (2026-11-11)
 
-- **`FirestoreArticles.advance_cursor` is a read-then-write, not a transaction.** Two news runs
-  that overlap (a manual execute during a scheduled one) can both read the old cursor, and the
-  one with the earlier window can write last, moving the cursor backwards despite the docstring.
-  Harmless for duplicates (cooldown + used signal keys) but it re-opens a closed window. Fix: do
-  the compare-and-set in a Firestore transaction (`@firestore.transactional`) and teach
-  `test_window.py`'s fake db a transaction. (2026-11-10)
-
 - **A news run advances its cursor even when snapshot reads failed.** `run._safe_pair` swallows
   any GCS error per dataset as "no history", so a run during a GCS outage finds no signals, ends
   `idle` and closes its window: those renders never reach a later run. Fix: count read failures
@@ -756,13 +780,6 @@ family found in the corpus survey of 2026-11-01, with the behaviour it should co
   3 sample rows for every table of the dataset, so a very wide table gives a very large tool
   result. `t_sql` stops at `SQL_RESULT_CHARS`; give `table_schema` the same kind of cap.
   (2026-11-11)
-
-- **A rejected story can be rewritten on every run while the window is held.** Rejected drafts
-  are not in `recent`, so while the cursor doesn't advance (a held window, an editor failure, a
-  crash), the editor can pick a story the gates or the critic rejected (`critic_kill` included)
-  again each run, re-rolling the stochastic critic until it passes. The mechanical gates still
-  apply and spend per run doesn't grow. Fix: exclude signal keys with a `critic_kill`/gates
-  rejection inside the current window. (2026-11-11)
 
 - **A deterministic model error holds the news window open.** A non-retryable 4xx raised at once
   in `llm._post` (context overflow, the Gemini thought-signature 400) or "no message in response"

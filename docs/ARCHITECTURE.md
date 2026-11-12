@@ -8,7 +8,7 @@ landing pages. For repository conventions and the detailed
 ## The big picture
 
 ```
-Cloud Scheduler (06:00 + 14:00 Asia/Jerusalem)
+Cloud Scheduler (hourly 06:00–21:00 Asia/Jerusalem; Shabbat skipped)
         │
         ▼
 Cloud Run job: govdata-builder-job  (1 task, no LLM)
@@ -26,7 +26,7 @@ Cloud Run job: govdata-builder-job  (1 task, no LLM)
                   4. Publisher — rebuild artifacts from Firestore,
                      nuxt generate, firebase deploy
 
-Local Claude Code routine (daily 07:00 Asia/Jerusalem)
+Local Claude Code routine (07:00, 12:00, 17:00 Asia/Jerusalem)
         └─ /solve-authoring-issues — author recipes for open issues,
            open ONE pull request; a human merges; the next job renders them
 ```
@@ -51,15 +51,19 @@ as a standalone CLI for debugging.
 
 ### 2. Builder / pipeline (`services/page_builder/pipeline.py`)
 
-The orchestrator, run daily as a Cloud Run job:
+The orchestrator, run hourly as a Cloud Run job. A run inside the weekly
+quiet window (Shabbat, `QUIET_WINDOW`) or while another execution holds the
+`job_state/run` lease ends at once (`skipped_quiet` / `skipped_overlap`), so
+ticks never overlap. Otherwise:
 
-1. **Reconcile** (weekly) and **scan** CKAN into Firestore.
+1. **Reconcile** (weekly) and **scan** CKAN into Firestore (incremental
+   after each day's first full scan: paging stops at the last scan's mark).
 2. **Load the recipe list** from git `main` (`recipes/<id>/`). If it
    can't be read, the run fails loudly — nothing is refreshed or queued.
 3. **Refresh** every recipe'd source whose CKAN version (or recipe
    version) moved past what was last rendered (`refresh.py`, below).
 4. **Queue authoring** for sources without a recipe (`selector.py` +
-   `notify.py`, below).
+   `notify.py`, below), in the hours `AUTHORING_QUEUE_HOURS` lists.
 5. **Trigger** the publisher if at least one page re-rendered.
 
 Nothing re-rendered means no build — the run goes idle and skips the
@@ -91,12 +95,13 @@ retired cloud agent) whose data has moved on. Each gets one
 `needs-authoring` GitHub issue; a recorded issue is never re-opened
 while it is open or was closed as not planned.
 
-A daily local Claude Code routine runs `/solve-authoring-issues`: it
+A local Claude Code routine runs `/solve-authoring-issues` three times a
+day (skipping issues an open batch PR already closes): it
 works through the open issues (trusting only the dataset id in each),
 authors each recipe with the `/author-dataset` workflow
 (`services/page_builder/author.py prepare|verify`; design rules from
 `agent/system-prompt.md`), reviews the batch, and opens one pull request
-that closes the issues. Once a human merges it, the next daily job
+that closes the issues. Once a human merges it, the next job run
 renders the pages.
 
 ### 5. Publisher (`.github/workflows/publish.yml`)
@@ -110,7 +115,8 @@ Workload Identity Federation). It runs on two triggers:
 
 Its steps: rsync staged `content.html` from GCS → rematerialize all
 artifacts from Firestore (`publish.py`) → `nuxt generate` →
-`firebase deploy`. Fallback paths exist via Cloud Build and a local
+`firebase deploy` → an IndexNow ping of the URLs that are new or changed
+since the sitemap that was live before the deploy. Fallback paths exist via Cloud Build and a local
 script (`infra/publish-local.sh`).
 
 ## Data model: one document, two writers

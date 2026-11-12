@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Deploy the govdata-builder-job Cloud Run JOB — the daily recipe refresh.
+# Deploy the govdata-builder-job Cloud Run JOB — the hourly recipe refresh.
 #
 # One execution: scan CKAN → re-render every recipe'd page whose data moved
 # (no LLM; recipes are read from git main at run time, so merging a recipe PR
@@ -22,14 +22,20 @@ REGION=${REGION:-me-west1}
 JOB=${CLOUD_RUN_JOB:-govdata-builder-job}
 STAGING_BUCKET=${GCS_STAGING_BUCKET:-${PROJECT}-staging}
 # Wall-clock ceiling for one run. A full re-render of every recipe is
-# CKAN-export-bound (~6-30 min since 2026-11); 4h is generous headroom. Keep it
-# under the shortest gap between scheduler ticks (infra/scheduler.setup.sh):
-# 5h, from the 14:00 tick to the 19:00 CBS release-evening tick on the
-# 13th-15th. The scheduler starts a new execution even while one runs, and two
-# executions would write the same sources/* refresh state at once. --max-retries=0: a
-# failed run is retried by the next tick, not re-run back to back.
-TASK_TIMEOUT=${TASK_TIMEOUT:-14400s}
+# CKAN-export-bound (~6-30 min since 2026-11); 2h is generous headroom. Ticks
+# are hourly (infra/scheduler.setup.sh) and the scheduler starts a new
+# execution even while one runs, so a scheduled run first takes the
+# job_state/run lease and a tick that finds it held ends `skipped_overlap`.
+# A heartbeat renews the lease while the run works, so RUN_LEASE_TTL_S is
+# short: it only bounds how long a run that died without releasing it (this
+# timeout, an OOM kill) keeps later ticks out. --max-retries=0: a failed run
+# is retried by the next tick, not re-run back to back.
+TASK_TIMEOUT=${TASK_TIMEOUT:-7200s}
+RUN_LEASE_TTL_S=${RUN_LEASE_TTL_S:-900}
 MAX_RETRIES=${MAX_RETRIES:-0}
+# Scheduled runs inside this weekly window (Israel time) end `skipped_quiet`:
+# Friday 15:00 to Saturday 21:00. Empty = never quiet.
+QUIET_WINDOW=${QUIET_WINDOW-fri15-sat21}
 
 PUBLISH_VIA=${PUBLISH_VIA:-github}
 TRIGGER_ID=${PUBLISH_TRIGGER_ID:-govdata-publish}
@@ -39,9 +45,16 @@ SCAN_LIMIT=${SCAN_LIMIT:-800}
 MIN_MODIFIED_FLOOR=${MIN_MODIFIED_FLOOR:-2025-01-01}
 MAX_AGE_DAYS=${MAX_AGE_DAYS:-100000}
 RECONCILE_ENABLED=${RECONCILE_ENABLED:-true}
+# Scheduled scans stop paging CKAN's listing once a whole page is older than
+# the last good scan (minus 24h); the first scheduled scan of each Israel day
+# stays full.
+SCAN_INCREMENTAL=${SCAN_INCREMENTAL:-true}
+# The authoring queue runs only in these Israel hours (empty = every run), an
+# hour before each authoring routine (07:00, 12:00, 17:00).
+AUTHORING_QUEUE_HOURS=${AUTHORING_QUEUE_HOURS-6,11,16}
 # Fuse on NEW needs-authoring issues per run (already-notified sources
-# don't count).
-AUTHORING_NOTIFY_CAP=${AUTHORING_NOTIFY_CAP:-100}
+# don't count): 3 queue runs a day → ≤90 a day.
+AUTHORING_NOTIFY_CAP=${AUTHORING_NOTIFY_CAP:-30}
 # No-op precheck for recipe refresh — skips CKAN version bumps that changed
 # nothing (services/page_builder/refresh.py). off | observe | inputs | full;
 # `observe` only logs would-skip agreement, never skips. `inputs` skips on the
@@ -55,13 +68,28 @@ REFRESH_PRECHECK_MAX_AGE_DAYS=${REFRESH_PRECHECK_MAX_AGE_DAYS:-14}
 # the trademarks registry (656f6e4c), whose main file exports at ~368MB;
 # REFRESH_TOTAL_BYTES (600MB) still bounds a whole dataset.
 REFRESH_MAX_BYTES=${REFRESH_MAX_BYTES:-450000000}
+# Strike counts are in runs, so at hourly ticks a few hours of CKAN trouble
+# would reach them: an escalation also needs the run of strikes to have begun
+# at least this many hours ago (0 = count only).
+REFRESH_STRIKE_MIN_HOURS=${REFRESH_STRIKE_MIN_HOURS:-72}
+# A pending bump the fingerprint skipped is re-probed (one preview call per
+# input) at most once per this many hours while nothing moved (0 = every run).
+REFRESH_REPROBE_MIN_HOURS=${REFRESH_REPROBE_MIN_HOURS:-6}
 # Non-CKAN providers (services/providers): each is off unless enabled. A
 # recipe dir with a source.json for a disabled provider just stays last-good.
 PROVIDER_BOI_SDMX_ENABLED=${PROVIDER_BOI_SDMX_ENABLED:-true}
+# PROVIDER_<KEY>_SYNC_HOURS: a provider syncs only in these Israel hours
+# (empty = every run). BoI updates daily at most.
+PROVIDER_BOI_SDMX_SYNC_HOURS=${PROVIDER_BOI_SDMX_SYNC_HOURS-6,12,18}
 # CBS recurring press releases (cbs-* recipes, services/providers/cbs.py).
+# No sync hours: its cheap listing key already skips the downloads.
 PROVIDER_CBS_RELEASES_ENABLED=${PROVIDER_CBS_RELEASES_ENABLED:-true}
 # CBS price indices from the Index API (cbs-index-* recipes, services/providers/cbs_index.py).
 PROVIDER_CBS_INDEX_ENABLED=${PROVIDER_CBS_INDEX_ENABLED:-true}
+# 19:00 catches the indices on release evening (the 15th, 18:30). On a Friday
+# or a holiday eve CBS publishes at 14:00, about when the 14:00 tick syncs, and
+# 19:00 is inside QUIET_WINDOW: 21:00 is the first tick after it (Saturday).
+PROVIDER_CBS_INDEX_SYNC_HOURS=${PROVIDER_CBS_INDEX_SYNC_HOURS-6,14,19,21}
 # How the recipe list is read from git main: `tarball` = one archive download
 # per run (~3s); `files` (code default) = 3+ raw.githubusercontent.com requests
 # per recipe, ~0.6s each (~9.5 min/run at 317 recipes, measured 2026-11-04).
@@ -74,7 +102,39 @@ cd "$(dirname "$0")/.."
 BUILDER_SA="govdata-builder@${PROJECT}.iam.gserviceaccount.com"
 SCHEDULER_SA="govdata-scheduler@${PROJECT}.iam.gserviceaccount.com"
 
-ENV_VARS="FIRESTORE_PROJECT_ID=${PROJECT},GOOGLE_CLOUD_PROJECT=${PROJECT},FIREBASE_PROJECT=${PROJECT},GCS_STAGING_BUCKET=${STAGING_BUCKET},PUBLISH_VIA=${PUBLISH_VIA},PUBLISH_TRIGGER_ID=${TRIGGER_ID},PUBLISH_BRANCH=${PUBLISH_BRANCH},PUBLISH_GITHUB_REPO=${PUBLISH_GITHUB_REPO},SCAN_LIMIT=${SCAN_LIMIT},MIN_MODIFIED_FLOOR=${MIN_MODIFIED_FLOOR},MAX_AGE_DAYS=${MAX_AGE_DAYS},RECONCILE_ENABLED=${RECONCILE_ENABLED},AUTHORING_NOTIFY_CAP=${AUTHORING_NOTIFY_CAP},REFRESH_PRECHECK=${REFRESH_PRECHECK},REFRESH_PRECHECK_MAX_AGE_DAYS=${REFRESH_PRECHECK_MAX_AGE_DAYS},REFRESH_MAX_BYTES=${REFRESH_MAX_BYTES},PROVIDER_BOI_SDMX_ENABLED=${PROVIDER_BOI_SDMX_ENABLED},PROVIDER_CBS_RELEASES_ENABLED=${PROVIDER_CBS_RELEASES_ENABLED},PROVIDER_CBS_INDEX_ENABLED=${PROVIDER_CBS_INDEX_ENABLED},RECIPES_FETCH=${RECIPES_FETCH}"
+# Hour lists hold commas, so the pairs are joined with ';' and passed with
+# gcloud's alternate-delimiter syntax (`^;^K=V;K=V`; see `gcloud topic escaping`).
+ENV_PAIRS=(
+  "FIRESTORE_PROJECT_ID=${PROJECT}"
+  "GOOGLE_CLOUD_PROJECT=${PROJECT}"
+  "FIREBASE_PROJECT=${PROJECT}"
+  "GCS_STAGING_BUCKET=${STAGING_BUCKET}"
+  "PUBLISH_VIA=${PUBLISH_VIA}"
+  "PUBLISH_TRIGGER_ID=${TRIGGER_ID}"
+  "PUBLISH_BRANCH=${PUBLISH_BRANCH}"
+  "PUBLISH_GITHUB_REPO=${PUBLISH_GITHUB_REPO}"
+  "SCAN_LIMIT=${SCAN_LIMIT}"
+  "MIN_MODIFIED_FLOOR=${MIN_MODIFIED_FLOOR}"
+  "MAX_AGE_DAYS=${MAX_AGE_DAYS}"
+  "RECONCILE_ENABLED=${RECONCILE_ENABLED}"
+  "AUTHORING_NOTIFY_CAP=${AUTHORING_NOTIFY_CAP}"
+  "REFRESH_PRECHECK=${REFRESH_PRECHECK}"
+  "REFRESH_PRECHECK_MAX_AGE_DAYS=${REFRESH_PRECHECK_MAX_AGE_DAYS}"
+  "REFRESH_MAX_BYTES=${REFRESH_MAX_BYTES}"
+  "PROVIDER_BOI_SDMX_ENABLED=${PROVIDER_BOI_SDMX_ENABLED}"
+  "PROVIDER_CBS_RELEASES_ENABLED=${PROVIDER_CBS_RELEASES_ENABLED}"
+  "PROVIDER_CBS_INDEX_ENABLED=${PROVIDER_CBS_INDEX_ENABLED}"
+  "RECIPES_FETCH=${RECIPES_FETCH}"
+  "QUIET_WINDOW=${QUIET_WINDOW}"
+  "RUN_LEASE_TTL_S=${RUN_LEASE_TTL_S}"
+  "SCAN_INCREMENTAL=${SCAN_INCREMENTAL}"
+  "AUTHORING_QUEUE_HOURS=${AUTHORING_QUEUE_HOURS}"
+  "REFRESH_STRIKE_MIN_HOURS=${REFRESH_STRIKE_MIN_HOURS}"
+  "REFRESH_REPROBE_MIN_HOURS=${REFRESH_REPROBE_MIN_HOURS}"
+  "PROVIDER_BOI_SDMX_SYNC_HOURS=${PROVIDER_BOI_SDMX_SYNC_HOURS}"
+  "PROVIDER_CBS_INDEX_SYNC_HOURS=${PROVIDER_CBS_INDEX_SYNC_HOURS}"
+)
+ENV_VARS="^;^$(IFS=';'; echo "${ENV_PAIRS[*]}")"
 SECRETS="GITHUB_DISPATCH_TOKEN=github-dispatch-token:latest"
 # Same as the image CMD; explicit so a manual `--args` override (dry run)
 # composes predictably.
@@ -115,5 +175,5 @@ echo "Manual test (dry run — scan + list the authoring queue; nothing refreshe
 echo "  gcloud run jobs execute $JOB --region=$REGION --project=$PROJECT \\"
 echo "    --args=-m,services.page_builder.pipeline,--dry-run --wait"
 echo
-echo "Point the daily scheduler at it:"
+echo "Point the hourly scheduler at it:"
 echo "  ./infra/scheduler.setup.sh"
