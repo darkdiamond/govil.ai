@@ -345,6 +345,8 @@ def check_compute(path: str, source: str, corpus: MainCorpus) -> list[str]:
         problems.append(f"{path}:{getattr(node, 'lineno', '?')}: {what}")
 
     govlib_alias: dict[str, str] = {}  # local name -> govlib module ("" = package)
+    local_defs = {n.name for n in ast.walk(tree)
+                  if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))}
 
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
@@ -407,7 +409,20 @@ def check_compute(path: str, source: str, corpus: MainCorpus) -> list[str]:
             for kw in node.keywords:
                 if kw.arg in BANNED_KWARGS:
                     bad(node, f"passes `{kw.arg}=`")
+                if kw.arg is None and isinstance(kw.value, ast.Dict):
+                    # `f(**{"storage_options": ...})`: the same check on the keys
+                    for k in kw.value.keys:
+                        if not (isinstance(k, ast.Constant) and isinstance(k.value, str)):
+                            # fine into the recipe's own helper (`_pick(**{dim: code})`)
+                            if not (isinstance(node.func, ast.Name) and node.func.id in local_defs):
+                                bad(node, "`**{...}` with a non-literal key")
+                        elif k.value in BANNED_KWARGS:
+                            bad(node, f"passes `{k.value}=` through `**`")
             func = node.func
+            if (isinstance(func, ast.Attribute) and func.attr in CALL_ONLY_ATTRS
+                    and (any(isinstance(a, ast.Starred) for a in node.args)
+                         or any(kw.arg is None for kw in node.keywords))):
+                bad(node, f"`{func.attr}` with `*`/`**` arguments (hides its target)")
             if isinstance(func, ast.Attribute):
                 if func.attr in PATH_WRITERS and (
                     node.args or any(k.arg in PATH_WRITER_KWARGS for k in node.keywords)
