@@ -17,7 +17,8 @@
 #      NUXT_PUBLIC_ADSENSE_ID / NUXT_PUBLIC_CLARITY_ID from your environment
 #      or frontend/.env (unset → the site ships without GA/AdSense/Clarity)
 #   4. regenerate firebase.json redirects, firebase deploy --only hosting
-#   5. IndexNow ping (never fails the run)
+#   5. IndexNow ping of the URLs new or changed vs the sitemap that was live
+#      before the deploy (never fails the run)
 #
 # Or pass --serve to skip steps 4-5 and serve the byte-identical static
 # output at http://localhost:${PORT:-3000} for review.
@@ -233,6 +234,15 @@ else
   node frontend/scripts/gen-redirects.mjs
   step_end
 
+  # IndexNow baseline: the sitemap live right before this deploy, so step 5
+  # submits only new URLs and URLs whose <lastmod> moved. Fail-soft: the
+  # script always exits 0, and with no file step 5 submits every URL.
+  step_begin "fetch live sitemap (IndexNow baseline)"
+  live_sitemap="$(mktemp)"
+  trap 'rm -f "$live_sitemap"' EXIT
+  node frontend/scripts/fetch-live-sitemap.mjs "$live_sitemap" || true
+  step_end
+
   step_begin "firebase deploy --only hosting (project=$PROJECT)"
   firebase deploy \
     --only hosting \
@@ -240,9 +250,9 @@ else
     --non-interactive
   step_end
 
-  # Tell Bing/Yandex/etc. about every URL right after deploy (IndexNow).
+  # Tell Bing/Yandex/etc. about new and changed URLs right after deploy (IndexNow).
   step_begin "IndexNow ping"
-  node frontend/scripts/indexnow-ping.mjs || echo "IndexNow ping failed (non-fatal)"
+  node frontend/scripts/indexnow-ping.mjs --previous "$live_sitemap" || echo "IndexNow ping failed (non-fatal)"
   step_end
 fi
 
