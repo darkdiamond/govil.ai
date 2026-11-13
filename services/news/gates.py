@@ -47,6 +47,8 @@ WORDS_MIN, WORDS_MAX = 300, 1100
 QUOTE_MIN = 20
 MAX_CHARTS = 3
 HEBREW_MIN = 0.85
+# What a chart prints is written by the model too: each field has a length cap.
+CHART_TITLE_MAX, CHART_UNIT_MAX, CHART_LABEL_MAX = 90, 40, 60
 BANNED = [
     "חשוב לציין", "ראוי לציין", "יש לציין", "כדאי לציין", "לסיכום", "בסופו של דבר",
     "השורה התחתונה", "בעידן ה", "בעולם המשתנה", "צלילה", "נצלול", "צוללים", "מרתק",
@@ -80,12 +82,13 @@ _LAT = re.compile(r"[A-Za-z]")
 # real calendar date, per the series code's parser). A unit may name a per-N denominator of 10 to 100,000
 # ("לכל 1,000 תושבים", "ל-100 ק\"ג"; not "ל-100 אלף"). Every other digit is
 # checked as in prose.
-_YEAR_SPAN = re.compile(r"(?:19|20)\d\d[/–-]\d\d")
+# re.ASCII: \d is 0-9 only, so "20٤٥" (Arabic-Indic digits) is no period label.
+_YEAR_SPAN = re.compile(r"(?:19|20)\d\d[/–-]\d\d", re.ASCII)
 _Y = r"(?:1[89]\d\d|20\d\d)"
 _PERIOD_LABEL = re.compile(
     rf"{_Y}|{_Y}-(?:0[1-9]|1[0-2])|{_Y}[- ]?Q[1-4]|Q[1-4][- ]?{_Y}|{_Y}-\d\d-\d\d"
     rf"|\d{{1,2}}[./]\d{{1,2}}[./]{_Y}|(?:{MONTHS})\s+{_Y}",
-    re.IGNORECASE)
+    re.IGNORECASE | re.ASCII)
 _PER_N = re.compile(r"(?<![א-ת])(?:ל-?|לכל\s+)(?:10|100|1,?000|10,?000|100,?000)"
                     r"(?=\s+(?!(?:אלף|אלפי|מיליון|מיליוני|מיליארד)(?![א-ת]))[א-ת])")
 
@@ -148,10 +151,13 @@ def check(draft: dict, *, ledger: Ledger, series_by_ds: dict, catalog: dict,
             return f"/datasets/{catalog[ds].get('page_slug') or ds}/"
         return f"/datasets/{ds}/" if ds in series_by_ds else None
 
+    referenced: set[str] = set()   # every fact the article prints (stored with it)
+
     def text(field_name: str, s, *, scale_ok: bool = False) -> tuple[list[dict], str]:
         # scale_ok: a field that labels a printed value (chart title, unit,
         # series name, the stat's label), where "מיליון ש\"ח" is its scale.
         s = str(s or "")
+        referenced.update(m[1] for m in TOKEN.finditer(s))
         if bad := stray_numbers(s):
             # A year has no fact token: telling the writer to use one gives it
             # nothing to fix (the 2026-11-09 live story died on exactly that).
@@ -176,9 +182,15 @@ def check(draft: dict, *, ledger: Ledger, series_by_ds: dict, catalog: dict,
     # checks as prose, no tokens or links (they would print raw), and the text
     # joins the punctuation and banned-phrase scan below.
     printed: list[str] = []
+    chart_text: list[str] = []     # what the writer wrote into charts (not data period labels)
 
-    def raw_field(field_name: str, s, chart: str | None = None, *, scale_ok: bool = False) -> None:
+    def raw_field(field_name: str, s, chart: str | None = None, *, scale_ok: bool = False,
+                  max_len: int | None = None) -> None:
         s = str(s or "")
+        if max_len is not None:
+            if len(s) > max_len:
+                problems.append(f"{field_name}: {len(s)} characters (at most {max_len})")
+            chart_text.append(s)
         text(field_name, _chart_numbers_text(s, chart) if chart else s, scale_ok=scale_ok)
         if TOKEN.search(s) or LINK.search(s):
             problems.append(f"{field_name}: no fact tokens or links here")
@@ -214,18 +226,21 @@ def check(draft: dict, *, ledger: Ledger, series_by_ds: dict, catalog: dict,
             # The strings the chart prints, fallbacks included (a bar with no
             # label prints its fact's label, which the model can write too).
             cname = f"chart {c['id']}"
-            raw_field(f"{cname} title", c["title"], scale_ok=True)
-            raw_field(f"{cname} unit", c["unit"], "unit", scale_ok=True)
+            raw_field(f"{cname} title", c["title"], scale_ok=True, max_len=CHART_TITLE_MAX)
+            raw_field(f"{cname} unit", c["unit"], "unit", scale_ok=True, max_len=CHART_UNIT_MAX)
             if c["type"] == "line":
                 for j, (r, ser) in enumerate(zip(spec["series"], c["option"]["series"], strict=True)):
                     own = "" if r.get("name") else " (the series' own name: give it an explicit name)"
-                    raw_field(f"{cname} series {j} name{own}", ser["name"], "label", scale_ok=True)
+                    raw_field(f"{cname} series {j} name{own}", ser["name"], "label", scale_ok=True,
+                              max_len=CHART_LABEL_MAX)
                 for x in dict.fromkeys(c["option"]["xAxis"]["data"]):
-                    raw_field(f"{cname} x label", x, "label")
+                    raw_field(f"{cname} x label", x, "label")   # the data's own period labels
             else:
                 for j, (r, x) in enumerate(zip(spec["bars"], c["option"]["xAxis"]["data"], strict=True)):
                     own = "" if r.get("label") else " (the fact's own label: give the bar an explicit label)"
-                    raw_field(f"{cname} bar {j} label{own}", x, "label")
+                    raw_field(f"{cname} bar {j} label{own}", x, "label", max_len=CHART_LABEL_MAX)
+                    if isinstance(r.get("fact"), str):
+                        referenced.add(r["fact"])
         except charts_mod.ChartError as e:
             problems.append(f"chart: {e}")
         except (AttributeError, TypeError, KeyError) as e:  # a mis-shaped spec
@@ -262,6 +277,8 @@ def check(draft: dict, *, ledger: Ledger, series_by_ds: dict, catalog: dict,
         elif kind == "stat":
             stats += 1
             f = ledger.facts.get(b["fact"]) if isinstance(b.get("fact"), str) else None
+            if f is not None:
+                referenced.add(f.id)
             _, label = text(f"block {i} label", b.get("label"), scale_ok=True)
             printed.append(label)
             sfmt = b.get("fmt") or None
@@ -299,6 +316,10 @@ def check(draft: dict, *, ledger: Ledger, series_by_ds: dict, catalog: dict,
     heb, lat = len(_HEB.findall(every)), len(_LAT.findall(every))
     if heb + lat and heb / (heb + lat) < HEBREW_MIN:
         problems.append("too little Hebrew")
+    ct = " ".join(chart_text)
+    heb, lat = len(_HEB.findall(ct)), len(_LAT.findall(ct))
+    if heb + lat and heb / (heb + lat) < HEBREW_MIN:
+        problems.append("charts: too little Hebrew in the titles, units, series names and bar labels")
     raw_field("image_alt_he", draft.get("image_alt_he"))
     every = "\n".join([every, *printed])
     low = every.lower()
@@ -348,14 +369,17 @@ def check(draft: dict, *, ledger: Ledger, series_by_ds: dict, catalog: dict,
         "dataset_ids": ds_ids, "tags": tags, "blocks": blocks, "charts": charts_out,
         "sources": sources, "image_brief": str(draft.get("image_brief") or "")[:600],
         "image_alt": str(draft.get("image_alt_he") or "")[:200], "words": words,
+        # the printed facts and the calc inputs behind them: what is stored with the article
+        "fact_ids": ledger.with_ancestors(referenced),
     }
     if len(core["slug"]) < 8:
         problems.append("slug_en: a descriptive English slug")
     return core, problems
 
 
-def as_markdown(core: dict) -> str:
-    """The rendered article as the critic reads it."""
+def as_markdown(core: dict, ledger: Ledger | None = None) -> str:
+    """The rendered article as the critic reads it. With the `ledger`, every
+    derived (`calc`) number it prints is listed with how it was computed."""
     out = [f"# {core['headline']}", f"_{core['dek']}_", ""]
     charts = {c["id"]: c for c in core["charts"]}
     for b in core["blocks"]:
@@ -374,6 +398,12 @@ def as_markdown(core: dict) -> str:
         # Shown to the critic only: the site renders the sources list itself.
         out.append("[for review — the quotes the reporter gave for each linked source]")
         out += [f"- {s['title']} <{s['url']}>: \"{s['quote']}\"" for s in core["sources"]]
+    if ledger is not None:
+        calcs = [ledger.describe(i) for i in core.get("fact_ids") or [] if ledger.inputs(i)]
+        if calcs:
+            out += ["", ("[for review: how each derived number was computed; check that it "
+                        "compares like with like (same unit, same basis)]")]
+            out += [f"- {c}" for c in calcs[:20]]
     return "\n".join(out)
 
 
@@ -389,10 +419,21 @@ def _strings(x) -> tuple[list[str], bool]:
     return [str(x)[:500]], False
 
 
-def critique(llm, core: dict, *, kind: str = "news") -> dict:
+def _score_ok(x) -> bool:
+    """A rubric score: a finite real number. An int past float range (a
+    309-digit JSON literal) is malformed, not a crash."""
+    if isinstance(x, bool) or not isinstance(x, int | float):
+        return False
+    try:
+        return math.isfinite(x)
+    except OverflowError:
+        return False
+
+
+def critique(llm, core: dict, *, kind: str = "news", ledger: Ledger | None = None) -> dict:
     style = (PROMPTS / "style_he.md").read_text(encoding="utf-8")
     system = (PROMPTS / "critic.md").read_text(encoding="utf-8") + "\n\n# Style guide\n\n" + style
-    body = f"KIND: {kind}\n\n" + as_markdown(core)
+    body = f"KIND: {kind}\n\n" + as_markdown(core, ledger)
     try:
         verdict = llm.chat_json([{"role": "system", "content": system},
                                  {"role": "user", "content": body}], temperature=0.2)
@@ -404,9 +445,7 @@ def critique(llm, core: dict, *, kind: str = "news") -> dict:
     (issues, issues_ok), (fixes, fixes_ok) = _strings(verdict.get("issues")), _strings(verdict.get("fixes"))
     # A pass needs the whole rubric: every score present, a finite number,
     # and >= 4. Anything malformed is sent back, never passed.
-    well_formed = (issues_ok and fixes_ok
-                   and all(isinstance(scores.get(k), int | float) and not isinstance(scores.get(k), bool)
-                           and math.isfinite(scores[k]) for k in RUBRIC))
+    well_formed = issues_ok and fixes_ok and all(_score_ok(scores.get(k)) for k in RUBRIC)
     if v == "pass" and (not well_formed or any(scores[k] < 4 for k in RUBRIC)):
         v = "revise"
     if v not in ("pass", "revise", "kill"):

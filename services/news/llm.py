@@ -34,7 +34,13 @@ class LLMUnavailable(Exception):
 
 
 class LLMError(Exception):
-    pass
+    """The model service failed this request. As such (a non-retryable 4xx, a
+    reply with no message) it would fail the same way again."""
+
+
+class LLMTransient(LLMError):
+    """A transient failure (429, 5xx, timeout, a broken 200) that outlasted
+    the retries: the service, not the request, is the problem."""
 
 
 class OpenRouter:
@@ -81,7 +87,7 @@ class OpenRouter:
                 log.warning("openrouter: %s — retry %d in %.0fs", err, attempt + 1, delay)
                 self._sleep(delay)
                 delay *= 2
-        raise LLMError(f"OpenRouter failed after {RETRIES} attempts: {err}")
+        raise LLMTransient(f"OpenRouter failed after {RETRIES} attempts: {err}")
 
     def chat(self, messages: list[dict], *, model: str = TEXT_MODEL, tools: list[dict] | None = None,
              json_mode: bool = False, temperature: float | None = None,

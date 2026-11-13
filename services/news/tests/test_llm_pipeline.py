@@ -14,7 +14,13 @@ from PIL import Image
 
 from services.news import run
 from services.news.fetch import Page
-from services.news.llm import LLMError, LLMUnavailable, OpenRouter, parse_json
+from services.news.llm import (
+    LLMError,
+    LLMTransient,
+    LLMUnavailable,
+    OpenRouter,
+    parse_json,
+)
 from services.news.series import extract_series
 from services.news.signals import Signal
 from services.news.store import LocalArticles, join, split
@@ -316,13 +322,41 @@ def test_well_formed_critic_pass_passes():
 
 class _DownLLM(FakeLLM):
     def chat(self, messages, tools=None, **kw):
-        raise LLMError("OpenRouter failed after 4 attempts: HTTP 503")
+        raise LLMTransient("OpenRouter failed after 4 attempts: HTTP 503")
+
+
+class _BadRequestLLM(FakeLLM):
+    def chat(self, messages, tools=None, **kw):
+        raise LLMError("HTTP 400: context length exceeded")
 
 
 def test_model_error_in_the_writer_is_counted_apart_from_rejections(tmp_path):
     out, _, _ = _day(tmp_path, _DownLLM([]))
     assert out["published"] == [] and out["rejected"][0]["reason"] == "error"
     assert out["model_errors"] == 1
+
+
+def test_deterministic_model_error_is_a_rejection_not_a_held_window(tmp_path):
+    out, store, sig = _day(tmp_path, _BadRequestLLM([]))
+    assert out["published"] == [] and out["rejected"][0]["reason"] == "error"
+    assert out["model_errors"] == 0   # the window closes: the next run would fail the same way
+    # recorded, so its signals sit out REJECT_DAYS
+    assert store.recent_rejects(7)[0]["brief"]["signal_keys"] == [sig.key]
+
+
+def test_gives_up_after_retries_as_transient():
+    def handler(req):
+        return httpx.Response(503)
+    with pytest.raises(LLMTransient):
+        OpenRouter("k", client=_client(handler), sleep=lambda s: None).chat([])
+
+
+def test_non_retryable_4xx_is_not_transient():
+    def handler(req):
+        return httpx.Response(400, text="context length exceeded")
+    with pytest.raises(LLMError) as e:
+        OpenRouter("k", client=_client(handler), sleep=lambda s: None).chat([])
+    assert not isinstance(e.value, LLMTransient)
 
 
 def test_editorial_rejection_is_not_a_model_error(tmp_path):

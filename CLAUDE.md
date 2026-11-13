@@ -445,7 +445,8 @@ catalog` lists chapters → subjects → codes.
    successful full live run's window ended (`run.news_window`). So a late,
    repeated or skipped run loses and double-counts nothing; a render that lands
    mid-run goes to the next run. Only an `ok`/`idle` live run with no
-   `--dataset` advances it; dry runs and `--signals-only` read it,
+   `--dataset` advances it (not when ≥ max(5, 5%) of its snapshot reads
+   failed; an unreadable catalog fails a live run); dry runs and `--signals-only` read it,
    `--since-hours N` (ad-hoc) ignores it. No cursor → the last 24h; a cursor
    older than `NEWS_MAX_LOOKBACK_HOURS` (168) is clamped to it.
    A scheduled run (live, no `--dataset`/`--models-dir`/`--since-hours`) ends
@@ -532,6 +533,10 @@ catalog` lists chapters → subjects → codes.
      punctuation (user rule, in the gate and the prompts).
    - data access for the writer is DuckDB SQL over the recipe's own inputs
      with external access off (`query.py`); it never runs model-written code.
+     Only the brief's datasets, each loaded once per run into DuckDB (frames
+     and files dropped), capped by `NEWS_TABLE_MAX_ROWS` (1M) and
+     `NEWS_TABLE_MAX_BYTES` (150MB of CSV); over a cap the writer has no SQL
+     for that dataset (`data.py`).
    - kill switch: `NEWS_PUBLISH=off` (env update, no redeploy). Unpublish /
      correct: `python -m services.news.admin unpublish|correct <slug>`, then
      a publish run. Rejected drafts: `admin list --rejected`.

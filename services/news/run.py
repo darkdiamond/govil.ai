@@ -67,7 +67,7 @@ from . import llm as llm_mod
 from .editor import REJECT_DAYS, choose, choose_features, eligible, rejected_signal_keys
 from .ledger import Ledger
 from .links import attach_links, load_edges
-from .llm import LLMError, LLMUnavailable
+from .llm import LLMError, LLMTransient, LLMUnavailable
 from .series import Series, extract_series
 from .signals import Signal, detect_all, is_new_dataset, new_dataset_signal, rank
 from .snapshots import GcsSnapshots, History, LocalSnapshots, Snapshot, history
@@ -150,8 +150,10 @@ def find_signals(store, *, today: date, cutoff: str | None = None, upto: str | N
     off, nothing is looked up."""
     ids = ids if ids is not None else store.ids()
     with ThreadPoolExecutor(max_workers=workers) as ex:
-        pairs = dict(zip(ids, ex.map(lambda i: _safe_pair(store, i, cutoff, upto), ids),
-                         strict=True))
+        read = dict(zip(ids, ex.map(lambda i: _safe_pair(store, i, cutoff, upto), ids),
+                        strict=True))
+    snapshot_errors = sum(h is None for h in read.values())
+    pairs = {ds: h for ds, h in read.items() if h is not None}
 
     series_by_ds: dict[str, list[Series]] = {}
     models: dict[str, dict] = {}
@@ -197,16 +199,32 @@ def find_signals(store, *, today: date, cutoff: str | None = None, upto: str | N
              "rendered_since_cutoff": rendered, "with_history": with_history,
              "series": sum(len(v) for v in series_by_ds.values()), "signals": len(signals),
              "linked": sum(bool(s.links) for s in signals),
-             "catalog": len(catalog or {}), "demand_datasets": len(demand_by_id or {})} | new_stats
+             "catalog": len(catalog or {}), "demand_datasets": len(demand_by_id or {}),
+             "snapshot_errors": snapshot_errors} | new_stats
     return signals, stats
 
 
-def _safe_pair(store, ds: str, cutoff: str | None, upto: str | None = None) -> History:
+def _safe_pair(store, ds: str, cutoff: str | None, upto: str | None = None) -> History | None:
+    """The dataset's history, or None when its snapshots couldn't be read
+    (counted in find_signals' `snapshot_errors`)."""
     try:
         return history(store, ds, cutoff, upto)
     except Exception:
         log.warning("news: reading snapshots of %s failed", ds, exc_info=True)
-        return History(None, None, False)
+        return None
+
+
+# One corrupt object must not pin the cursor (until the lookback cap), but a
+# GCS outage that hid most datasets' renders must not close their window
+# either: a live run holds its cursor when this many snapshot reads failed.
+SNAPSHOT_ERRORS_MIN = 5
+SNAPSHOT_ERRORS_SHARE = 0.05
+
+
+def snapshot_reads_failed(stats: dict) -> bool:
+    """Whether enough snapshot reads failed that the window can't be called read."""
+    errors = stats.get("snapshot_errors") or 0
+    return errors >= max(SNAPSHOT_ERRORS_MIN, SNAPSHOT_ERRORS_SHARE * (stats.get("datasets") or 0))
 
 
 # ── new datasets (NEWS_NEW_DATASET_SIGNALS) ─────────────────────────────
@@ -436,7 +454,7 @@ class _Day:
         ledger = Ledger()
         kw = {"fetcher": self.fetcher} if self.fetcher else {}
         tb = Toolbox(ledger=ledger, series=self.series_by_ds, models=self.models, catalog=self.catalog,
-                     tables=self.tables, llm=llm, **kw)
+                     tables=self.tables, llm=llm, dataset_ids=brief.get("dataset_ids") or [], **kw)
         status = None
         try:
             out = write(llm, tb, brief, catalog=self.catalog, vocab=self.vocab, today=today.isoformat(),
@@ -444,9 +462,16 @@ class _Day:
                                         else self.max_tool_calls))
         except LLMUnavailable:
             raise  # the key is refused: no point writing the next story
-        except LLMError as e:  # still failing after retries: the story was never judged
+        except LLMTransient as e:  # still failing after retries: the story was never judged
             log.exception("news: writing %s failed on the model service", brief["signal_keys"])
             status = StoryResult.MODEL_ERROR
+            out = Outcome("rejected", reason="error", problems=[f"{type(e).__name__}: {str(e)[:300]}"])
+        except LLMError as e:
+            # Deterministic (a 4xx such as a context overflow, a reply with no
+            # message): it would fail the same way next run, so it is recorded
+            # as a rejection (its signals sit out REJECT_DAYS) and the window
+            # closes, instead of holding the cursor run after run.
+            log.exception("news: the model service refused %s", brief["signal_keys"])
             out = Outcome("rejected", reason="error", problems=[f"{type(e).__name__}: {str(e)[:300]}"])
         except Exception as e:  # one story's crash must not cost the day's others
             log.exception("news: writing %s crashed", brief["signal_keys"])
@@ -462,7 +487,7 @@ class _Day:
                               "brief": {k: brief[k] for k in ("signal_keys", "dataset_ids", "angle_he")},
                               "reason": out.reason, "problems": out.problems, "critic": out.critic,
                               "core": out.core, "tool_calls": out.tool_calls, "tools": tb.log,
-                              "ledger": ledger.dump()})
+                              "ledger": ledger.dump(keep=(out.core or {}).get("fact_ids") or [])})
             except Exception:
                 log.exception("news: recording the rejection of %s failed", keys)
             return status or StoryResult.REJECTED
@@ -481,7 +506,7 @@ class _Day:
                 "hero": hero | {"alt": core["image_alt"] or core["headline"],
                                 "caption": "איור" if hero["kind"] == "illustration" else None},
                 "blocks": core["blocks"], "charts": core["charts"], "sources": core["sources"],
-                "ledger": ledger.dump(), "words": core["words"], "run_id": self.run_id,
+                "ledger": ledger.dump(keep=core["fact_ids"]), "words": core["words"], "run_id": self.run_id,
                 "critic_scores": (out.critic or {}).get("scores"),
                 "models": {"text": llm_mod.TEXT_MODEL, "reasoning_effort": llm_mod.REASONING_EFFORT or None,
                            "image": llm_mod.IMAGE_MODEL if hero["kind"] == "illustration" else None},
@@ -925,6 +950,15 @@ def _run(a, *, live: bool, gated: bool, articles, lease_state: str | None) -> in
         lease_info["probe"] = probe["probe"]
     snaps = LocalSnapshots(a.models_dir) if a.models_dir else GcsSnapshots(a.bucket, a.prefix)
     cat = {} if a.no_catalog else catalog_mod.load_catalog()
+    if live and not a.no_catalog and not cat:
+        # No titles, publishers, demand or explainer candidates: a run on an
+        # empty catalog would still write, and close its window. Fail it.
+        print(json.dumps({"type": "news_summary", "run_id": run_id, "mode": "live",
+                          "today": today.isoformat(), "window": window, **lease_info,
+                          "status": NewsRunStatus.FAILED,
+                          "error": "catalog: the site's search index was unreadable or empty"},
+                         ensure_ascii=False, default=str))
+        return 1
     dem = {} if (a.no_demand or not cat) else demand_mod.dataset_demand(
         demand_mod.fetch_page_rows(today=today), cat)
     ctx: dict = {}
@@ -996,6 +1030,10 @@ def _run(a, *, live: bool, gated: bool, articles, lease_state: str | None) -> in
             # never saved, is not a story judged: keep the window so the next
             # run sees its signals again.
             summary["cursor_advanced"] = False
+        elif live and window["upto"] and not (a.dataset or a.models_dir) and snapshot_reads_failed(stats):
+            # Renders this run couldn't read (a GCS outage) must reach a later run.
+            log.error("news: %d snapshot reads failed; keeping the cursor", stats["snapshot_errors"])
+            summary |= {"cursor_advanced": False, "cursor_held": "snapshot_errors"}
         elif live and window["upto"] and not (a.dataset or a.models_dir):
             # Only a full run that got this far closes its window; a failed
             # one leaves it for the next run (cooldown + used signal keys stop

@@ -237,9 +237,21 @@ class Ledger:
 
     def calc(self, op: str, a: str, b: str | None = None, *, label: str = "",
              factor: float | None = None) -> Fact:
-        """A derived fact, traceable to its inputs."""
+        """A derived fact, traceable to its inputs. `sum` and `diff` take two
+        facts of one unit and one dataset: a count plus a percent, or two
+        datasets' figures added up, is not a number anyone published."""
         fa = self.facts[a]
         fb = self.facts[b] if b else None
+        if op in ("diff", "pct_change", "ratio", "share", "sum") and fb is None:
+            raise ValueError(f"{op} needs two facts, a and b")
+        if op in ("sum", "diff"):
+            if fa.unit != fb.unit:
+                raise ValueError(f"{op} of facts in different units ({fa.unit or 'none'} vs "
+                                 f"{fb.unit or 'none'}): add or subtract like with like")
+            if fa.dataset_id != fb.dataset_id:
+                raise ValueError(f"{op} of facts from different datasets ({fa.dataset_id} vs "
+                                 f"{fb.dataset_id}): compare them in the text, or with ratio or "
+                                 "pct_change")
         if op == "diff":
             v, unit = fa.value - fb.value, fa.unit
         elif op == "pct_change":
@@ -270,8 +282,43 @@ class Ledger:
                         provenance=f"calc:{op}:{a}:{b or ''}{extra}", unit=unit,
                         period=fa.period, dataset_id=fa.dataset_id)
 
-    def dump(self) -> dict:
-        return {"facts": [asdict(f) for f in self.facts.values()],
+    def inputs(self, fid: str) -> list[str]:
+        """The facts a `calc` fact was derived from ([] for any other fact)."""
+        f = self.facts.get(fid)
+        if f is None or not f.provenance.startswith("calc:"):
+            return []
+        # calc:<op>:<a>:<b>[:<factor>]
+        return [x for x in f.provenance.split(":")[2:4] if x in self.facts]
+
+    def with_ancestors(self, ids) -> list[str]:
+        """`ids` plus every fact a calc among them was derived from, in ledger order."""
+        seen: set[str] = set()
+        todo = [i for i in ids if i in self.facts]
+        while todo:
+            i = todo.pop()
+            if i not in seen:
+                seen.add(i)
+                todo += self.inputs(i)
+        return [i for i in self.facts if i in seen]
+
+    def describe(self, fid: str) -> str:
+        """A fact's provenance as the critic reads it: value and label, and for
+        a calc its op over its inputs, recursively."""
+        f = self.facts[fid]
+        head = f"{fid} = {format_value(f.value)} ({f.label})"
+        if not f.provenance.startswith("calc:"):
+            return head
+        op = f.provenance.split(":")[1]
+        return f"{head} = {op} of [" + "; ".join(self.describe(i) for i in self.inputs(fid)) + "]"
+
+    def dump(self, keep=None) -> dict:
+        """The ledger for storage. `keep`: only these facts (the ones the
+        article prints) and the calc inputs behind them, since every fact a
+        tool call registered can pass Firestore's 1 MiB document limit.
+        `fact_count` is the whole ledger's size either way."""
+        ids = set(self.with_ancestors(keep)) if keep is not None else set(self.facts)
+        return {"facts": [asdict(f) for f in self.facts.values() if f.id in ids],
+                "fact_count": len(self.facts),
                 "sources": [{"id": s.id, "url": s.url, "title": s.title, "kind": s.kind}
                             for s in self.sources.values()]}
 
