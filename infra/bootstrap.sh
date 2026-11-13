@@ -114,6 +114,13 @@ echo "==> granting IAM roles"
 ENABLE_CLOUDBUILD_PUBLISH=${ENABLE_CLOUDBUILD_PUBLISH:-0}
 # Firestore: the (default) database only (the `news` database is the news
 # job's); staging bucket: everything except article images under news/.
+# Bindings are additive, so first drop any older unconditioned (wider) ones.
+gcloud projects remove-iam-policy-binding "$PROJECT" \
+  --member="serviceAccount:$BUILDER_SA" --role=roles/datastore.user --condition=None \
+  --quiet >/dev/null 2>&1 || true
+gcloud storage buckets remove-iam-policy-binding "gs://$STAGING_BUCKET" \
+  --member="serviceAccount:$BUILDER_SA" --role=roles/storage.objectAdmin --condition=None \
+  >/dev/null 2>&1 || true
 gcloud projects add-iam-policy-binding "$PROJECT" \
   --member="serviceAccount:$BUILDER_SA" --role=roles/datastore.user \
   --condition='expression=resource.name=="projects/'"$PROJECT"'/databases/(default)",title=default-db-only,description=Write only the (default) Firestore database' \
@@ -126,6 +133,10 @@ gcloud storage buckets add-iam-policy-binding "gs://$STAGING_BUCKET" \
   --quiet >/dev/null
 
 # Publisher: read Firestore, read staging GCS, deploy Firebase Hosting.
+# It only reads Firestore: drop an older datastore.user grant.
+gcloud projects remove-iam-policy-binding "$PROJECT" \
+  --member="serviceAccount:$PUBLISHER_SA" --role=roles/datastore.user --condition=None \
+  --quiet >/dev/null 2>&1 || true
 # AR access is granted on the publisher repo below (writer covers the
 # image-build trigger's push + the publish trigger's pull).
 for role in roles/datastore.viewer roles/logging.logWriter roles/firebasehosting.admin; do
