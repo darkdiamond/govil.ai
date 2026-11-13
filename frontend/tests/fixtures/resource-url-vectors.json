@@ -1,5 +1,5 @@
 {
-  "_comment": "Shared [input, expected] vectors for services/scanner/models.py::_public_resource_url and frontend/utils/resource-url.ts::publicResourceUrl. Read by services/scanner/tests/test_models.py and frontend/tests/security-belts.test.mjs.",
+  "_comment": "Shared [input, expected] vectors for services/scanner/models.py::_public_resource_url and frontend/utils/resource-url.ts::publicResourceUrl. Read by services/scanner/tests/test_models.py and frontend/tests/security-belts.test.mjs. `format_vectors` are [format, url, expected] for services/scanner/models.py::resource_format and resource-url.ts::resourceFormat (url already normalized).",
   "vectors": [
     [
       "https://e.data.gov.il/dataset/x/resource/y/download/a.csv",
@@ -48,5 +48,30 @@
     ["https://", ""],
     ["http:///x", ""],
     ["h\ttps://x", ""]
+  ],
+  "format_vectors": [
+    ["csv", "https://data.gov.il/dataset/x/resource/y/download/a.xlsx", "CSV"],
+    [" xlsx ", "", "XLSX"],
+    [
+      "",
+      "https://data.gov.il/dataset/x/resource/y/download/report.docx",
+      "DOCX"
+    ],
+    [null, "https://data.gov.il/dataset/x/resource/y/download/a.RAR", "RAR"],
+    ["  ", "https://example.org/files/a.tar.gz?x=1.pdf#b.zip", "GZ"],
+    ["", "https://example.org/a.csv/", ""],
+    ["", "https://example.org", ""],
+    ["", "https://example.org/", ""],
+    ["", "https://example.org/download", ""],
+    ["", "https://www.gov.il/he/page.aspx", ""],
+    ["", "https://example.org/a.HTML", ""],
+    ["", "https://example.org/a.php", ""],
+    ["", "https://example.org/a.verylongext", ""],
+    ["", "https://example.org/a.12345678", "12345678"],
+    ["", "https://example.org/a.", ""],
+    ["", "https://example.org/a.p_f", ""],
+    ["", "https://example.org/\u05d3\u05d5\u05d7.pdf", "PDF"],
+    ["", "https://example.org/a.\u05d3\u05d5\u05d7", ""],
+    ["", "", ""]
   ]
 }

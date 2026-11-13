@@ -1,5 +1,5 @@
 // Rewrites a CKAN resource URL into one an anonymous browser can download.
-// Mirrors services/scanner/models.py::_public_resource_url — the scanner
+// Mirrors services/shared/ckan.py::public_resource_url — the scanner
 // normalizes on ingest; this is the render-time belt for docs scanned before
 // a rule existed.
 //
@@ -37,7 +37,9 @@ export function publicResourceUrl(url: string | null | undefined): string {
 // CKAN's `format` is publisher-supplied and sometimes blank; the URL's file
 // extension (".../download/report.docx") then names the type. Upper-case,
 // "" when neither says. Only the path's last segment counts (a bare host's TLD
-// is not a format), and web-page extensions are not file formats.
+// is not a format), and web-page extensions are not file formats. Mirrored on
+// ingest by services/scanner/models.py::resource_format (shared
+// `format_vectors` in frontend/tests/fixtures/resource-url-vectors.json).
 const URL_EXT = /\.([a-z0-9]{1,8})$/i;
 const PAGE_EXTS = new Set(["ASPX", "ASP", "ASHX", "PHP", "HTM", "HTML", "JSP"]);
 

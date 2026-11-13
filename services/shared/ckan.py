@@ -66,7 +66,7 @@ def public_resource_url(url: str) -> str:
     works in a browser. Mirrored by frontend/utils/resource-url.ts.
 
     Anything that isn't an absolute http(s) URL (`javascript:`, `data:`,
-    `file:`, relative junk) becomes "" — CKAN fields are publisher-supplied,
+    `file:`, relative junk, a host `urlsplit` can't parse) becomes "" — CKAN fields are publisher-supplied,
     the URL lands in every download button's href, and the publisher
     already drops resources with an empty url. The scheme is judged with
     whitespace/control chars removed, as a browser would (`java\tscript:`).
@@ -75,7 +75,10 @@ def public_resource_url(url: str) -> str:
         return ""
     url = url.strip()
     probe = _URL_IGNORED_CHARS_RE.sub("", url)
-    parts = urlsplit(probe)
+    try:
+        parts = urlsplit(probe)
+    except ValueError:  # a malformed bracketed host (`https://[::1/x`)
+        return ""
     if parts.scheme.lower() not in ("http", "https") or not parts.netloc:
         return ""
     url = _GATED_HOST_RE.sub("https://data.gov.il/", url)

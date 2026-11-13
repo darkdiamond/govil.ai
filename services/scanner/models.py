@@ -5,8 +5,10 @@ These models represent datasets, resources, and scan results as returned
 from the CKAN API; `FirestoreStateStore.save_dataset` persists them.
 """
 
+import re
 from datetime import datetime
 from enum import Enum
+from urllib.parse import urlsplit
 
 from pydantic import BaseModel, Field
 
@@ -19,6 +21,31 @@ def _dict_entries(value) -> list[dict]:
     if not isinstance(value, list):
         return []
     return [entry for entry in value if isinstance(entry, dict)]
+
+
+# Mirrors resourceFormat() in frontend/utils/resource-url.ts (same extension
+# pattern and page-extension list); both run the `format_vectors` in
+# frontend/tests/fixtures/resource-url-vectors.json.
+_URL_EXT_RE = re.compile(r"\.([A-Za-z0-9]{1,8})\Z")
+_PAGE_EXTS = frozenset({"ASPX", "ASP", "ASHX", "PHP", "HTM", "HTML", "JSP"})
+
+
+def resource_format(fmt: str | None, url: str) -> str:
+    """The resource's file type, upper-case: CKAN's `format`, else the
+    extension of the URL path's last segment (CKAN's `format` is
+    publisher-supplied and sometimes blank). "" when neither says; web-page
+    extensions are not file formats. `url` is the normalized
+    (`public_resource_url`) one."""
+    fmt = (fmt or "").strip()
+    if fmt:
+        return fmt.upper()
+    try:
+        path = urlsplit(url).path if url else ""
+    except ValueError:
+        return ""
+    m = _URL_EXT_RE.search(path.rsplit("/", 1)[-1])
+    ext = m.group(1).upper() if m else ""
+    return "" if ext in _PAGE_EXTS else ext
 
 
 class DatasetStatus(str, Enum):
@@ -90,11 +117,12 @@ class Dataset(BaseModel):
         # Parse resources
         resources = []
         for res_data in _dict_entries(data.get("resources")):
+            url = public_resource_url(res_data.get("url") or "")
             resource = Resource(
                 id=res_data.get("id") or "",
                 name=res_data.get("name") or "",
-                format=(res_data.get("format") or "").upper(),
-                url=public_resource_url(res_data.get("url") or ""),
+                format=resource_format(res_data.get("format"), url),
+                url=url,
                 size=res_data.get("size"),
                 last_modified=parse_ckan_datetime(res_data.get("last_modified")),
                 description=res_data.get("description"),

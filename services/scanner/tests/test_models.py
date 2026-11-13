@@ -10,10 +10,12 @@ from services.scanner.models import Dataset
 
 # Shared with frontend/tests/security-belts.test.mjs, which runs the same
 # vectors through frontend/utils/resource-url.ts (the render-time mirror).
-_URL_VECTORS = json.loads(
+_VECTOR_FILE = json.loads(
     (Path(__file__).resolve().parents[3] / "frontend" / "tests" / "fixtures"
      / "resource-url-vectors.json").read_text(encoding="utf-8")
-)["vectors"]
+)
+_URL_VECTORS = _VECTOR_FILE["vectors"]
+_FORMAT_VECTORS = _VECTOR_FILE["format_vectors"]
 
 
 def _ckan_package(resources: list[dict]) -> dict:
@@ -65,6 +67,40 @@ def test_public_resource_url_shared_vectors(url, expected):
     assert f(url) == expected
 
 
+@pytest.mark.parametrize("url", ["https://[::1/x", "http://[bad/a.csv", " https://[x"])
+def test_public_resource_url_malformed_bracketed_host_is_blank(url):
+    # Python-only: urlsplit raises ValueError here; the TS mirror can't hold
+    # this vector (its regex check passes such a URL through).
+    from services.shared.ckan import public_resource_url as f
+
+    assert f(url) == ""
+
+
+def test_dataset_with_malformed_bracketed_host_blanks_only_that_url():
+    ds = Dataset.from_ckan_response(_ckan_package([
+        {"id": "rid-1", "name": "bad", "format": "csv", "url": "https://[::1/x"},
+        {"id": "rid-2", "name": "ok", "format": "csv", "url": "https://data.gov.il/x.csv"},
+    ]))
+    assert [r.url for r in ds.resources] == ["", "https://data.gov.il/x.csv"]
+
+
+@pytest.mark.parametrize(("fmt", "url", "expected"), _FORMAT_VECTORS)
+def test_resource_format_shared_vectors(fmt, url, expected):
+    from services.scanner.models import resource_format
+
+    assert resource_format(fmt, url) == expected
+
+
+def test_blank_format_is_inferred_from_the_url_on_ingest():
+    ds = Dataset.from_ckan_response(_ckan_package([
+        {"id": "rid-1", "name": "doc", "format": "",
+         "url": "https://e.data.gov.il/dataset/x/resource/rid-1/download/report.docx"},
+        {"id": "rid-2", "name": "page", "format": None, "url": "https://www.gov.il/x.aspx"},
+        {"id": "rid-3", "name": "csv", "format": " csv ", "url": "https://data.gov.il/a.xlsx"},
+    ]))
+    assert [r.format for r in ds.resources] == ["DOCX", "", "CSV"]
+
+
 def test_public_resource_url_non_string_is_blank():
     from services.shared.ckan import public_resource_url as f
 
@@ -93,7 +129,8 @@ _FULL_ORG = {"id": "org-1", "name": "moh", "title": "משרד הבריאות"}
 @pytest.mark.parametrize("field", ["id", "name", "format", "url"])
 def test_null_resource_string_fields_parse(field):
     ds = Dataset.from_ckan_response(_ckan_package([{**_FULL_RESOURCE, field: None}]))
-    assert getattr(ds.resources[0], field) == ""
+    # A null format falls back to the URL's extension (x.csv).
+    assert getattr(ds.resources[0], field) == ("CSV" if field == "format" else "")
 
 
 @pytest.mark.parametrize("field", ["id", "name", "title"])
