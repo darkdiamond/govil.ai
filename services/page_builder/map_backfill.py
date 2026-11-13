@@ -237,24 +237,43 @@ def _report(cands: list[Candidate]) -> None:
 _MAP_BLOCK_RE = re.compile(r"author snapshot|in a browser|map file|CDN", re.IGNORECASE)
 
 
-def _blocked_on_maps(number: int, repo: str = REPO) -> bool:
-    """True when the issue's `authoring-blocked` comment blames the map file."""
-    out = subprocess.run(["gh", "issue", "view", str(number), "--repo", repo, "--json", "comments"],
+def _issue_texts(number: int, repo: str = REPO) -> tuple[str, list[str]]:
+    """The issue's body and its comments' bodies."""
+    out = subprocess.run(["gh", "issue", "view", str(number), "--repo", repo,
+                          "--json", "body,comments"],
                          check=True, capture_output=True, text=True).stdout
-    return any(_MAP_BLOCK_RE.search(cm.get("body") or "")
-               for cm in json.loads(out).get("comments") or [])
+    doc = json.loads(out)
+    return doc.get("body") or "", [cm.get("body") or "" for cm in doc.get("comments") or []]
 
 
-def _comment(number: int, c: Candidate, repo: str = REPO) -> bool:
+def _blocked_on_maps(comments: list[str]) -> bool:
+    """True when the issue's `authoring-blocked` comment blames the map file."""
+    return any(_MAP_BLOCK_RE.search(body) for body in comments)
+
+
+def _already_told(c: Candidate, body: str, comments: list[str]) -> bool:
+    """The issue (its body, or an earlier run's comment) already names every
+    downloadable map file, so a re-run has nothing to add."""
+    ids = [m.resource_id for m in c.maps if not m.error]
+    texts = [body, *comments]
+    return bool(ids) and all(any(rid in t for t in texts) for rid in ids)
+
+
+def _comment(number: int, c: Candidate, repo: str = REPO) -> bool | None:
     """Comment on the issue; lift an `authoring-blocked` label that was about
-    the map file. Returns whether the label was lifted."""
+    the map file. Returns whether the label was lifted, or None when the issue
+    already holds the map details (nothing posted: a re-run doesn't repeat
+    itself)."""
+    issue_body, comments = _issue_texts(number, repo)
+    if _already_told(c, issue_body, comments):
+        return None
     body = ("The daily job can now download this dataset's map file itself, so a recipe can "
             "draw the geometry with a `map: true` input (no browser download, no committed "
             "snapshot; see `/author-dataset`, \"Map files\").\n\n```text\n"
             + detail_text(c).replace("`", "'") + "\n```\n")
     subprocess.run(["gh", "issue", "comment", str(number), "--repo", repo, "--body", body],
                    check=True, capture_output=True, text=True)
-    if "authoring-blocked" in c.labels and _blocked_on_maps(number, repo):
+    if "authoring-blocked" in c.labels and _blocked_on_maps(comments):
         subprocess.run(["gh", "issue", "edit", str(number), "--repo", repo,
                         "--remove-label", "authoring-blocked"],
                        check=True, capture_output=True, text=True)
@@ -290,7 +309,7 @@ def open_all(store, cands: list[Candidate], *, max_new: int,
     if len(new) > max_new:
         raise SystemExit(f"{len(new)} issues to open > --max-new {max_new}; "
                          "review `list` and re-run with a higher cap")
-    done = {"opened": [], "commented": [], "unblocked": [], "errors": []}
+    done = {"opened": [], "commented": [], "unblocked": [], "already": [], "errors": []}
     for c in new:
         n = None
         try:
@@ -306,7 +325,11 @@ def open_all(store, cands: list[Candidate], *, max_new: int,
             done["errors"].append((c.src.id, f"issue #{n} opened, not recorded: {err}" if n else err))
     for c in (c for c in cands if c.kind == "comment"):
         try:
-            if _comment(c.issue, c):
+            lifted = _comment(c.issue, c)
+            if lifted is None:
+                done["already"].append((c.src.id, c.issue))
+                continue
+            if lifted:
                 done["unblocked"].append((c.src.id, c.issue))
             done["commented"].append((c.src.id, c.issue))
         except subprocess.CalledProcessError as e:
