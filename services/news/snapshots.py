@@ -47,11 +47,19 @@ class Snapshot:
         return cls(dataset_id, None, None, None, doc)  # a bare model (local dumps)
 
 
+# Above signal_pairs' worker count (16), so its threads reuse connections
+# instead of each read opening a fresh TLS one (urllib3's default pool is 10).
+GCS_POOL_SIZE = 32
+
+
 class GcsSnapshots:
     def __init__(self, bucket: str, prefix: str = model_history.PREFIX + "/"):
         from google.cloud import storage
+        from requests.adapters import HTTPAdapter
 
         self._client = storage.Client()
+        self._client._http.mount("https://", HTTPAdapter(pool_connections=GCS_POOL_SIZE,
+                                                         pool_maxsize=GCS_POOL_SIZE))
         self._bucket = self._client.bucket(bucket)
         self.prefix = prefix if prefix.endswith("/") else prefix + "/"
 
