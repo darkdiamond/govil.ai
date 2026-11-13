@@ -35,7 +35,9 @@ SIZES = {"16x9": (1600, 900), "4x3": (1200, 900), "1x1": (1200, 1200), "thumb": 
 # a canvas past this size from its header, before decoding (Pillow's own bomb check only warns
 # below twice its default limit).
 HERO_FORMATS = ["PNG", "JPEG", "WEBP"]
-MAX_HERO_PIXELS = 4096 * 4096
+# Room for a 4K 16:9 image (5504×3072, 16.9M pixels) if a request ever asks for one.
+MAX_HERO_SIDE = 6144
+MAX_HERO_PIXELS = 24_000_000
 
 
 def _crop(img: Image.Image, w: int, h: int) -> Image.Image:
@@ -102,7 +104,7 @@ def hero(llm, brief: str, fallback_values: list[float]) -> tuple[dict, dict[str,
         try:
             raw = llm.image(HOUSE_STYLE + brief)
             img = Image.open(io.BytesIO(raw), formats=HERO_FORMATS)
-            if img.size[0] * img.size[1] > MAX_HERO_PIXELS:
+            if max(img.size) > MAX_HERO_SIDE or img.size[0] * img.size[1] > MAX_HERO_PIXELS:
                 raise ValueError(f"image too large: {img.size}")
             img.load()
             if img.size[0] < 1024:

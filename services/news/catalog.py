@@ -1,7 +1,8 @@
 """Dataset titles, slugs and kinds, from the live site's search index (what
 the publisher last deployed). Read from the Firebase origin, not the
 Cloudflare-fronted domain, so a cached edge copy can't lag. Fails soft: no
-catalog just means signals print with ids and demand stays neutral."""
+catalog just means signals print with ids and demand stays neutral; a live
+news run treats an unreadable or empty catalog as a failed run (run.py)."""
 from __future__ import annotations
 
 import json

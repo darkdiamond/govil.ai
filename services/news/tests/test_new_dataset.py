@@ -348,7 +348,8 @@ def test_run_puts_a_catalog_missing_new_dataset_in_the_catalog(tmp_path, monkeyp
     monkeypatch.setattr(run, "_read_source", lambda i: {
         "title": "מאגר חדש לגמרי", "organization": {"title": "משרד הבריאות"},
         "metadata_created": datetime.now(UTC) - timedelta(days=2)})
-    monkeypatch.setattr(run.catalog_mod, "load_catalog", dict)
+    # the deployed catalog (a live run refuses an empty one) lacks the new dataset
+    monkeypatch.setattr(run.catalog_mod, "load_catalog", lambda: {"other-ds": {"title": "x"}})
     monkeypatch.setattr(store_mod, "FirestoreArticles", _Articles)
     monkeypatch.setattr(llm_mod, "OpenRouter", lambda: type("L", (), {"cost_usd": 0, "calls": 0})())
     _Articles.cursor, _Articles.recent_docs = None, []

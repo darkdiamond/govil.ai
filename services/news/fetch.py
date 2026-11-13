@@ -120,10 +120,32 @@ def _check_url(url: str, resolve=socket.getaddrinfo) -> str:
     if not ips:
         raise FetchRefused(f"cannot resolve {host}")
     for ip in ips:
-        if not ip.is_global or ip.is_multicast:
+        if not public_address(ip):
             raise FetchRefused(f"{host} resolves to a non-public address")
     # Cloud Run egress is IPv4, so prefer an IPv4 address when there is one.
     return str(next((ip for ip in ips if ip.version == 4), ips[0]))
+
+
+# IPv6 forms that carry an IPv4 address Python still calls global: NAT64
+# (64:ff9b::/96, and the local-use 64:ff9b:1::/48) and the deprecated
+# IPv4-compatible ::/96. A NAT64 gateway would turn 64:ff9b::a9fe:a9fe into
+# 169.254.169.254. Refused outright, whatever the embedded address.
+_EMBEDDED_V4_NETS = tuple(ipaddress.ip_network(n) for n in ("64:ff9b::/96", "64:ff9b:1::/48", "::/96"))
+
+
+def public_address(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
+    """An address the fetch may connect to: global, not multicast, and no IPv6
+    form that embeds an IPv4 address (an IPv4-mapped or 6to4 one is judged by
+    the IPv4 address inside)."""
+    if not ip.is_global or ip.is_multicast:
+        return False
+    if ip.version == 6:
+        if any(ip in n for n in _EMBEDDED_V4_NETS):
+            return False
+        inner = ip.ipv4_mapped or ip.sixtofour
+        if inner is not None and not public_address(inner):
+            return False
+    return True
 
 
 def html_to_text(html: str) -> tuple[str, str]:
@@ -153,9 +175,10 @@ def fetch_page(url: str, *, client: httpx.Client | None = None, resolve=socket.g
     deadline = clock() + TOTAL_TIMEOUT
     try:
         for _ in range(MAX_REDIRECTS + 1):
-            addr = _check_url(url, resolve)
+            # The allowlist first: a host off it is never even resolved.
             if not allowed_source(url):
                 raise FetchRefused("not on the source allowlist (NEWS_SOURCE_DOMAINS)")
+            addr = _check_url(url, resolve)
             if clock() > deadline:
                 raise FetchRefused("fetch took longer than the time limit")
             # Connect to the vetted address; TLS SNI, certificate verification

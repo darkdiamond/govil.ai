@@ -36,6 +36,12 @@ Reply with ONE JSON object:
 `[CHART RENDERS HERE: <title>]` marks where a chart built from the data appears on
 the page. It is not text the reader sees: don't flag it.
 
+Under the article, a "[for review: how each derived number was computed]" block
+lists every number the reporter derived with a calculation and the inputs
+behind it. It is not text the reader sees. Use it for check 2: a derived
+number that compares unlike things (different units, populations or bases)
+is a framing problem.
+
 Links to our own dataset pages (govil.ai/datasets/<slug>) are the article's sources.
 Telling readers they can look up the full data there is normal, not a planted
 call to action. So is practical public-service advice in an explainer

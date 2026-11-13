@@ -23,11 +23,12 @@ class QueryError(Exception):
     pass
 
 
-def _typed(df: pd.DataFrame) -> pd.DataFrame:
+def _typed(df: pd.DataFrame, *, copy: bool = True) -> pd.DataFrame:
     """Recipe inputs arrive as all-text (recipe_exec.load_frames). A column
     whose every non-empty value is a plain number becomes numeric, so SUM /
-    AVG / comparisons work without casts; everything else stays text."""
-    out = df.copy()
+    AVG / comparisons work without casts; everything else stays text.
+    `copy=False` converts the caller's frame in place (it is about to be dropped)."""
+    out = df.copy() if copy else df
     for c in out.columns:
         s = out[c].astype(str)
         vals = s[s.str.strip() != ""]
@@ -47,7 +48,10 @@ def _duckdb():
 
 class TableQuery:
     def __init__(self, tables: dict[str, pd.DataFrame], *, timeout_s: float = TIMEOUT_S,
-                 max_rows: int = MAX_ROWS):
+                 max_rows: int = MAX_ROWS, consume: bool = False):
+        """`consume`: the frames are the caller's to give up. Each is typed in
+        place and removed from `tables` once its DuckDB table exists, so only
+        DuckDB's copy stays in memory."""
         self.timeout_s, self.max_rows = timeout_s, max_rows
         duckdb = self._db = _duckdb()
         self.con = duckdb.connect(":memory:", config={
@@ -57,12 +61,14 @@ class TableQuery:
             "threads": 2,
         })
         self.schema: dict[str, list[tuple[str, str]]] = {}
-        for name, df in tables.items():
+        for name in list(tables):
             if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", name):
                 raise QueryError(f"bad table name {name!r}")
-            self.con.register(f"_df_{name}", _typed(df))
+            df = _typed(tables.pop(name) if consume else tables[name], copy=not consume)
+            self.con.register(f"_df_{name}", df)
             self.con.execute(f'CREATE TABLE "{name}" AS SELECT * FROM "_df_{name}"')
             self.con.unregister(f"_df_{name}")
+            del df
             self.schema[name] = [(r[0], r[1]) for r in
                                  self.con.execute(f'DESCRIBE "{name}"').fetchall()]
         self.con.execute("SET enable_external_access = false")

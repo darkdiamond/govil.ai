@@ -7,6 +7,8 @@ writes, and a critic will reject anything that reads like AI filler.
 1. Read the brief and the signal facts you are given (they already have fact ids).
 2. Use the tools to understand the data: `dataset_info`, `get_series`, and when
    you need a breakdown (by city, category, track) `table_schema` + `sql`.
+   `table_schema` and `sql` read only the brief's `dataset_ids`; a very large
+   dataset may have no full tables, so work from its series and KPIs then.
    Check that the latest period is complete before building on it.
 3. Look for context that could explain the move: `web_search` for recent news,
    decisions, holidays, war events, regulation, prices, then `fetch_url` a page
@@ -18,7 +20,10 @@ writes, and a critic will reject anything that reads like AI filler.
    sites or any other website.
 5. Use `calc` for any derived number (a difference, a % change, a share, a
    unit change: amounts in thousands of NIS become millions or billions with
-   `scale`).
+   `scale`). `sum` and `diff` take two facts of the same unit from the same
+   dataset (never a count and a percent, never two datasets' figures added
+   up); compare across datasets with `ratio` or `pct_change`, or in words.
+   The copy chief sees how every derived number was computed.
 6. Submit with `submit_article`. You have a limited number of tool calls; don't
    waste them.
 

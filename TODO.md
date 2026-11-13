@@ -660,52 +660,10 @@ family found in the corpus survey of 2026-11-01, with the behaviour it should co
   user-approved, see CLAUDE.md layer 5), get the user's approval for that client, and until then
   tell the writer in `prompts/writer.md` that gov.il fetches fail. (2026-11-11)
 
-- **A news run advances its cursor even when snapshot reads failed.** `run._safe_pair` swallows
-  any GCS error per dataset as "no history", so a run during a GCS outage finds no signals, ends
-  `idle` and closes its window: those renders never reach a later run. Fix: count read failures
-  in `find_signals`' stats and skip `advance_cursor` above a threshold (not on any single failure,
-  or one corrupt object would pin the cursor until the lookback cap). (2026-11-10)
-
-- **Chart text skips the length and Hebrew checks.** The gate's number and punctuation checks
-  now read chart titles, units, series and bar labels, but nothing caps their length (a
-  5,000-character title passes) and the too-little-Hebrew ratio reads the prose only, so an
-  all-English chart title passes. Fix: a length cap per chart field and the Hebrew ratio over
-  chart text in `gates.check`. (2026-11-11)
-
 - **The number gate refuses proper names that hold a digit.** `כביש 6` or `קו 480` in prose or a
   chart label reads as a typed number and fails the draft, so the writer has to talk around it.
   Fix: an allowlist of name patterns (road, line, route numbers) the number check skips, or a
   writer-side way to mark a proper name. (2026-11-11)
-
-- **A chart year label may use Arabic-Indic digits.** `_YEAR_SPAN`/`_PERIOD_LABEL`
-  (`gates.py`) use `\d`, which matches any Unicode digit, so `20٤٥` passes as a year label. It
-  still reads as a year, so this is tidy-up: compile them with `re.ASCII`. (2026-11-11)
-
-- **`Decimal` SQL results never become facts.** `tools._is_num` accepts only `int`/`float`, so a
-  DuckDB `DECIMAL` (a `SUM` of decimals, a `::DECIMAL` cast) comes back as plain text with no
-  fact token and the writer can't cite it. Fix: treat a finite `Decimal` as a number there.
-  (2026-11-11)
-
-- **`table_schema` has no total-size cap.** `t_table_schema` returns every column (fenced) plus
-  3 sample rows for every table of the dataset, so a very wide table gives a very large tool
-  result. `t_sql` stops at `SQL_RESULT_CHARS`; give `table_schema` the same kind of cap.
-  (2026-11-11)
-
-- **A deterministic model error holds the news window open.** A non-retryable 4xx raised at once
-  in `llm._post` (context overflow, the Gemini thought-signature 400) or "no message in response"
-  holds the cursor like a transient outage, so one story that always fails keeps the window at
-  the 168h clamp (a rolling 7 days): more snapshot reads, no duplicates. Fix: hold only on
-  retry-exhausted transient errors, or cap the number of consecutive held runs. (2026-11-11)
-
-- **One critic score still crashes `critique`.** `math.isfinite` raises `OverflowError` for an
-  integer above ~1e308, which `json.loads` produces from a 309-digit literal; the story then
-  falls to `write_day`'s generic `except` as `rejected/error` (nothing published). Fix: catch
-  `OverflowError` there, or compare `float(...)` inside a `try`. (2026-11-11)
-
-- **The hero image pixel cap leaves no room for 4K.** `MAX_HERO_PIXELS` (`images.py`) is
-  4096×4096 (16.8M); a 4K 16:9 Gemini image (5504×3072, 16.9M) is just over it, so every article
-  would silently get the chart card if the request ever asks for `image_size: "4K"`. Nothing does
-  today. Fix: raise the cap to about 24M pixels or bound each side (6144) instead. (2026-11-11)
 
 - **`fetch.py` bounds slow response headers only per read.** The fetch's total deadline is
   checked between operations, so a very slow response header or TLS handshake is bounded only
@@ -713,19 +671,6 @@ family found in the corpus survey of 2026-11-01, with the behaviour it should co
   the job's task timeout caps it. Fix: a per-hop timeout of
   `min(TIMEOUT, remaining)`, or a watchdog that closes the connection at the deadline.
   (2026-11-11)
-
-- **The fetch address check should also refuse NAT64 and IPv4-compatible IPv6.** Python reports
-  `64:ff9b::/96` and the deprecated `::/96` forms as global, so they pass `ip.is_global`.
-  Cloud Run's IPv4-only egress can't reach them today. Fix: refuse both prefixes explicitly in
-  `fetch.py`, and resolve the host only after `allowed_source` passes. (2026-11-11)
-
-- **The writer can SQL any dataset, and loaded tables stay in memory for the run.**
-  `t_sql`/`t_table_schema` accept any `dataset_id`, not only the brief's; each load is a full
-  export held in pandas, copied again for typing and into DuckDB, and `DatasetTables._cache`
-  keeps every dataset until the run ends in a 4GiB job. The scratch dir is named by the id's
-  first 8 characters. Fix: pass the brief's `dataset_ids` to `Toolbox` and refuse others, add a
-  row/byte cap for news loads, drop a dataset's frames once its DuckDB table exists, and use the
-  full id for the scratch dir. (2026-11-11)
 
 - **A scripted redeploy resets runtime toggles.** `infra/news-job.deploy.sh` defaults
   `NEWS_PUBLISH` to `live` and replaces the whole env set, so a kill switch thrown with
@@ -741,18 +686,6 @@ family found in the corpus survey of 2026-11-01, with the behaviour it should co
   in `firebase.json`'s `firestore` config with the same rules file and deploy them with
   `firebase deploy --only firestore:rules`. (2026-11-11)
 
-- **An oversized article or reject document can't be stored.** `ledger.dump()` (every fact any
-  tool call registered, not only the printed ones) goes into `body_json`; about 13 full SQL
-  results reach Firestore's 1MiB document limit. Since 2026-11-11 a failed reject write no
-  longer costs the day, but an accepted article that large fails every run
-  (`status: store_failed`). Fix: store only the facts the article references (plus their
-  `calc` ancestors), or cap the ledger and tools log by size. (2026-11-11)
-- **A live run goes ahead with an empty catalog.** `catalog.py` fails soft to `{}`, so a live
-  run then writes with no titles, publishers, demand or explainer candidates and still closes
-  its window. Fix: in live mode treat an unreadable catalog as a failed run. (2026-11-11)
-- **`calc` combines any two facts.** `ledger.py` `sum`/`diff`/`ratio` accept a count and a
-  percent, or facts of two datasets, and the result is a valid token. Fix: refuse `sum`/`diff`
-  across differing `unit` or `dataset_id`, and show calc provenance to the critic. (2026-11-11)
 - **Watch the stricter number gate's reject rate.** Since 2026-11-11 the gate also fails
   quantities in words ("חמש מאות דירות", "פי שלושה", "חצי מהתושבים", a bare "מיליון שקלים") and
   thresholds or clock times in words. Compare `admin list --rejected` for the two weeks after
