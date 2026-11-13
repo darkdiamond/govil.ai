@@ -19,7 +19,9 @@ import httpx
 log = logging.getLogger(__name__)
 
 BASE_URL = os.environ.get("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
-TEXT_MODEL = os.environ.get("NEWS_MODEL", "openai/gpt-6.1-terra")
+# `:floor` = OpenRouter routes to the cheapest endpoint (for Gemini, AI Studio's
+# Flex tier when it is up), falling back by price.
+TEXT_MODEL = os.environ.get("NEWS_MODEL", "google/gemini-4-hydrogen:floor")
 # OpenRouter's unified `reasoning.effort` (minimal|low|medium|high|xhigh); empty = model default.
 REASONING_EFFORT = os.environ.get("NEWS_REASONING_EFFORT", "high").strip()
 IMAGE_MODEL = os.environ.get("NEWS_IMAGE_MODEL", "google/gemini-3.1-flash-image")
