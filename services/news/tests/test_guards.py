@@ -241,6 +241,33 @@ def test_calc_refusal_reaches_the_writer_as_an_error():
     assert "different units" in json.loads(tb.call("calc", {"op": "sum", "a": a.id, "b": pct.id}))["error"]
 
 
+def test_calc_refuses_a_fact_with_itself():
+    led, a, *_ = _ledger()
+    for op in ("sum", "diff", "ratio", "pct_change", "share"):
+        with pytest.raises(ValueError, match="with itself"):
+            led.calc(op, a.id, a.id)
+
+
+def test_a_self_reusing_calc_chain_describes_fast_and_small():
+    import time
+
+    led, a, b, *_ = _ledger()
+    prev, cur = a.id, b.id
+    for _ in range(30):   # each step reuses both previous results: 2^30 paths unmemoized
+        nxt = led.calc("sum", cur, prev).id
+        prev, cur = cur, nxt
+    for _ in range(2):    # and a scale step that doubles back on its input
+        s = led.calc("scale", cur, factor=0.001).id
+        cur = led.calc("sum", cur, s).id
+    t = time.monotonic()
+    text = led.describe(cur)
+    md = gates.as_markdown({"headline": "h", "dek": "d", "blocks": [], "charts": [], "sources": [],
+                            "fact_ids": led.with_ancestors([cur])}, led)
+    assert time.monotonic() - t < 1.0
+    assert len(text) <= 1501 and len(md) < 20 * 1600
+    assert len(led.with_ancestors([cur])) == len(led.facts) - 2   # pct and other are not ancestors
+
+
 def test_the_critic_sees_how_derived_numbers_were_computed():
     led, a, b, _pct, _other = _ledger()
     d = led.calc("diff", a.id, b.id)

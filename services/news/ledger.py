@@ -52,6 +52,7 @@ _YEAR_LEAD = re.compile(
 )
 _DIGITS = re.compile(r"\d")
 SCALE_FACTORS = {1e-9, 1e-6, 1e-3, 1e3, 1e6}
+DESCRIBE_DEPTH, DESCRIBE_CHARS = 4, 1500   # a calc's provenance as the critic reads it
 # A quantity spelled in words ("שמונה אחוזים", "שלושה מיליארד שקל") is a typed
 # number too. Words alone ("שלוש שנים", "חודשיים") are ordinary prose.
 _NUMBER_WORD = (r"(?:אחד|אחת|שתיים|שניים|שתי|שני|שלוש|שלושה|ארבע|ארבעה|חמש|חמישה|שש|שישה|שבע|"
@@ -244,6 +245,8 @@ class Ledger:
         fb = self.facts[b] if b else None
         if op in ("diff", "pct_change", "ratio", "share", "sum") and fb is None:
             raise ValueError(f"{op} needs two facts, a and b")
+        if fb is not None and a == b:
+            raise ValueError(f"{op} of a fact with itself says nothing: use two different facts")
         if op in ("sum", "diff"):
             if fa.unit != fb.unit:
                 raise ValueError(f"{op} of facts in different units ({fa.unit or 'none'} vs "
@@ -301,15 +304,29 @@ class Ledger:
                 todo += self.inputs(i)
         return [i for i in self.facts if i in seen]
 
-    def describe(self, fid: str) -> str:
+    def describe(self, fid: str, *, max_depth: int = DESCRIBE_DEPTH,
+                 max_chars: int = DESCRIBE_CHARS) -> str:
         """A fact's provenance as the critic reads it: value and label, and for
-        a calc its op over its inputs, recursively."""
-        f = self.facts[fid]
-        head = f"{fid} = {format_value(f.value)} ({f.label})"
-        if not f.provenance.startswith("calc:"):
-            return head
-        op = f.provenance.split(":")[1]
-        return f"{head} = {op} of [" + "; ".join(self.describe(i) for i in self.inputs(fid)) + "]"
+        a calc its op over its inputs, recursively. The writer builds the calc
+        graph, so each fact is expanded once (a repeat is its id alone), the
+        depth and the length are capped: a self-reusing chain stays small."""
+        seen: set[str] = set()
+
+        def one(i: str, depth: int) -> str:
+            if i in seen:
+                return i
+            seen.add(i)
+            f = self.facts[i]
+            head = f"{i} = {format_value(f.value)} ({f.label[:80]})"
+            if not f.provenance.startswith("calc:"):
+                return head
+            op = f.provenance.split(":")[1]
+            if depth >= max_depth:
+                return f"{head} = {op} of […]"
+            return f"{head} = {op} of [" + "; ".join(one(x, depth + 1) for x in self.inputs(i)) + "]"
+
+        out = one(fid, 0)
+        return out if len(out) <= max_chars else out[:max_chars] + "…"
 
     def dump(self, keep=None) -> dict:
         """The ledger for storage. `keep`: only these facts (the ones the
