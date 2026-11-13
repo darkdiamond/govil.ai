@@ -52,6 +52,14 @@ class OutcomeStatus(StrEnum):
     RETRY_LATER = "retry_later"
 
 
+class SkipReason(StrEnum):
+    """A skipped `RefreshOutcome.reason` (the provider ones carry the
+    provider's key: `provider_disabled:boi_sdmx`)."""
+    PROVIDER_DISABLED = "provider_disabled"    # not enabled for this run
+    PROVIDER_INVALID = "provider_invalid"      # enabled, but its settings don't validate
+    PROVIDER_UNHEALTHY = "provider_unhealthy"  # its healthcheck failed this run
+
+
 class UnchangedReason(StrEnum):
     """`unchanged_reason` / an unchanged `RefreshOutcome.reason`: which
     precheck found the data bump a no-op (REFRESH_PRECHECK)."""
@@ -73,6 +81,9 @@ class FailReason(StrEnum):
     DOWNLOAD_BLOCKED = "download_blocked"
     FETCH_FAILED = "fetch_failed"
     SANDBOX_FAILED = "sandbox_failed"
+    # `sandbox_failed` repeated REFRESH_TRANSIENT_STRIKES runs: the platform
+    # (image, seccomp, fork) is broken, not the recipe. Opens an issue.
+    SANDBOX_BROKEN = "sandbox_broken"
     RESTRICTED = "restricted"
     ERROR = "error"
     STAGE_FAILED = "stage_failed"
@@ -86,6 +97,7 @@ class AuthoringReason(StrEnum):
     TOO_LARGE = "too_large"
     GEOMETRY_STALE = "geometry_stale"
     DOWNLOAD_BLOCKED = "download_blocked"
+    SANDBOX_BROKEN = "sandbox_broken"
     NEW = "new"  # no page yet
     LEGACY_UPDATED = "legacy_updated"  # an agent-built page whose data moved on
     GSC_TRAFFIC = "gsc_traffic"  # a legacy page with search traffic (by hand)

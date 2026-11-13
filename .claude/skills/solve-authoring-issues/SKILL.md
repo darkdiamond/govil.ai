@@ -223,6 +223,11 @@ BLOCK the dataset, and the comment gives the file's URL and the next step:
 "download it in a browser, then `author snapshot <id> <file> --resource <rid>`
 and `/author-dataset <id>`".
 
+**`sandbox_broken`.** The job's compute sandbox failed several runs in a row
+(a builder image or platform problem, not the recipe): don't touch the recipe.
+BLOCK the dataset with a comment saying the builder job needs a fix and a
+redeploy, which retries the source on its own.
+
 ## 6. One PR
 
 Merge the batch's tags first (validates each list against the vocabulary;

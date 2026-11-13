@@ -35,6 +35,7 @@ def as_root(monkeypatch):
     chowns = []
     monkeypatch.setattr(ls.os, "geteuid", lambda: 0)
     monkeypatch.delenv("SANDBOX_USER", raising=False)
+    monkeypatch.delenv("CLOUD_RUN_JOB", raising=False)
 
     def getpwnam(name):
         if name != "sandbox":
@@ -117,6 +118,16 @@ def test_root_without_default_user_degrades(tmp_path, as_root, monkeypatch):
     assert sb.ident is None
     sb.run_code("true", language="bash")
     assert "user" not in as_root.run.calls[0][1]
+
+
+def test_root_without_default_user_fails_closed_in_the_job(tmp_path, as_root, monkeypatch):
+    monkeypatch.setattr(ls.pwd, "getpwnam", lambda n: (_ for _ in ()).throw(KeyError(n)))
+    monkeypatch.setenv("CLOUD_RUN_JOB", "govdata-builder-job")
+    with pytest.raises(RuntimeError, match="refusing to run recipe code as root"):
+        ls.LocalSandbox.create(tmp_path / "a")
+    assert not as_root.run.calls
+    monkeypatch.setenv("SANDBOX_USER", "")  # an explicit opt-out still runs as root
+    assert ls.LocalSandbox.create(tmp_path / "b").ident is None
 
 
 def test_non_root_is_unchanged(tmp_path, monkeypatch):

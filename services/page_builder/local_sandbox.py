@@ -104,8 +104,10 @@ def _resolve_sandbox_identity() -> tuple[int, int] | None:
     Only a root host can (and needs to) drop privileges. SANDBOX_USER
     picks the account; an empty value disables privilege separation. A
     missing *default* user degrades to the legacy behaviour with a
-    warning (e.g. an older image); an explicitly named user that doesn't
-    exist is a configuration error.
+    warning (local authoring, an older image), except inside the Cloud Run
+    job (`CLOUD_RUN_JOB` set), where it refuses rather than run recipe code
+    as root; an explicitly named user that doesn't exist is a configuration
+    error.
     """
     if os.geteuid() != 0:
         return None
@@ -119,6 +121,11 @@ def _resolve_sandbox_identity() -> tuple[int, int] | None:
     except KeyError:
         if explicit:
             raise RuntimeError(f"SANDBOX_USER={name!r} does not exist") from None
+        if os.environ.get("CLOUD_RUN_JOB"):
+            raise RuntimeError(
+                f"no {name!r} user in this image: refusing to run recipe code as root "
+                "inside the job (SANDBOX_USER='' opts out explicitly)"
+            ) from None
         log.warning(
             "LocalSandbox: no %r user in this image — tool commands run as root",
             name,

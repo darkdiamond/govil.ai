@@ -11,6 +11,7 @@ import json
 import re
 import shutil
 import subprocess
+import time
 from datetime import UTC, datetime
 from pathlib import Path
 from types import SimpleNamespace
@@ -750,6 +751,70 @@ def test_compute_spawn_flake_gives_up_after_retry(env, monkeypatch):
     assert calls["n"] == attempts
     s = _run(env, store, FakeCkan(_rows([2024, 2025])))
     assert s["failed"] == [] and calls["n"] == attempts + 1
+
+
+def test_a_spawn_flake_that_turned_deterministic_escalates(env, monkeypatch):
+    # An image that lost GRPC_ENABLE_FORK_SUPPORT=0 aborts every spawn: after
+    # REFRESH_TRANSIENT_STRIKES runs it opens a `sandbox_broken` issue
+    # instead of freezing the page with only log lines.
+    monkeypatch.setenv("REFRESH_TRANSIENT_STRIKES", "2")
+    _flaky_sandbox(monkeypatch, GRPC_ABORT, fail_times=10**6)
+    store = FakeStore(_src())
+    s = _run(env, store, FakeCkan(_rows([2024, 2025])))
+    assert s["outcomes"][0]["reason"] == "sandbox_failed" and env.issues == []
+    assert store.states[DS]["transient_strikes"] == {"sandbox_failed": 1}
+    s = _run(env, store, FakeCkan(_rows([2024, 2025])))
+    assert s["outcomes"][0]["reason"] == "sandbox_broken"
+    assert [i["reason"] for i in env.issues] == ["sandbox_broken"]
+    assert store.states[DS]["transient_strikes"] is None  # a fresh run of tries after the fix
+    assert s["all_errored"] is False
+
+
+def test_a_compute_error_issue_withholds_stderr(env, tmp_path):
+    # pandas/Python errors quote the failing cell, which can be personal
+    # data: the public issue gets the exception type and compute.py's frames,
+    # the log line (the outcome's error) and the source doc keep the text.
+    recipes = tmp_path / "recipes"
+    shutil.copytree(FIXTURES / DS, recipes / DS)
+    path = recipes / DS / "compute.py"
+    path.write_text(path.read_text(encoding="utf-8").replace(
+        "def compute(frames):",
+        "def compute(frames):\n    raise ValueError('cell 052-1234567 is not a number')", 1,
+    ), encoding="utf-8")
+    store = FakeStore(_src())
+    s = _assert_recipe_failure_locks(env, store, FakeCkan(_rows([2024, 2025])), recipes)
+    assert "052-1234567" in s["outcomes"][0]["error"]
+    assert "052-1234567" in store.states[DS]["refresh_error"]
+    detail = env.issues[0]["detail"]
+    assert "052-1234567" not in detail
+    assert detail.startswith("compute() failed (NonZeroExit: exit code 1): ValueError\n")
+    assert '  File "recipe/compute.py", line ' in detail and ", in compute" in detail
+
+
+def test_public_detail_shapes():
+    assert rf.public_detail("input x: column 'y' missing") == "input x: column 'y' missing"
+    assert rf.public_detail("") == ""
+    out = rf.public_detail("compute() failed (Timeout: killed after 300s): row 7 Dana Cohen")
+    assert out.startswith("compute() failed (Timeout: killed after 300s): no exception type")
+    assert "Dana" not in out
+    escalated = rf.public_detail(
+        "compute() failed (NonZeroExit: exit code -6): E1027 ev_epoll1_linux.cc abort"
+        " \u2014 6 runs in a row")
+    assert escalated.startswith("compute() failed (NonZeroExit: exit code -6): ")
+    assert "ev_epoll1" not in escalated
+    chained = rf.public_detail(
+        "compute() failed (NonZeroExit: exit code 1): Traceback:\n"
+        '  File "/s/a/recipe/compute.py", line 3, in _load\n'
+        "KeyError: 'Dana'\n\nDuring handling of the above exception:\n"
+        '  File "/s/a/recipe/compute.py", line 9, in compute\n'
+        '  File "/s/a/govlib/fmt.py", line 2, in n\n'
+        "pandas.errors.ParserError: bad cell 'Dana'")
+    assert chained.splitlines()[:3] == [
+        "compute() failed (NonZeroExit: exit code 1): pandas.errors.ParserError",
+        '  File "recipe/compute.py", line 3, in _load',
+        '  File "recipe/compute.py", line 9, in compute',
+    ]
+    assert "Dana" not in chained and "govlib" not in chained
 
 
 def test_bare_sigabrt_is_not_retried(env, monkeypatch):
@@ -2027,6 +2092,48 @@ def test_refresh_crash_mid_batch_keeps_earlier_outcomes(env, monkeypatch):
                                          "c": ("refreshed", None)})
     assert s["refreshed"] == ["a", "c"] and s["failed"] == ["b"]
     assert s["outcomes"][1]["reason"] == "error"
+
+
+@pytest.mark.parametrize("script, expected", [
+    # a code bug that hits every attempted source: the run must go red
+    ({"a": RuntimeError("bug"), "b": ("failed", "error")}, True),
+    ({"a": ("failed", "error")}, True),
+    # skipped sources were never attempted and don't dilute it
+    ({"a": ("failed", "error"), "b": ("skipped", "provider_disabled:boi_sdmx")}, True),
+    # one source that did anything else keeps the run green
+    ({"a": ("failed", "error"), "b": ("refreshed", None)}, False),
+    ({"a": ("failed", "error"), "b": ("unchanged", "content_hash")}, False),
+    ({"a": ("failed", "error"), "b": ("failed", "schema_changed")}, False),
+    # nothing attempted is not a failure
+    ({"a": ("skipped", "provider_unhealthy:boi_sdmx")}, False),
+    ({}, False),
+])
+def test_all_errored_needs_every_attempted_source_to_error(env, monkeypatch, script, expected):
+    s = _scripted_run(env, monkeypatch, script)
+    assert s["all_errored"] is expected
+
+
+def test_sessions_root_is_traversable_but_not_listable(env, monkeypatch):
+    _scripted_run(env, monkeypatch, {"a": ("refreshed", None)})
+    assert ((env.tmp / "work").stat().st_mode & 0o777) == 0o711
+    env.tmp.joinpath("mine").mkdir(mode=0o755)
+    env.tmp.joinpath("mine").chmod(0o755)
+    rf.run_refresh(_ScriptStore(()), _StubRepo([]), staging_bucket="bkt",
+                   work_root=env.tmp / "mine")
+    assert ((env.tmp / "mine").stat().st_mode & 0o777) == 0o755  # not ours: left alone
+
+
+def test_a_crash_outcome_carries_its_duration(env, monkeypatch):
+    store = FakeStore(_src())
+
+    def crash(*a, **k):
+        time.sleep(0.02)
+        raise ValueError("bug")
+
+    monkeypatch.setattr(rf, "build_page", crash)
+    out = _run(env, store, FakeCkan(_rows([2024, 2025])))["outcomes"][0]
+    assert out["reason"] == "error" and out["error"] == "ValueError: bug"
+    assert out["elapsed_s"] > 0
 
 
 def test_staging_streak_resets_on_unchanged(env, monkeypatch):
