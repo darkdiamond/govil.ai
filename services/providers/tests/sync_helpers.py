@@ -26,6 +26,11 @@ class FakeStore:
     def get_provider_sync_state(self, dataset_id):
         return dict(self.docs.get(dataset_id) or {})
 
+    def set_provider_sync_strikes(self, dataset_id, strikes, since):
+        doc = self.docs[dataset_id]  # Firestore's update(): no stub doc for a missing one
+        doc.update(provider_sync_strikes=strikes or None,
+                   provider_sync_strikes_since=since if strikes else None)
+
 
 def make_repo(tmp_path, sources: dict[str, dict]):
     for i, s in sources.items():

@@ -36,11 +36,13 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from urllib import error as urllib_error
+from urllib import request as urllib_request
+from urllib.parse import urlencode
 
 from pydantic import BaseModel
 
 from services.providers import ProviderUnavailable, provider_for_key, provider_invalid
-from services.shared import model_history
+from services.shared import ckan, model_history
 from services.shared.env import env_float as _env_float
 from services.shared.env import env_int as _env_int
 from services.shared.fetch_types import (
@@ -48,6 +50,8 @@ from services.shared.fetch_types import (
     FetchLimitExceeded,
     ResourceRestrictedError,
 )
+from services.shared.resources import _normalized_name as normalized_resource_name
+from services.shared.resources import select_prefetch_resources
 from services.shared.states import (
     NO_DATA_STATUSES,
     AuthoringReason,
@@ -55,19 +59,21 @@ from services.shared.states import (
     FailReason,
     OutcomeStatus,
     RefreshState,
-    RefreshStatus,
     SkipReason,
+    StageStep,
+    StrikeKind,
     UnchangedReason,
 )
 
 from . import geo_snapshot, netguard
 from .ckan_export import (
+    _http_403_is_restriction,
     fetch_resource_export,
     fetch_resource_file,
     fetch_resource_preview,
 )
 from .local_sandbox import LocalSandbox, OutputTooLarge
-from .page_gate import CHECK_SCRIPT_PATH, run_host_check
+from .page_gate import CHECK_SCRIPT_PATH, CheckTimeout, run_host_check
 from .recipe import (
     RECIPE_FILES,
     PageModel,
@@ -118,9 +124,10 @@ _DEFAULT_WALL_BUDGET_S = 900.0
 # the last full fetch means the dataset outgrew its budget → `too_large`.
 # Counted in RUNS: at two runs a day 6 was ≈ 3 days; at hourly ticks see REFRESH_STRIKE_MIN_HOURS.
 _DEFAULT_WALL_BUDGET_STRIKES = 6
-# Same idea for every `StrikeError` (a map-file download the WAF blocked):
-# this many runs in a row → its `escalate_to` reason, which opens an issue.
-# Also 6 runs ≈ 3 days at two runs a day.
+# Same idea for every `StrikeError` (a map-file download the WAF blocked, a
+# preview that never answers, an export that fails every run, an unexpected
+# exception, a check.py timeout): this many runs in a row → its `escalate_to`
+# reason, which opens an issue. Also 6 runs ≈ 3 days at two runs a day.
 _DEFAULT_TRANSIENT_STRIKES = 6
 # Both counts are in runs, so at hourly ticks 6 strikes is 6 hours. With
 # REFRESH_STRIKE_MIN_HOURS > 0 an escalation also needs the run of strikes to
@@ -169,6 +176,10 @@ _DEFAULT_COMPUTE_MEMORY_MB = 3072
 _DEFAULT_MODEL_MAX_BYTES = 64 * 1024 * 1024
 _DEFAULT_COMPUTE_OUTPUT_TAIL_BYTES = 64 * 1024
 _DEFAULT_COMPUTE_FILE_MAX_BYTES = 1_000_000_000
+# Processes + threads the sandbox uid may hold during a compute (see
+# `_compute_max_procs`): a fork loop stops here; numpy/pandas need ~cpus + 1.
+_DEFAULT_COMPUTE_MAX_PROCS = 256
+_MIN_COMPUTE_PROCS = 128
 # Sandbox-spawn flake (gRPC atfork handlers abort the forked child, SIGABRT
 # + an `ev_epoll1_linux` line on stderr): not the recipe's fault, so retry
 # in a fresh sandbox instead of opening an authoring issue. If every attempt
@@ -259,6 +270,9 @@ class InputProbe:
     resolved: dict[str, list[dict]]
     _previews: dict[str, dict | None]
     _preview_fn: Callable[[str], dict | None]
+    # After a failed preview: does datastore_search 403 it (the WAF)? None =
+    # don't ask (a provider source, or tests with a fake CKAN).
+    _blocked_fn: Callable[[str], bool] | None = None
 
     def preview(self, rid: str) -> dict | None:
         if rid not in self._previews:
@@ -276,6 +290,32 @@ class InputProbe:
             p is not None for p in self._previews.values()
         )
 
+    def unanswered(self) -> list[str]:
+        """Resource ids whose preview was asked this run and didn't come back."""
+        return [rid for rid, p in self._previews.items() if p is None]
+
+    def preview_strike(self, message: str, rid: str | None = None) -> StrikeError:
+        """The strike for a preview that didn't answer (`rid`, else the first
+        unanswered one): `preview_blocked` when datastore_search refuses it
+        with a 403 that isn't CKAN's Authorization Error (data.gov.il's WAF),
+        which escalates to `download_blocked`; else `preview_unavailable`."""
+        rid = rid or next(iter(self.unanswered()), None)
+        if rid and self._blocked_fn is not None:
+            try:
+                blocked = self._blocked_fn(rid)
+            except Exception:  # a diagnosis only: never fail the run over it
+                log.warning("preview %s: the 403 check failed", rid[:8], exc_info=True)
+                blocked = False
+            if blocked:
+                m = _INPUT_PREFIX.match(message)
+                return StrikeError(
+                    f"{m.group(0) if m else ''}preview of resource {rid[:8]} refused "
+                    "by the edge (HTTP 403, not an Authorization Error)",
+                    reason=FailReason.FETCH_FAILED, strike=StrikeKind.PREVIEW_BLOCKED,
+                    escalate_to=FailReason.DOWNLOAD_BLOCKED, retry_in_run=True,
+                )
+        return _preview_strike(message)
+
 
 class WallBudgetExceeded(RecipeError):
     """A fetch ran out of wall budget. Transient (`fetch_failed`) on its
@@ -289,12 +329,27 @@ class StrikeError(RecipeError):
     """A transient failure that a human must see once it keeps happening.
     `refresh_one` counts consecutive runs per `strike` in the refresh state's
     `transient_strikes` map and, at REFRESH_TRANSIENT_STRIKES, records it as
-    `escalate_to` instead (an AUTHORING_REASON: issue opened, count reset)."""
+    `escalate_to` instead (an AUTHORING_REASON: issue opened, count reset).
+    `retry_in_run`: the end-of-run retry pass may try it again (CKAN/network
+    trouble a few minutes can clear; see `_retry_later`)."""
 
-    def __init__(self, message: str, *, reason: str, strike: str, escalate_to: str):
+    def __init__(self, message: str, *, reason: str, strike: str, escalate_to: str,
+                 retry_in_run: bool = False):
         super().__init__(message, reason=reason)
         self.strike = strike
         self.escalate_to = escalate_to
+        self.retry_in_run = retry_in_run
+
+
+# Strike kinds a recipe edit or a builder deploy may fix: their counts restart
+# when the code part of `failed_version_key` (recipe version + recipe files +
+# builder code) moves, so the fix gets a fresh run of tries. Not the data part:
+# a table that grows during every export bumps its version every run, and a
+# reset on that would never let the count reach its limit.
+_CODE_SCOPED_STRIKES = frozenset({
+    StrikeKind.NO_ROWS, StrikeKind.EXPORT_FAILED, StrikeKind.DOWNLOAD_FAILED,
+    StrikeKind.CHECK_TIMEOUT, StrikeKind.ERROR,
+})
 
 
 def _limit_error(e: FetchLimitExceeded, what: str) -> RecipeError:
@@ -317,25 +372,109 @@ def probe_inputs(
     recipe: Recipe,
     resources: list[dict],
     preview_fn: Callable[[str], dict | None] = fetch_resource_preview,
+    blocked_fn: Callable[[str], bool] | None = None,
 ) -> InputProbe:
     """Resolve the recipe's inputs. Raises RecipeError `schema_changed` when
-    they no longer resolve, StrikeError `preview_unavailable` when a preview
-    they needed didn't answer; ResourceRestrictedError passes through."""
+    they no longer resolve, StrikeError `preview_unavailable` (or
+    `preview_blocked`) when a preview they needed didn't answer;
+    ResourceRestrictedError passes through.
+
+    A `by_schema` input doesn't wait on a resource that can't be one of its
+    matches (`_cannot_match`): that unanswered preview counts as no columns."""
+    if blocked_fn is None and preview_fn is fetch_resource_preview:
+        blocked_fn = _preview_blocked
     previews: dict[str, dict | None] = {}
-    probe = InputProbe({}, previews, preview_fn)
+    probe = InputProbe({}, previews, preview_fn, blocked_fn)
+    ignored: set[str] = set()
 
     def _fields(rid: str) -> list[str] | None:
+        if rid in ignored:
+            return []
         p = probe.preview(rid)
         return [f["id"] for f in (p or {}).get("fields") or []] if p else None
 
-    try:
-        probe.resolved = resolve_inputs(recipe.manifest, resources, _fields)
-    except PreviewUnavailable as e:
-        raise _preview_strike(str(e)) from None
+    while True:
+        try:
+            probe.resolved = resolve_inputs(recipe.manifest, resources, _fields)
+            break
+        except PreviewUnavailable as e:
+            more = _cannot_match(recipe, resources, probe) - ignored
+            if not more:
+                raise probe.preview_strike(str(e)) from None
+            log.warning("inputs of %s: no preview for %s, which no by_schema input can "
+                        "match (format and name differ from every match) — ignored",
+                        recipe.dataset_id[:8], sorted(r[:8] for r in more))
+            ignored |= more
+    for rid in ignored:
+        # Resolved without them: their missing previews say nothing about the
+        # inputs, so they don't count against `answered()`.
+        previews.pop(rid, None)
     return probe
 
 
-_PREVIEW_STRIKE = "preview_unavailable"
+def _name_stem(name: str | None, fmt: str | None) -> str:
+    """A resource name without format tokens, digits or separators: the
+    yearly files of one series ("הוצאות 2023.csv", "הוצאות 2024") share one."""
+    return re.sub(r"[\d\s._-]+", " ", normalized_resource_name(name, fmt)).strip()
+
+
+def _cannot_match(recipe: Recipe, resources: list[dict], probe: InputProbe) -> set[str]:
+    """Unanswered resources no `by_schema` input could match, so resolving may
+    go on without their columns. Conservative on purpose: a resource counts
+    only when every `by_schema` input already has answered matches and the
+    resource differs from each of them in BOTH its CKAN format and its name
+    stem (a data dictionary beside yearly CSVs; never a sibling year in
+    another format, never a resource with no name). A `by_id` input's own
+    resource never counts: its missing preview is that input's."""
+    schema_inputs = [i for i in recipe.manifest.inputs if i.by_schema]
+    unanswered = probe.unanswered()
+    if not schema_inputs or not unanswered:
+        return set()
+    own = {i.by_id for i in recipe.manifest.inputs if i.by_id}
+    meta = {r.get("id"): r for r in resources or []}
+
+    def kind(r: dict) -> tuple[str, str]:
+        return (r.get("format") or "").strip().upper(), _name_stem(r.get("name"), r.get("format"))
+
+    answered: list[tuple[tuple[str, str], set[str]]] = []
+    for r in select_prefetch_resources(resources or []):
+        p = probe._previews.get(r["id"])
+        if p:
+            answered.append((kind(meta.get(r["id"], r)), {f["id"] for f in p.get("fields") or []}))
+    # Per by_schema input: the (format, name stem) of each answered match.
+    matches = [[k for k, cols in answered if set(inp.by_schema) <= cols] for inp in schema_inputs]
+    out: set[str] = set()
+    for rid in unanswered:
+        u = meta.get(rid)
+        if rid in own or u is None:
+            continue
+        fmt, stem = kind(u)
+        if fmt and stem and all(
+            ms and all(f != fmt and s != stem for f, s in ms) for ms in matches
+        ):
+            out.add(rid)
+    return out
+
+
+def _preview_blocked(rid: str) -> bool:
+    """One `datastore_search` call (limit 0) after a preview failed twice: True
+    when it answers 403 without CKAN's Authorization Error body, i.e.
+    data.gov.il's WAF refused the builder (a restricted resource raises in
+    the preview itself)."""
+    url = f"{ckan.DATASTORE_SEARCH_URL}?{urlencode({'resource_id': rid, 'limit': 0})}"
+    req = urllib_request.Request(url, headers={"User-Agent": ckan.user_agent()})
+    try:
+        with urllib_request.urlopen(req, timeout=_BLOCK_CHECK_TIMEOUT_S):
+            return False
+    except urllib_error.HTTPError as e:
+        return e.code == 403 and not _http_403_is_restriction(e)
+    except (OSError, http.client.HTTPException, ValueError):
+        return False
+
+
+_BLOCK_CHECK_TIMEOUT_S = 20.0
+_PREVIEW_STRIKE = StrikeKind.PREVIEW_UNAVAILABLE
+_PREVIEW_STRIKES = frozenset({StrikeKind.PREVIEW_UNAVAILABLE, StrikeKind.PREVIEW_BLOCKED})
 
 
 def _preview_strike(message: str) -> StrikeError:
@@ -343,7 +482,7 @@ def _preview_strike(message: str) -> StrikeError:
     retried next run; an issue opens only once it repeats (e.g. a resource
     dropped from the datastore)."""
     return StrikeError(message, reason=FailReason.FETCH_FAILED, strike=_PREVIEW_STRIKE,
-                       escalate_to=FailReason.SCHEMA_CHANGED)
+                       escalate_to=FailReason.SCHEMA_CHANGED, retry_in_run=True)
 
 
 def _strikes_after_probe(state: RefreshState, probe: InputProbe | None) -> dict | None:
@@ -352,9 +491,9 @@ def _strikes_after_probe(state: RefreshState, probe: InputProbe | None) -> dict 
     the stored map alone (also when no preview was asked yet, e.g. a `by_id`
     input with no column check, whose preview comes only in `fetch_inputs`)."""
     strikes = state.transient_strikes or {}
-    if probe is None or _PREVIEW_STRIKE not in strikes or not probe.answered():
+    if probe is None or not (_PREVIEW_STRIKES & set(strikes)) or not probe.answered():
         return None
-    return {k: v for k, v in strikes.items() if k != _PREVIEW_STRIKE}
+    return {k: v for k, v in strikes.items() if k not in _PREVIEW_STRIKES}
 
 
 def _utcnow() -> datetime:
@@ -718,14 +857,16 @@ def fetch_inputs(
             p = _preview(rid)
             if p is None:
                 # A by_id input with no column check meets its preview here.
-                raise _preview_strike(f"input {inp.name!r}: no preview for resource {rid[:8]}")
+                raise probe.preview_strike(
+                    f"input {inp.name!r}: no preview for resource {rid[:8]}", rid)
             total = int(p.get("total") or 0)
             # A provider resource marked optional (a CBS table some editions
             # lack) may be empty by design: compute gets a header-only frame.
             if total <= 0 and not (res.get("params") or {}).get("optional"):
-                raise RecipeError(
+                raise StrikeError(
                     f"input {inp.name!r}: resource {rid[:8]} has no rows",
-                    reason=FailReason.FETCH_FAILED,
+                    reason=FailReason.FETCH_FAILED, strike=StrikeKind.NO_ROWS,
+                    escalate_to=FailReason.SCHEMA_CHANGED, retry_in_run=True,
                 )
             if total > max_records:
                 raise RecipeError(
@@ -760,9 +901,13 @@ def fetch_inputs(
             except FetchLimitExceeded as e:
                 raise _limit_error(e, f"input {inp.name!r}: export of {rid[:8]}") from None
             if outcome is None:
-                raise RecipeError(
+                # CKAN/network trouble, or an export that comes back short or
+                # moves during the walk every run: the latter only a human
+                # can fix (a cap, `columns`, `pick`), hence the strike.
+                raise StrikeError(
                     f"input {inp.name!r}: full fetch of {rid[:8]} failed (fetch error)",
-                    reason=FailReason.FETCH_FAILED,
+                    reason=FailReason.FETCH_FAILED, strike=StrikeKind.EXPORT_FAILED,
+                    escalate_to=FailReason.TOO_LARGE, retry_in_run=True,
                 )
             if inp.columns:
                 _project_csv(dest, inp.columns)
@@ -818,16 +963,18 @@ def _fetch_map(inp, res: dict, dest_dir: Path, fetch_file_fn: Callable, *,
             raise _limit_error(e, f"{what}: download") from None
         except DownloadBlocked as e:
             raise StrikeError(f"{what}: download blocked ({e})", reason=FailReason.FETCH_FAILED,
-                              strike="download_blocked", escalate_to=FailReason.DOWNLOAD_BLOCKED) from None
+                              strike=StrikeKind.DOWNLOAD_BLOCKED,
+                              escalate_to=FailReason.DOWNLOAD_BLOCKED) from None
         except ValueError as e:  # not a data.gov.il URL: the resource moved off-site
             raise RecipeError(f"{what}: {e}", reason=FailReason.SCHEMA_CHANGED) from None
         except urllib_error.HTTPError as e:
             if e.code in (404, 410):
                 raise StrikeError(f"{what}: the file is gone (HTTP {e.code})", reason=FailReason.FETCH_FAILED,
-                                  strike="download_missing", escalate_to=FailReason.SCHEMA_CHANGED) from None
-            raise RecipeError(f"{what}: download failed ({e})", reason=FailReason.FETCH_FAILED) from None
+                                  strike=StrikeKind.DOWNLOAD_MISSING,
+                                  escalate_to=FailReason.SCHEMA_CHANGED) from None
+            raise _download_failed(f"{what}: download failed ({e})") from None
         except (urllib_error.URLError, OSError, http.client.HTTPException) as e:  # timeouts too
-            raise RecipeError(f"{what}: download failed ({e!r})", reason=FailReason.FETCH_FAILED) from None
+            raise _download_failed(f"{what}: download failed ({e!r})") from None
     except BaseException:  # any failed download: no partial file left behind
         raw.unlink(missing_ok=True)
         raise
@@ -863,6 +1010,13 @@ def _fetch_map(inp, res: dict, dest_dir: Path, fetch_file_fn: Callable, *,
     log.info("map %s: %s bytes → %d features (%s, tolerance %s)",
              rid[:8], f"{got.bytes:,}", len(rows), crs, tol)
     return _write_table(inp, res, header, rows, dest_dir), got.bytes
+
+
+def _download_failed(message: str) -> StrikeError:
+    """A map-file download that failed some other way (5xx, timeout, reset):
+    retried, and a `download_blocked` issue once it repeats."""
+    return StrikeError(message, reason=FailReason.FETCH_FAILED, strike=StrikeKind.DOWNLOAD_FAILED,
+                       escalate_to=FailReason.DOWNLOAD_BLOCKED, retry_in_run=True)
 
 
 def _write_table(inp, res: dict, header: list[str], rows: list[list[str]],
@@ -956,7 +1110,7 @@ def _network_guard() -> str:
     return netguard.child_prologue()
 
 
-_SANDBOX_STRIKE = "sandbox_failed"
+_SANDBOX_STRIKE = StrikeKind.SANDBOX_FAILED
 
 
 class _NetguardFailed(StrikeError):
@@ -1020,6 +1174,18 @@ def run_compute(
     return _run_compute_once(recipe, inputs, work_root, timeout=timeout)
 
 
+def _compute_max_procs() -> int | None:
+    """Compute's RLIMIT_NPROC (REFRESH_COMPUTE_MAX_PROCS; 0 = no cap), applied
+    only privilege-separated (the job), where it counts the sandbox uid's
+    processes and threads. Never below `_MIN_COMPUTE_PROCS`: numpy's OpenBLAS
+    starts up to 64 threads at import and, refused one, hangs the import until
+    the compute timeout (seen locally), which would read as a recipe failure."""
+    n = _env_int("REFRESH_COMPUTE_MAX_PROCS", _DEFAULT_COMPUTE_MAX_PROCS)
+    if n <= 0:
+        return None
+    return max(n, _MIN_COMPUTE_PROCS)
+
+
 def _run_compute_once(
     recipe: Recipe,
     inputs: dict[str, list[FetchedInput]],
@@ -1037,7 +1203,8 @@ def _run_compute_once(
     workdir = Path(tempfile.mkdtemp(prefix=f"{recipe.dataset_id[:8]}-recipe-", dir=work_root))
     model_max = _env_int("REFRESH_MODEL_MAX_BYTES", _DEFAULT_MODEL_MAX_BYTES)
     tail = _env_int("REFRESH_COMPUTE_OUTPUT_TAIL_BYTES", _DEFAULT_COMPUTE_OUTPUT_TAIL_BYTES)
-    sandbox = LocalSandbox.create(workdir, max_read_bytes=model_max if model_max > 0 else None)
+    sandbox = LocalSandbox.create(workdir, max_read_bytes=model_max if model_max > 0 else None,
+                                  max_procs=_compute_max_procs())
     try:
         (workdir / "recipe").mkdir()
         for name in RECIPE_FILES:
@@ -1150,6 +1317,13 @@ def render_page(
             run_host_check(
                 html, json.dumps(agent_data, ensure_ascii=False), Path(d), recipe=True
             )
+        except CheckTimeout as e:
+            # The body decides how long check.py takes, but a page near the
+            # limit can pass on the next run (a slower or busier container):
+            # counted, and `recipe_failed` only once it keeps timing out.
+            raise StrikeError(str(e), reason=FailReason.CHECK_TIMEOUT,
+                              strike=StrikeKind.CHECK_TIMEOUT,
+                              escalate_to=FailReason.RECIPE_FAILED) from e
         except RuntimeError as e:
             raise RecipeError(str(e)) from e
     return RenderedPage(
@@ -1311,6 +1485,8 @@ class RefreshOutcome:
     fetch_via: dict = field(default_factory=dict)
     # True on the outcome of the end-of-run second pass (see _DEFAULT_RETRY_CAP).
     retried: bool | None = None
+    # On a `stage_failed` outcome: which write failed (`upload` | `store`).
+    stage: StageStep | None = None
 
 
 class _Unchanged(Exception):
@@ -1387,6 +1563,7 @@ def fetchable_resources(resources: list[dict]) -> list[dict]:
 
 def _count_strikes(
     e: RecipeError, state: RefreshState, probe: InputProbe | None,
+    failed_version: str | None = None,
 ) -> tuple[RecipeError, int | None, dict | None, dict]:
     """The strike counters a failure leaves behind: (the error to record,
     `wall_budget_strikes`, `transient_strikes`, the strike-start fields to
@@ -1394,7 +1571,9 @@ def _count_strikes(
     REFRESH_STRIKE_MIN_HOURS began at least that long ago, replaces `e` with
     its escalation (`too_large`, or the strike's `escalate_to`) and resets
     that counter and its start time. Past the count but inside the window,
-    `e` stays transient and the count keeps growing."""
+    `e` stays transient and the count keeps growing. `failed_version` (this
+    run's `failed_version_key`): when its code part differs from the stored
+    one, the `_CODE_SCOPED_STRIKES` counts start over."""
     min_hours = _strike_min_hours()
     now = _utcnow()
 
@@ -1424,8 +1603,11 @@ def _count_strikes(
     transient = _strikes_after_probe(state, probe)
     if isinstance(e, StrikeError):
         # A preview strike (even one in fetch_inputs) continues the run.
-        if transient is None or e.strike == _PREVIEW_STRIKE:
+        if transient is None or e.strike in _PREVIEW_STRIKES:
             transient = dict(state.transient_strikes or {})
+        if failed_version and _code_part(state.refresh_failed_version) != _code_part(failed_version):
+            # A recipe edit or a deploy since the last failure: a fix gets fresh tries.
+            transient = {k: v for k, v in transient.items() if k not in _CODE_SCOPED_STRIKES}
         n = int(transient.get(e.strike) or 0) + 1
         since = _streak_start(n - 1, (state.transient_strikes_since or {}).get(e.strike), now)
         limit = _env_int("REFRESH_TRANSIENT_STRIKES", _DEFAULT_TRANSIENT_STRIKES)
@@ -1438,7 +1620,16 @@ def _count_strikes(
                          "transient", e.strike, n, limit, since.isoformat(), min_hours)
             transient[e.strike] = n
     since_out.update(_since_fields(state, transient, now))
+    started = since_out.get("transient_strikes_since")
+    if isinstance(e, StrikeError) and started and transient.get(e.strike) == 1:
+        started[e.strike] = now  # a count that started over starts its window too
     return e, strikes, transient, since_out
+
+
+def _code_part(failed_version: str | None) -> str | None:
+    """`failed_version_key` without its data version: the recipe version and
+    the recipe + builder code hash."""
+    return failed_version.split("|", 1)[1] if failed_version and "|" in failed_version else None
 
 
 def _provider_fetch_fns(src, providers, fetch_kwargs: dict) -> str | None:
@@ -1484,6 +1675,8 @@ def refresh_one(
     strike, no issue — and returns status `retry_later`; `run_refresh` calls
     again without the flag, which records the outcome as usual."""
     started = time.monotonic()
+    # Tests' stand-in for `_preview_blocked` (a fake CKAN has no WAF).
+    blocked_fn = fetch_kwargs.pop("preview_blocked_fn", None)
     rv = recipe.manifest.recipe_version
     resources = src.resources
     mode = precheck_mode()
@@ -1524,7 +1717,8 @@ def refresh_one(
         # Up front in every mode (fetch_inputs reuses it): a probe that
         # answered breaks a run of `preview_unavailable` strikes.
         probe = probe_inputs(
-            recipe, resources, fetch_kwargs.get("preview_fn", fetch_resource_preview)
+            recipe, resources, fetch_kwargs.get("preview_fn", fetch_resource_preview),
+            **({"blocked_fn": blocked_fn} if blocked_fn else {}),
         )
         if mode != "off":
             identity = recipe_identity(recipe)
@@ -1577,56 +1771,15 @@ def refresh_one(
                 src.id, OutcomeStatus.RETRY_LATER, trigger, e.reason, _clip(str(e)),
                 round(time.monotonic() - started, 2),
             )
-        e, strikes, transient, since = _count_strikes(e, state, probe)
-        log.warning("refresh %s failed (%s): %s", src.id[:8], e.reason, e)
-        try:
-            store.mark_refresh_failed(
-                src.id,
-                error=str(e),
-                reason=e.reason,
-                failed_version=failed_version_key(src, recipe),
-                wall_budget_strikes=strikes,
-                transient_strikes=transient,
-                # only when there is one: today's call is unchanged without the knobs
-                **({"strike_since": since} if since else {}),
-            )
-        except Exception as me:
-            # Nothing recorded, so the next run retries it (and files the
-            # issue then). A failed state write counts as a staging failure.
-            log.exception("refresh %s: recording the failure failed", src.id[:8])
-            return RefreshOutcome(
-                src.id, OutcomeStatus.FAILED, trigger, STAGE_FAILED,
-                _clip(f"{e.reason}: {e}; {type(me).__name__}: {me}"),
-                round(time.monotonic() - started, 2),
-            )
-        outcome = RefreshOutcome(
-            src.id, OutcomeStatus.FAILED, trigger, e.reason, _clip(str(e)),
-            round(time.monotonic() - started, 2),
-        )
-        if notify and e.reason in AUTHORING_REASONS:
-            outcome.issue = _queue_authoring_safely(
-                store, src, e.reason, detail=str(e)
-            )
-        return outcome
+        return _record_failure(store, src, recipe, e, state, probe, trigger, started, notify)
     except Exception as e:  # infra bug, not a data/recipe verdict
         log.exception("refresh %s crashed", src.id[:8])
-        try:
-            store.mark_refresh_failed(
-                src.id,
-                error=f"{type(e).__name__}: {e}",
-                reason=FailReason.ERROR,
-                failed_version=failed_version_key(src, recipe),
-            )
-        except Exception as me:
-            log.exception("refresh %s: recording the crash failed", src.id[:8])
-            return RefreshOutcome(
-                src.id, OutcomeStatus.FAILED, trigger, STAGE_FAILED,
-                _clip(f"{type(e).__name__}: {e}; {type(me).__name__}: {me}"),
-                round(time.monotonic() - started, 2),
-            )
-        return RefreshOutcome(src.id, OutcomeStatus.FAILED, trigger, FailReason.ERROR,
-                              _clip(f"{type(e).__name__}: {e}"),
-                              round(time.monotonic() - started, 2))
+        # Counted like any transient failure: an exception that repeats every
+        # run (a code path one dataset's data always hits) opens a
+        # `recipe_failed` issue after REFRESH_TRANSIENT_STRIKES runs.
+        crash = StrikeError(f"{type(e).__name__}: {e}", reason=FailReason.ERROR,
+                            strike=StrikeKind.ERROR, escalate_to=FailReason.RECIPE_FAILED)
+        return _record_failure(store, src, recipe, crash, state, probe, trigger, started, notify)
 
     snapshot = {
         "rows": {k: sum(p.rows for p in v) for k, v in inputs.items()},
@@ -1648,12 +1801,10 @@ def refresh_one(
         # C: a data bump that rendered the live page byte for byte. Exact, so
         # no max-age gate; a forced run or a recipe_version change still
         # stages (the latter must record its version through mark_refreshed).
-        # After a staging failure the staged body may not be the one the
-        # stored hash describes (a failed rollback), so that render stages.
-        staging_suspect = (state.refresh_status == RefreshStatus.FAILED
-                           and state.refresh_reason == STAGE_FAILED)
+        # (A failed rollback clears the stored hashes, so a staged body they
+        # don't describe can never match here.)
         if (mode in ("inputs", "full") and trigger == "data_updated"
-                and pc["content_same"] and not staging_suspect):
+                and pc["content_same"]):
             out = _mark_unchanged(
                 store, src, trigger, UnchangedReason.CONTENT_HASH, pc, hashes,
                 advance_version=True, started=started,
@@ -1692,9 +1843,11 @@ def refresh_one(
         # mark didn't, the last-good body goes back first. (A first render
         # has none; its doc isn't publishable yet, so the orphan is inert.)
         log.exception("refresh %s: staging failed", src.id[:8])
+        restored = not staged
         if staged and previous_html is not None:
             try:
                 write_gcs(previous_html, staging_bucket, rel)
+                restored = True
             except Exception:
                 log.exception(
                     "refresh %s: restoring the last-good body failed — staged "
@@ -1706,12 +1859,18 @@ def refresh_one(
                 error=f"{type(e).__name__}: {e}",
                 reason=STAGE_FAILED,
                 failed_version=failed_version_key(src, recipe),
+                # The new body is staged but the doc still holds the old
+                # render's hashes: drop them, so no precheck skip (A ∧ A′, B
+                # or C) can match them and keep the mismatch. The next run
+                # renders and stages in full.
+                **({} if restored else {"clear_hashes": True}),
             )
         except Exception:
             log.exception("refresh %s: recording the staging failure failed", src.id[:8])
         return RefreshOutcome(
             src.id, OutcomeStatus.FAILED, trigger, STAGE_FAILED, _clip(str(e)),
             round(time.monotonic() - started, 2),
+            stage=StageStep.STORE if staged else StageStep.UPLOAD,
         )
     _stage_model_history(src.id, page.model, bucket=staging_bucket,
                          write_gcs=write_gcs, recipe_version=rv,
@@ -1728,6 +1887,42 @@ def refresh_one(
         precheck=pc,
         fetch_via=fetch_via,
     )
+
+
+def _record_failure(store, src, recipe: Recipe, e: RecipeError, state: RefreshState,
+                    probe: InputProbe | None, trigger: str, started: float,
+                    notify: bool) -> RefreshOutcome:
+    """Count the failure's strikes, record it, and open its issue when it is
+    (or just escalated to) an AUTHORING_REASON. A failed state write is a
+    staging failure: nothing recorded, so the next run retries it."""
+    fvk = failed_version_key(src, recipe)
+    e, strikes, transient, since = _count_strikes(e, state, probe, fvk)
+    log.warning("refresh %s failed (%s): %s", src.id[:8], e.reason, e)
+    try:
+        store.mark_refresh_failed(
+            src.id,
+            error=str(e),
+            reason=e.reason,
+            failed_version=fvk,
+            wall_budget_strikes=strikes,
+            transient_strikes=transient,
+            # only when there is one: today's call is unchanged without the knobs
+            **({"strike_since": since} if since else {}),
+        )
+    except Exception as me:
+        log.exception("refresh %s: recording the failure failed", src.id[:8])
+        return RefreshOutcome(
+            src.id, OutcomeStatus.FAILED, trigger, STAGE_FAILED,
+            _clip(f"{e.reason}: {e}; {type(me).__name__}: {me}"),
+            round(time.monotonic() - started, 2), stage=StageStep.STORE,
+        )
+    outcome = RefreshOutcome(
+        src.id, OutcomeStatus.FAILED, trigger, e.reason, _clip(str(e)),
+        round(time.monotonic() - started, 2),
+    )
+    if notify and e.reason in AUTHORING_REASONS:
+        outcome.issue = _queue_authoring_safely(store, src, e.reason, detail=str(e))
+    return outcome
 
 
 def _mark_unchanged(
@@ -1760,7 +1955,7 @@ def _mark_unchanged(
         log.exception("refresh %s: recording the unchanged state failed", src.id[:8])
         return RefreshOutcome(
             src.id, OutcomeStatus.FAILED, trigger, STAGE_FAILED, _clip(str(e)),
-            round(time.monotonic() - started, 2), precheck=pc,
+            round(time.monotonic() - started, 2), precheck=pc, stage=StageStep.STORE,
         )
     log.info("refresh precheck %s: unchanged (%s) — skipped", src.id[:8], reason)
     return RefreshOutcome(
@@ -1864,7 +2059,8 @@ _SAFE_LOC_NAMES = _model_field_names(PageModel, RecipeManifest)
 _KNOWN_HEAD = re.compile(
     r"template render failed|compute\(\) output is not a valid page model"
     r"|compute\(\) wrote no model|compute\(\) wrote an unreadable model\.json"
-    r"|duplicate insight ids|host self-check failed \(exit -?\d+\)")
+    r"|duplicate insight ids|host self-check failed \(exit -?\d+\)"
+    r"|provider sync failed \d+ runs in a row")
 # Whole recipe_failed messages that hold only counts and caps.
 _RECIPE_SHAPES = re.compile(
     r"only \d+ insight\(s\) survived \(min_insights=\d+\) — the data no longer fits the rules"
@@ -1882,6 +2078,7 @@ _SCHEMA_SHAPES = re.compile("|".join([
     rf"resource {_ID} is no longer a datastore-active resource of this dataset",
     rf"no resource has columns {_COLS}",
     rf"no preview for resource\(s\)? (?:{_COLS}|{_ID})",
+    rf"resource {_ID} has no rows",
     rf"map file {_ID} is gone from the dataset",
     rf"map file {_ID}: lacks column\(s\) {_COLS}",
     rf"map file {_ID}: has no features",
@@ -1959,7 +2156,7 @@ def public_detail(detail: str, reason: str | None = None) -> str:
         return detail
     if reason in _METADATA_REASONS and _METADATA_ONLY.fullmatch(core):
         return detail
-    if _RECIPE_SHAPES.fullmatch(detail):
+    if _RECIPE_SHAPES.fullmatch(_RUNS_SUFFIX.sub("", detail)):
         return detail
     head = _head(detail)
     exc = _EXCEPTION_NAME.search(detail[len(head):])
@@ -2013,11 +2210,11 @@ def _queue_authoring_safely(store, src, reason: str, **kw) -> int | None:
 def _retry_later(e: RecipeError) -> bool:
     """A failure a second try minutes later may not hit: CKAN/network
     trouble. Not a wall-budget overrun (the dataset is slow; a retry doubles
-    the time) nor a map download strike (a WAF block or a 404 won't clear
-    within the run)."""
+    the time) nor a strike that says otherwise (a map download the WAF
+    blocked, or a 404, won't clear within the run)."""
     if e.reason != FailReason.FETCH_FAILED or isinstance(e, WallBudgetExceeded):
         return False
-    return not isinstance(e, StrikeError) or e.strike == _PREVIEW_STRIKE
+    return not isinstance(e, StrikeError) or e.retry_in_run
 
 
 def _spends_cap(o: RefreshOutcome) -> bool:
@@ -2070,6 +2267,10 @@ def run_refresh(
         ids = [i for i in ids if i in set(only_ids)]
     outcomes: list[RefreshOutcome] = []
     stage_failures = 0  # consecutive
+    # Consecutive GCS upload failures, reset only by a successful upload (a
+    # `refreshed` outcome): an `unchanged` one writes Firestore alone, so on a
+    # day of no-op bumps it would hide a GCS outage from `stage_failures`.
+    upload_failures = 0
     staging_down = False
     # Heavy recipes (`limits` set) run after all the others: if one still
     # outgrows the container, every other page is already staged.
@@ -2085,13 +2286,18 @@ def run_refresh(
     _NO_WRITE = (FailReason.ERROR, FailReason.RESTRICTED, FailReason.RECIPE_INVALID)
 
     def _count_staging(outcome: RefreshOutcome) -> None:
-        nonlocal stage_failures, staging_down
+        nonlocal stage_failures, upload_failures, staging_down
+        if outcome.status == OutcomeStatus.REFRESHED:
+            upload_failures = 0
         if outcome.reason == STAGE_FAILED:
             stage_failures += 1
-            if stage_failures >= MAX_CONSECUTIVE_STAGE_FAILURES:
+            if outcome.stage == StageStep.UPLOAD:
+                upload_failures += 1
+            if (stage_failures >= MAX_CONSECUTIVE_STAGE_FAILURES
+                    or upload_failures >= MAX_CONSECUTIVE_STAGE_FAILURES):
                 log.error(
-                    "refresh: %d staging failures in a row — stopping the batch",
-                    stage_failures,
+                    "refresh: %d staging failures in a row (%d uploads since the last "
+                    "good one) — stopping the batch", stage_failures, upload_failures,
                 )
                 staging_down = True
         elif outcome.reason == UnchangedReason.RECENTLY_PROBED:

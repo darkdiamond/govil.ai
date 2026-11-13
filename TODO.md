@@ -71,13 +71,6 @@ This repo is public: describe a security gap by what to change, never by how to 
   `geo_snapshot` reads only top-level shapefiles, so the recipe skips that layer and says so in
   fixed copy. Fix: let `geo_snapshot` descend one level into nested zips (with the same size
   caps), then add a `mehir` map input to ee626064 and bump its `recipe_version`. (2026-11-04)
-- **One broken datastore resource blocks every `by_schema` input of its dataset.**
-  `resolve_inputs` raises `PreviewUnavailable` when any datastore-active resource's preview fails,
-  even one that never had the input's columns. A resource whose datastore answers
-  `success: false` for good (it used to be skipped) now fails the page and, after
-  `REFRESH_TRANSIENT_STRIKES` runs, opens a `schema_changed` issue that re-authoring with
-  `by_schema` can't clear. Fix: let a recipe exclude resource ids from `by_schema` matching,
-  or ignore an unanswered resource whose CKAN name/format can't be a match. (2026-11-02)
 - **Top-100 legacy map pages that the snapshot path can't serve.** חלקות (dff8a168, 667MB SHP)
   is a national layer far over the 100MB download cap; it would need a pre-aggregation step
   (the גושים/תצ"ר recipes reduce each polygon to a centroid in compute, but the file must still
@@ -129,39 +122,6 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
   deploy. If it's frequent, or a sync fails after 5 reconnects, try a static egress IP (VPC +
   Cloud NAT) to tell whether BoI is filtering Google's shared egress range. (2026-11-04)
 
-- **Failures that repeat every run but count as transient never escalate.** Only `StrikeError`
-  and wall-budget overruns keep a strike count. A plain `fetch_failed` (a required resource that
-  "has no rows", an export that comes back short every run, a table that grows during every
-  multi-page walk so the export always "moved during the export") and a generic exception
-  recorded as `error` open no issue and set no lock: the page stays last-good with only log
-  lines, and every run repeats the full export and compute. (A check.py timeout is the opposite
-  case: it fails as `recipe_failed` and locks on the first timeout, so a page that flaps around
-  the 60s limit would also be better served by a strike count.) Fix: count them in `transient_strikes` (one strike key per kind, reset when
-  `failed_version_key` moves) and escalate after `REFRESH_TRANSIENT_STRIKES` runs
-  (`schema_changed` or `too_large` for a fetch, `recipe_failed` for an error). (2026-11-11)
-
-- **A GCS-only outage can hide behind `unchanged` outcomes.** `_count_staging` resets the
-  `staging_down` streak on any `refreshed` or `unchanged` outcome, and an `unchanged` one writes
-  Firestore but uploads nothing. On a day of mostly no-op bumps, upload failures between them
-  never reach 3 in a row: the failed pages stay last-good and retry, but the run ends green.
-  Fix: count upload failures apart from Firestore writes, and reset that streak only on a
-  successful upload. (2026-11-11)
-
-- **A persistent WAF block on a preview escalates as `schema_changed`.** A 403 without CKAN's
-  Authorization Error body is a failed preview, counted as a `preview_unavailable` strike, so
-  after `REFRESH_TRANSIENT_STRIKES` runs the issue says the schema changed and sends the author
-  looking for a column that never moved. Fix: a strike key for 403-blocked previews that
-  escalates to `download_blocked`. (2026-11-11)
-
-- **A failed rollback can leave GCS and Firestore describing different renders.** When the
-  upload lands, `mark_refreshed` fails and the rollback can't run (the previous body couldn't be
-  read, or the restore write failed), GCS holds the new body while Firestore keeps the old
-  `agent_data` and hashes. `staging_suspect` blocks only the content-hash skip, and only while the
-  latest status is that failure; a later A∧A′ or B skip that matches the old hashes leaves the
-  mismatch in place. Fix: when the mark fails with no rollback, also clear the stored
-  fingerprints and hashes in the `mark_refresh_failed` call, then drop `staging_suspect`.
-  (2026-11-11)
-
 - **The builder SA's grants reach too far.** Recipe compute no longer reaches the metadata
   server (netguard's seccomp filter), but the builder SA's grants still cover the
   dispatch-token secret, project-wide Firestore (the `news` database too) and the whole
@@ -169,12 +129,6 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
   reads. Fix: condition the builder's `roles/datastore.user` to the `(default)` database, give
   the publisher `roles/datastore.viewer`, and optionally condition the bucket grant to exclude
   `news/`. (2026-11-11)
-
-- **The sandbox's straggler reaper is narrow.** `_reap_stragglers` kills only processes whose
-  environment still holds the session's `HOME`, and every compute shares one uid. (Failing
-  closed inside the job without the `sandbox` user and the 0711 `SESSIONS_ROOT` are done.)
-  Fix: after each compute kill every process with the sandbox uid, and set a low
-  `RLIMIT_NPROC`. Local authoring keeps today's behaviour. (2026-11-11)
 
 - **The local permission allowlist is broad for an unattended routine.** The gitignored
   `.claude/settings.local.json`, copied into every worktree by `.worktreeinclude`, pre-approves
@@ -204,14 +158,6 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
   published in two or more years; skip holiday collections ("לרגל …"). The release-list window
   (`LIST_WINDOW`) is now 1500 items (~3 years), enough for 2–3 editions of each; deploy the job
   with it before merging a yearly recipe. (2026-11-05)
-- **A CBS table dropped from the latest edition freezes its page silently.** `facts()` raises
-  when the newest edition lacks a configured `table` stem, so the provider sync fails for that
-  dataset every run; the refresh never runs, so no `needs-authoring` issue opens and the page
-  stays last-good indefinitely (only the run summary's `provider sync … failed` shows it).
-  Fix: have the sync open an issue (or record a strike that escalates like
-  `REFRESH_TRANSIENT_STRIKES`) after N consecutive `provider_error`s for one dataset.
-  A table marked `"optional": true` in source.json no longer fails the sync this way.
-  (2026-11-05)
 - **Year-end CBS editions with a different table set are skipped.** `cbs-visitor-arrivals`
   and `cbs-israelis-departures` skip the January "בשנת YYYY" edition, which replaces December's
   and adds tables. `cbs-labour-supply-demand` skips the Oct–Dec "ושנת" edition (90 files). Each

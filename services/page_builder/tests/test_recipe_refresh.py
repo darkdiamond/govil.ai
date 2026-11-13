@@ -124,9 +124,13 @@ class FakeStore:
         self._upd(dataset_id, **kw)
 
     def mark_refresh_failed(self, dataset_id, *, error, reason, failed_version,
-                            wall_budget_strikes=None, transient_strikes=None):
+                            wall_budget_strikes=None, transient_strikes=None,
+                            clear_hashes=False):
         self._upd(dataset_id, refresh_status="failed", refresh_error=error,
                   refresh_reason=reason, refresh_failed_version=failed_version)
+        if clear_hashes:
+            self._upd(dataset_id, input_fingerprint=None, file_fingerprint=None,
+                      inputs_hash=None, inputs_hash_unordered=None, content_hash=None)
         if wall_budget_strikes is not None:
             self._upd(dataset_id, wall_budget_strikes=wall_budget_strikes)
         if transient_strikes is not None:
@@ -435,7 +439,8 @@ def test_a_failure_after_the_previews_answered_breaks_the_run(env, monkeypatch):
 
     s = _run(env, store, NoExport(_rows([2024, 2025])))
     assert s["outcomes"][0]["reason"] == "fetch_failed"
-    assert store.states[DS]["transient_strikes"] is None
+    # The preview run is broken; the failed export starts its own count.
+    assert store.states[DS]["transient_strikes"] == {"export_failed": 1}
 
 
 def test_by_id_without_columns_missing_preview_is_a_strike(env, tmp_path, monkeypatch):
@@ -629,7 +634,7 @@ def test_unclosed_style_in_template_is_a_recipe_failure(env, tmp_path):
     assert "unbalanced <style>" in s["outcomes"][0]["error"]
 
 
-def test_check_timeout_is_a_recipe_failure(env, monkeypatch):
+def _slow_check(monkeypatch):
     from services.page_builder import page_gate
 
     def slow(cmd, **kw):
@@ -641,9 +646,24 @@ def test_check_timeout_is_a_recipe_failure(env, monkeypatch):
         run=slow, TimeoutExpired=subprocess.TimeoutExpired,
     ))
     monkeypatch.setattr(rf, "run_host_check", page_gate.run_host_check)
+
+
+def test_check_timeout_is_a_strike_then_a_recipe_failure(env, monkeypatch):
+    # A page near check.py's limit can pass next run: no lock on the first
+    # timeout, an issue + lock once it keeps timing out.
+    monkeypatch.setenv("REFRESH_TRANSIENT_STRIKES", "3")
+    _slow_check(monkeypatch)
     store = FakeStore(_src())
-    s = _assert_recipe_failure_locks(env, store, FakeCkan(_rows([2024, 2025])), FIXTURES)
-    assert "timed out" in s["outcomes"][0]["error"]
+    ckan = FakeCkan(_rows([2024, 2025]))
+    for n in (1, 2):
+        o = _first(_run(env, store, ckan))
+        assert o["reason"] == "check_timeout" and "timed out" in o["error"]
+        assert store.states[DS]["transient_strikes"] == {"check_timeout": n}
+    assert env.issues == [] and env.staged == {}
+    s = _assert_recipe_failure_locks(env, store, ckan, FIXTURES)
+    assert "timed out" in s["outcomes"][0]["error"] and "3 runs in a row" in s["outcomes"][0]["error"]
+    # The issue keeps the counts-only message.
+    assert "timed out after" in env.issues[0]["detail"]
 
 
 @pytest.mark.parametrize("payload", [b"{not json", b"\xff\xfe", b"[1, 2]"])
@@ -1859,16 +1879,76 @@ def test_precheck_identical_render_still_stages_forced_and_new_recipe(env, monke
     assert store.states[DS]["recipe_version"] == 1
 
 
-def test_precheck_identical_render_after_a_staging_failure_stages(env, monkeypatch):
-    """A failed rollback can leave a staged body the stored hash doesn't
-    describe, so the render after a staging failure always stages."""
-    store, ckan, _ = _stage_then_bump_same_rows(env, monkeypatch, "full")
-    store.mark_refresh_failed(DS, error="gcs down", reason=rf.STAGE_FAILED,
-                              failed_version="x")
-    env.staged.clear()
-    o = _first(_run(env, store, _reorder(store, ckan)))
-    assert o["status"] == "refreshed" and env.staged
+def _changed(store):
+    """A re-upload whose rows change what the page shows."""
+    _reupload(store, "md5-v2")
+    return FakeCkan(_rows([2024, 2025, 2026]))
+
+
+def _mark_down(*a, **kw):
+    raise RuntimeError("firestore deadline")
+
+
+def test_a_failed_rollback_clears_the_hashes_so_nothing_skips_next(env, monkeypatch):
+    """The upload landed, the mark failed and the restore failed: GCS holds the
+    new body, Firestore the old render's hashes. Those hashes are cleared, so
+    when the data flips back to the old version no precheck (A ∧ A′, B or C)
+    can match them and leave the mismatch in place."""
+    store, ckan, v1_staged = _stage_then_bump_same_rows(env, monkeypatch, "full")
+    real_write, real_mark = env.write_gcs, store.mark_refreshed
+    writes = []
+
+    def write_once(data, bucket, rel):  # the upload lands, the restore doesn't
+        writes.append(rel)
+        if len(writes) > 1:
+            raise RuntimeError("gcs 503")
+        return real_write(data, bucket, rel)
+
+    env.write_gcs = write_once
+    monkeypatch.setattr(store, "mark_refreshed", _mark_down)
+    o = _first(_run(env, store, _changed(store)))
+    assert (o["status"], o["reason"], o["stage"]) == ("failed", rf.STAGE_FAILED, "store")
+    rel = f"datasets/{DS}/content.html"
+    assert env.staged[rel] != v1_staged[rel]  # the new body stayed staged
+    st = store.states[DS]
+    for k in ("input_fingerprint", "file_fingerprint", "inputs_hash",
+              "inputs_hash_unordered", "content_hash"):
+        assert st[k] is None, k
+
+    # CKAN flips back to the v1 file: it must render and stage v1 again.
+    env.write_gcs = real_write
+    monkeypatch.setattr(store, "mark_refreshed", real_mark)
+    _reupload(store, "md5-v1")
+    _bump(store, "2026-10-03")
+    o = _first(_run(env, store, ckan))
+    assert o["status"] == "refreshed"
+    assert env.staged[rel] == v1_staged[rel]
     assert store.states[DS]["refresh_status"] == "succeeded"
+
+
+def test_a_restored_rollback_keeps_the_hashes(env, monkeypatch):
+    """The last-good body went back: GCS and Firestore agree, nothing to clear."""
+    store, _, v1_staged = _stage_then_bump_same_rows(env, monkeypatch, "full")
+    before = dict(store.states[DS])
+    monkeypatch.setattr(store, "mark_refreshed", _mark_down)
+    o = _first(_run(env, store, _changed(store)))
+    assert o["reason"] == rf.STAGE_FAILED and o["stage"] == "store"
+    assert env.staged == v1_staged
+    assert store.states[DS]["content_hash"] == before["content_hash"]
+    assert store.states[DS]["input_fingerprint"] == before["input_fingerprint"]
+
+
+def test_a_failed_upload_is_an_upload_stage_failure(env, monkeypatch):
+    store, _, _ = _stage_then_bump_same_rows(env, monkeypatch, "full")
+    before = dict(store.states[DS])
+
+    def gcs_down(*a, **kw):
+        raise RuntimeError("gcs 503")
+
+    env.write_gcs = gcs_down
+    o = _first(_run(env, store, _changed(store)))
+    assert (o["reason"], o["stage"]) == (rf.STAGE_FAILED, "upload")
+    assert store.states[DS]["content_hash"] == before["content_hash"]
 
 
 def test_precheck_content_skip_state_write_failure_is_a_stage_failure(env, monkeypatch):

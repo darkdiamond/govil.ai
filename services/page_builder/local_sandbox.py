@@ -23,8 +23,11 @@ Hardening within that boundary:
   GitHub token or other key vars (HOME — and, privilege-separated,
   TMPDIR — point into the session workdir).
 - per-command wall-clock timeout (default 120s, SIGKILL on expiry); at
-  session end, privilege-separated, stray background processes the
-  session left running are killed before the workdir is removed.
+  session end, privilege-separated, every process still running as the
+  sandbox uid is killed before the workdir is removed (sessions run one at
+  a time, so whatever that uid still runs is this session's leftover), and
+  `max_procs` caps the uid's processes + threads per command
+  (RLIMIT_NPROC), so a runaway fork loop stops at the cap.
 - bounded read-back: of everything a command prints, the host keeps only
   the last `max_output_bytes` of stdout and of stderr (default 64KB each;
   the rest is read from the pipe and dropped), and `files.read` refuses a
@@ -49,7 +52,9 @@ today) has no such filter. The SA must still stay minimal: Firestore + the
 staging bucket + running the publish trigger only. Concurrent sessions
 share the one `sandbox` uid, so a hostile session could in principle
 tamper with a sibling session's workdir; each sibling's output still has
-to pass the host-side check on its own.
+to pass the host-side check on its own. (The refresh runs one compute at a
+time; a second concurrent privilege-separated session would be killed by
+the first one's end-of-session reap.)
 """
 from __future__ import annotations
 
@@ -74,6 +79,47 @@ _DEFAULT_SANDBOX_USER = "sandbox"
 # the last 1,500 characters of stderr in errors and issues.
 DEFAULT_OUTPUT_TAIL_BYTES = 64 * 1024
 _PIPE_CHUNK = 64 * 1024
+# End-of-session reap: how long to keep killing + reaping the sandbox uid's
+# processes before giving up (a normal compute leaves none: one /proc scan).
+_REAP_WAIT_S = 3.0
+_PR_SET_CHILD_SUBREAPER = 36
+_subreaper = False
+
+
+def _pids_of_uid(uid: int) -> list[int]:
+    """Every process (zombies too) whose /proc entry belongs to `uid`."""
+    out = []
+    try:
+        names = os.listdir("/proc")
+    except OSError:
+        return out
+    for name in names:
+        if name.isdigit():
+            try:
+                if os.stat(f"/proc/{name}").st_uid == uid:
+                    out.append(int(name))
+            except OSError:
+                continue
+    return out
+
+
+def _become_subreaper() -> None:
+    """Make this (root host) process the subreaper of everything it spawns:
+    a sandbox process that outlives its parent is re-parented here, not to
+    PID 1, so `_reap_stragglers` can wait for it. Once per process; Linux
+    only, best effort."""
+    global _subreaper
+    if _subreaper:
+        return
+    try:
+        import ctypes
+
+        if ctypes.CDLL(None, use_errno=True).prctl(_PR_SET_CHILD_SUBREAPER, 1, 0, 0, 0) != 0:
+            raise OSError(ctypes.get_errno(), "prctl(PR_SET_CHILD_SUBREAPER)")
+        _subreaper = True
+    except (OSError, AttributeError) as e:
+        log.warning("LocalSandbox: can't become the child subreaper (%s): orphaned "
+                    "sandbox processes go to PID 1", e)
 
 
 class OutputTooLarge(Exception):
@@ -245,9 +291,14 @@ class LocalSandbox:
         ident: tuple[int, int] | None = None,
         *,
         max_read_bytes: int | None = None,
+        max_procs: int | None = None,
     ):
         self.workdir = workdir
         self.ident = ident
+        # RLIMIT_NPROC for each command, privilege-separated only (it counts
+        # every process of the uid: unprivileged, that is the whole user
+        # session). None/0 = no cap.
+        self.max_procs = max_procs
         # Largest file `files.read` returns; None = no cap.
         self.max_read_bytes = max_read_bytes
         self.files = _Files(self)
@@ -277,7 +328,8 @@ class LocalSandbox:
             self._env["TMPDIR"] = str(workdir / ".tmp")
 
     @classmethod
-    def create(cls, workdir: str | Path, *, max_read_bytes: int | None = None) -> LocalSandbox:
+    def create(cls, workdir: str | Path, *, max_read_bytes: int | None = None,
+               max_procs: int | None = None) -> LocalSandbox:
         wd = Path(workdir)
         (wd / "outputs").mkdir(parents=True, exist_ok=True)
         ident = _resolve_sandbox_identity()
@@ -287,12 +339,13 @@ class LocalSandbox:
             # provisioning check.py / the prefetched CSVs into it.
             os.chmod(wd, 0o700)
             (wd / ".tmp").mkdir(exist_ok=True)
+            _become_subreaper()
         log.info(
             "LocalSandbox: workdir=%s%s",
             wd,
             f" (tools run as uid {ident[0]})" if ident else "",
         )
-        return cls(wd, ident, max_read_bytes=max_read_bytes)
+        return cls(wd, ident, max_read_bytes=max_read_bytes, max_procs=max_procs)
 
     # ── privilege separation ────────────────────────────────────────────
     def handover(self) -> None:
@@ -349,29 +402,44 @@ class LocalSandbox:
         finally:
             os.close(fd)
 
-    def _reap_stragglers(self) -> None:
-        """SIGKILL background processes this session left running.
+    def _reap_stragglers(self) -> int:
+        """SIGKILL every process still running as the sandbox uid, and reap
+        the dead ones; return how many were killed.
 
-        Matched by uid + the session's unique HOME in their environment
-        (root can read any /proc/<pid>/environ). Best-effort: a process
-        that scrubbed its own env escapes this and dies with the container.
+        By uid alone: a process that changed its environment, its session or
+        its process group is still caught. Sessions run one at a time (the
+        refresh's computes are sequential), so all of that uid is this
+        session's. The host is the orphans' subreaper (`_become_subreaper`),
+        so it waits for them itself: a zombie still counts toward the uid's
+        RLIMIT_NPROC, and the job's PID 1 (the builder) would never reap it.
+        Rescans until the uid holds nothing, for at most `_REAP_WAIT_S`.
         """
         uid = self.ident[0]
-        marker = f"HOME={self.workdir}".encode()
-        try:
-            pids = [d for d in os.listdir("/proc") if d.isdigit()]
-        except OSError:
-            return
-        for pid in pids:
-            try:
-                if os.stat(f"/proc/{pid}").st_uid != uid:
-                    continue
-                with open(f"/proc/{pid}/environ", "rb") as f:
-                    env = f.read().split(b"\0")
-                if marker in env:
-                    os.kill(int(pid), signal.SIGKILL)
-            except (OSError, ValueError):
-                continue
+        killed: set[int] = set()
+        deadline = time.monotonic() + _REAP_WAIT_S
+        while True:
+            pids = _pids_of_uid(uid)
+            for pid in pids:
+                if pid not in killed:
+                    try:
+                        os.kill(pid, signal.SIGKILL)
+                        killed.add(pid)
+                    except OSError:
+                        pass
+                try:
+                    os.waitpid(pid, os.WNOHANG)
+                except ChildProcessError:  # not ours: its own parent reaps it
+                    pass
+                except OSError:
+                    pass
+            if not pids or time.monotonic() >= deadline:
+                break
+            time.sleep(0.02)
+        if killed:
+            left = len(_pids_of_uid(uid))
+            log.warning("LocalSandbox: killed %d process(es) left running as uid %d%s",
+                        len(killed), uid, f"; {left} not reaped yet" if left else "")
+        return len(killed)
 
     def kill(self) -> None:
         if self._closed:
@@ -398,6 +466,15 @@ class LocalSandbox:
         else:
             return _Execution(error=_Error(name="UnsupportedLanguage", value=language))
         privsep: dict = {}
+        if self.ident is not None and self.max_procs and self.max_procs > 0:
+            n = int(self.max_procs)
+            # Set by the command itself, already as the sandbox uid (no
+            # preexec_fn: the builder process has gRPC threads).
+            if language == "bash":
+                argv[2] = f"ulimit -u {n}\n{code}"
+            else:
+                argv[2] = ("import resource as _r; "
+                           f"_r.setrlimit(_r.RLIMIT_NPROC, ({n}, {n})); del _r\n{code}")
         if self.ident is not None:
             self.handover()
             uid, gid = self.ident

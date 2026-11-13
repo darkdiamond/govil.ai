@@ -118,7 +118,9 @@ landing pages. Six layers:
    can't tell which sources a recipe owns) → `refresh.run_refresh`
    (layer 5, sequential, no LLM; a staging error — GCS upload or Firestore
    mark — fails only that source as `stage_failed`, retried next run, and 3
-   in a row stop the batch as `staging_down`; a crashed or staging-down
+   in a row stop the batch as `staging_down`, as do 3 failed GCS uploads with
+   no successful upload between them (an `unchanged` outcome writes only
+   Firestore, so it can't vouch for GCS); a crashed or staging-down
    refresh ends the run `status: refresh_failed`, non-zero exit, after
    still queueing and publishing whatever did refresh) →
    `selector.pick_authoring_candidates` (after the refresh, and guarded: a
@@ -280,16 +282,31 @@ landing pages. Six layers:
    that changes code or libraries retries a locked source once (an env- or
    Dockerfile-only redeploy doesn't; force it with `pipeline --source`) and
    reuses its open issue; a
-   transient fetch failure (network, or the fetch wall budget running out)
-   just retries next run, except that `REFRESH_WALL_BUDGET_STRIKES` (6) wall-budget
-   overruns since the last full fetch (`wall_budget_strikes` in the refresh
-   state) open a `too_large` issue. A sandbox-spawn crash (`sandbox_failed`:
-   the gRPC fork abort after an in-run retry, or a failed no-network filter)
-   counts strikes and, after `REFRESH_TRANSIENT_STRIKES` runs, opens a
-   `sandbox_broken` issue and locks until the next builder redeploy. A datastore preview that fails (CKAN
-   timeout/5xx) is transient too, never a lost column: `preview_unavailable`
-   escalates to `schema_changed` only after `REFRESH_TRANSIENT_STRIKES` (6)
-   runs in a row (a slow CKAN falsely locked 16 sources on 2026-11-02).
+   transient failure just retries next run, but every kind keeps a strike
+   count, so one that repeats every run still reaches a human:
+   `REFRESH_WALL_BUDGET_STRIKES` (6) wall-budget overruns since the last full
+   fetch (`wall_budget_strikes` in the refresh state) open a `too_large`
+   issue, and each `refresh.StrikeError` kind (`transient_strikes`, keys are
+   `states.StrikeKind`) escalates after `REFRESH_TRANSIENT_STRIKES` (6) runs:
+   a datastore preview that fails (CKAN timeout/5xx; never a lost column, a
+   slow CKAN falsely locked 16 sources on 2026-11-02) → `schema_changed`, or
+   `download_blocked` when `datastore_search` answers it with a 403 that isn't
+   CKAN's Authorization Error (the WAF; `preview_blocked`); a required
+   resource with no rows → `schema_changed`; a full export that fails (CKAN,
+   or one that comes back short or moves during the walk every run) →
+   `too_large`; a sandbox-spawn crash (`sandbox_failed`: the gRPC fork abort
+   after an in-run retry, or a failed no-network filter) → `sandbox_broken`
+   (locks until the next builder redeploy); a check.py timeout
+   (`check_timeout`) or an unexpected exception (`error`) → `recipe_failed`.
+   The last five kinds (`no_rows`, `export_failed`, `download_failed`,
+   `check_timeout`, `error`) restart their count when the code part of
+   `failed_version_key` (recipe version + recipe files + builder code, not
+   the data version) moves, so a fix gets fresh tries. A `by_schema` input
+   doesn't wait on an unanswered resource whose CKAN format AND name stem
+   differ from every answered match of every `by_schema` input (a data
+   dictionary beside yearly CSVs). When a mark fails after the upload landed
+   and the old body can't be put back, the failure also clears the stored
+   precheck hashes, so no skip can keep GCS and Firestore apart.
    Strike counts are in runs, so at hourly ticks 6 is 6 hours:
    `REFRESH_STRIKE_MIN_HOURS` (code 0 = count only, prod 72) also requires the
    run of strikes to have begun at least that long ago
@@ -300,8 +317,8 @@ landing pages. Six layers:
    ≥ `REFRESH_RETRY_DELAY_S` (120) after the last such failure, at most
    `REFRESH_RETRY_CAP` (20) sources a run; later ones fail as before). The
    deferred try writes nothing; only the retry's outcome counts (`retried` in
-   its `refresh_outcome` log line). Wall-budget overruns and map-download
-   strikes aren't retried. **Shared recipe code:** `compute.py` can
+   its `refresh_outcome` log line). Wall-budget overruns and map downloads
+   the WAF blocked or that 404 aren't retried. **Shared recipe code:** `compute.py` can
    `from govlib import fmt, frame, geo, cbs` and a template can
    `{% import "gov.j2" as gov %}` (`services/page_builder/recipe_lib/`; the
    refresh copies `govlib` into the sandbox, and folds the lib's hash into
@@ -313,7 +330,11 @@ landing pages. Six layers:
    `last_modified`), and top-level `limits` (per-recipe caps). A recipe with
    `limits` is **heavy**: `run_refresh` runs it after all others. Every
    compute runs heap-capped (`REFRESH_COMPUTE_MEMORY_MB`, default 3072) with
-   `oom_score_adj=1000`, so an outsized recipe dies alone, and with no
+   `oom_score_adj=1000`, so an outsized recipe dies alone, capped at
+   `REFRESH_COMPUTE_MAX_PROCS` (256, floor 128: numpy's OpenBLAS starts up to
+   64 threads and hangs when refused one) processes + threads of the sandbox
+   uid (RLIMIT_NPROC, job only), with every process of that uid killed and
+   reaped after each compute (the builder is their subreaper), and with no
    network (`REFRESH_COMPUTE_NETWORK`, default `deny`: a seccomp filter,
    `netguard.py`, refuses every non-AF_UNIX socket; a failed install is
    `sandbox_failed`, see above; `allow` turns it off). **Map files:**
@@ -325,10 +346,11 @@ landing pages. Six layers:
    python's and a bare `Mozilla/5.0` are refused, the builder's
    `Mozilla/5.0 (compatible; govdata-builder/1.0)` passes (verified from
    Cloud Run 2026-10-31; the user approved this UA). `CKAN_USER_AGENT`
-   overrides it without a redeploy. A blocked download is transient
-   (`fetch_failed`) until it repeats `REFRESH_TRANSIENT_STRIKES` (6) runs in a
-   row (`transient_strikes` in the refresh state), then opens a
-   `download_blocked` issue. Download cap `REFRESH_MAP_MAX_BYTES` (100MB). The
+   overrides it without a redeploy. A blocked download, or one that fails
+   any other way (5xx, timeout), is transient (`fetch_failed`) until it
+   repeats `REFRESH_TRANSIENT_STRIKES` (6) runs in a row (`transient_strikes`
+   in the refresh state), then opens a `download_blocked` issue (a 404/410:
+   `schema_changed`). Download cap `REFRESH_MAP_MAX_BYTES` (100MB). The
    older fallback: a file downloaded once in a browser, converted by `author
 snapshot` and committed as `recipes/<id>/<name>.geojson`, read by a
    `snapshot` input; when CKAN's size/hash moves past `snapshot_of`, the
@@ -433,7 +455,12 @@ catalog` lists chapters → subjects → codes.
    refresh renders it through the provider's fetchers (never CKAN), and the
    publisher copies `source` into data.json. The frontend then hides the
    CKAN explorer and credits the source. A provider outage only leaves
-   its pages last-good. Adding a source means one subclass plus one
+   its pages last-good. A sync that fails for one dataset (`provider_error`,
+   e.g. a CBS table gone from the newest edition) counts
+   `provider_sync_strikes` on its doc; after `REFRESH_TRANSIENT_STRIKES` runs
+   (and `REFRESH_STRIKE_MIN_HOURS`, as the refresh's strikes) the pipeline
+   opens its `schema_changed` needs-authoring issue through `queue_authoring`
+   (`pipeline.queue_provider_escalations`), since the refresh never runs for it. Adding a source means one subclass plus one
    registry line. Refresh, publisher and frontend need no change.
 
 6. **News** — `services/news/`, Cloud Run job `govdata-news-job`

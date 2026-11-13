@@ -11,6 +11,10 @@ CHECK_SCRIPT_PATH = REPO_ROOT / "agent" / "skills" / "check.py"
 _CHECK_TIMEOUT_S = 60
 
 
+class CheckTimeout(RuntimeError):
+    """check.py ran past `_CHECK_TIMEOUT_S` on the body."""
+
+
 def run_host_check(
     content_html: str, agent_data_json: str, workdir: Path, *, recipe: bool = False
 ) -> None:
@@ -44,8 +48,8 @@ def run_host_check(
         )
     except subprocess.TimeoutExpired as e:
         # The body decides how long check.py takes, so this is the page's
-        # failure like any other verdict, not a crash.
-        raise RuntimeError(
+        # failure, not a crash (the refresh counts it as a strike).
+        raise CheckTimeout(
             f"host self-check timed out after {_CHECK_TIMEOUT_S}s "
             f"({len(content_html):,} bytes of content)"
         ) from e
