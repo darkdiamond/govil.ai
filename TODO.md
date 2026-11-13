@@ -38,19 +38,6 @@ This repo is public: describe a security gap by what to change, never by how to 
   once), but authors waste fix rounds on it. Fix: have `preview` restart the dev server, or
   touch the Tailwind config, when a newly rendered body adds unseen classes. (2026-11-09)
 
-- **The sanitizer's tag counter misreads some literal shapes, and a miscount fails the render.**
-  `_balance_raw_text_tag` (`services/page_builder/sanitize.py`) counts `<script>`/`<style>`
-  openers and closers by regex after removing `<!--…-->` across the whole body, and refuses the
-  page when they differ. Inside a script `<!--` is plain text, so a JS string holding `"<!--"`
-  with a later `-->` hides every tag in between; `<script`/`<style` text inside a JS string, an
-  attribute value or a `<textarea>`/`<title>` counts as a tag; so does a custom element named
-  `<script-…>`. No template or rendered body has these, and data can't produce them (autoescape,
-  `tojson`), so they would show up at `author verify`, except behind a data-dependent `{% if %}`.
-  The legacy body 5beb2241 (ends `</script></script>`) would fail if it were ever sanitized
-  again. Fix: scan tags in order as the tokenizer does (no comment stripping inside raw-text
-  blocks, no tags inside attribute values or RCDATA), and require `[\s/>]` after the tag name in
-  `_OPEN_SCRIPT`/`_OPEN_STYLE`. (2026-11-08)
-
 - **Two live pages for the "חברה ורווחה" journal.** 1ba21c94 (legacy agent page) and e4c3e3d0
   (recipe) are both active on data.gov.il and split the "חברה ורווחה" impressions (56 vs 14 a
   week, both at position 7.3). Neither can 301 to the other while both exist upstream. Fix: if
@@ -80,11 +67,6 @@ This repo is public: describe a security gap by what to change, never by how to 
   and holds those queries at ~position 8.7. Fix: once GSC shows where df60d73b lands (~4 weeks
   after #368), drop "אזורי חיוג" from 59d2e891's title if df60d73b ranks at least as well.
   (2026-11-06)
-- **`author verify`'s dash lint misses dashes built in f-strings.** An en dash between two
-  interpolated numbers (`f"{a}–{b}"`) in Hebrew text renders reversed in RTL, but the lint only
-  sees literal text. Batch 2 found several by hand (7a6cbf55's bucket labels and periods). Fix:
-  lint the rendered page model's strings (outside `dir="ltr"` spans) instead of the source.
-  (2026-11-05)
 - **Some registry pages have no lookup callout to `#data-explorer`.** 14f2521f (missions abroad),
   d08d4a17 (notaries) and 35c791ca (licensed garages) are lookup-intent pages whose searchers
   want one row, but the page doesn't point them at the explorer. Fix: add the callout the #124
@@ -114,14 +96,6 @@ This repo is public: describe a security gap by what to change, never by how to 
   renamed authority splits in two. ab746a13 uses `pick: "latest"` by `last_modified`: a
   re-upload of a closed year flips the page to that year (pick by the year in the resource
   name instead). (2026-10-31)
-- **A map snapshot misses a same-size edit when CKAN has no md5.** `snapshot_stale` compares
-  CKAN's `hash` when both sides have one, else `size` (#184's GeoJSON has an empty `hash`), and
-  ignores `last_modified` because CKAN bumps it on byte-identical re-uploads. An edit that keeps
-  the byte count goes unnoticed. If that matters, also compare `last_modified` and treat a
-  bump with the same size as "re-check by hand" (a note in the issue, not a failure). Only
-  committed snapshots have this gap: a `map: true` input downloads the file on every bump and
-  check B compares the converted rows exactly, so moving a snapshot recipe to `map` closes it.
-  (2026-10-30)
 - **GIS layers with no recipe could get maps now.** `map: true` reads their SHP/KMZ zips
   directly, but they have no recipe and no open issue, so nothing queues them:
   `python -m services.page_builder.map_backfill list` reports them as `no_recipe` (63 on
@@ -135,12 +109,6 @@ This repo is public: describe a security gap by what to change, never by how to 
 inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute only). If it is
   mostly `False` (an edited column the page doesn't read), declare `columns` in those recipes:
   a smaller export, and B then only sees the columns the page uses. (2026-10-31)
-- **Verify's robustness check is all-or-nothing across inputs.** It truncates every input and
-  compares the whole model, so a ≤1-row input next to a large one is never perturbed. A value
-  hardcoded from that small input passes, because the large input changes the model anyway.
-  Fix: truncate one input at a time (pass the resource id into `_LocalCkan`'s transform) and
-  require each multi-row input to move the model. (2026-10-30)
-
 - **Recipes written for pandas 2 can still trip on pandas 3 dates.** pandas 3 parses to
   `datetime64[us]`, so junk dates far outside 1677–2262 now parse instead of becoming NaT.
   `a9d7da6b` nulls only years ≥ 2262, so a year-1412 value fails its `.astype("datetime64[ns]")`
@@ -153,43 +121,6 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
   killer, but its exported CSVs sit in the same memory (`/tmp` is RAM on Cloud Run). If heavy
   recipes multiply, give them their own job execution with more memory (filter on
   `manifest.heavy`) rather than raising the shared job's `--memory`. (2026-10-30)
-- **`pick: "latest"` trusts CKAN `last_modified`.** Re-uploading an old snapshot bumps its
-  `last_modified`, and the page would switch to it. If that happens, order by the date in the
-  resource name when it parses (snapshot datasets name their date), falling back to
-  `last_modified`. (2026-10-30)
-- **Provider checks are scattered over the CKAN paths.** `refresh_one`, `reconcile.probe_one`
-  and `selector._skip` each branch on `src.provider`. A new CKAN-shaped path that
-  forgets the branch treats a provider doc as CKAN. Add a `CkanProvider` adapter around the
-  existing CKAN fetch/probe functions and one `provider_for(src)` that always returns a provider,
-  so those paths dispatch instead of branching. (2026-10-30)
-- **`news/data.py` re-implements the refresh's provider branch and compute input spec.**
-  `DatasetTables._load` calls `refresh.fetch_inputs` and then rebuilds the provider
-  dispatch and the `load_frames` spec by hand, so a refresh change to either can drift from what
-  the news job's SQL tables hold. It is also the last `news → page_builder` dependency that
-  keeps the two packages in an import cycle with `publish.py → news.publish_news` (with
-  `news/run.py`'s `recipe_repo_from_env` and `news/ledger.py`'s `govlib.fmt`). Fix: one
-  `refresh.load_input_frames(recipe, src, …)` both call, and move `recipe_repo_from_env`'s repo
-  classes and `govlib.fmt` somewhere both packages may import. (2026-11-10)
-- **Two writers build `sources/<id>.resources[]` by hand.** `FirestoreStateStore.save_dataset`
-  (CKAN) and `providers/sync.py` (provider docs) each assemble the resource dicts, so a field
-  added to one (a new CKAN fact, a renamed key) silently goes missing from the other. Fix: one
-  resource-doc builder in `services/shared` both call, with a golden-dict test per source kind.
-  (2026-11-10)
-- **`mark_refreshed` still writes the legacy `analysis_*` fields.** `analysis_status`,
-  `last_analyzed_at`, `analyzed_metadata_modified` and `last_analyzed_version` are agent-builder
-  names that the selector and publisher still read as "this source has a live page and its data
-  vintage". Fix: move those readers to `refresh_status` / `refreshed_metadata_modified` (legacy
-  pages keep their old fields), then stop writing the `analysis_*` copies. (2026-11-10)
-- **`SourceRecord` holds some refresh fields twice.** `authoring_status`, `authoring_issue` and
-  `agent_data` are top-level `SourceRecord` fields (the selector and publisher read them) and also
-  in `src.refresh`; `get_refresh_state` still returns a raw dict that `queue_authoring` wraps in
-  `RefreshState`. Fix: move those readers to `src.refresh`, drop the top-level copies, and have
-  `get_refresh_state` return a `RefreshState` (the test `FakeStore`s follow). (2026-11-10)
-- **`record_count` means different things per source kind.** The scanner stores the primary
-  resource's datastore total (CKAN), provider sync stores the sum over all series. Pages and the
-  manifest show both as "records". Fix: pick one meaning (or store both, named), and say it in
-  `schema.DatasetMeta`. (2026-11-10)
-
 - **65dafbb0's map input sits near the 50MB `map_max_kb` ceiling.** The תצ"ר layer converts to
   49.2MB at tolerance 2e-5, and its floor is 37.6MB (at 2e-4; coarser steps grow again as small
   rings fall back to full detail). About a third more plans and it fails `too_large`. Most of
@@ -197,13 +128,6 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
   box, dates): let a `map` input take `columns` to drop properties before sizing (a recipe.py
   change, so it folds into every recipe's hash; redeploy before a recipe uses it). (2026-11-06)
 
-- **More recipes carry their own map chunking or simplification.** 1745d2f8, 2a795952, 4eef54bc,
-  5ecf0587, 12fb4671, 6910f861, 1de95a22, 3ce41381, 4acf8b98, 8f2becb2, a98fbabc, 0b3bd728,
-  3c6d4061, 6cd898c4, 7cac04c9, d9b1e04c, fc549bf6, 1d2d0ec1 and 65dafbb0 define their own island chunking, DP or
-  coordinate encoding (grep `CHUNK|_dp\(|def _encode`), each sized its own way. Move them onto
-  `govlib.geo` + `GovMap.islands` / `ring` / `popup` as they're next touched, the way the six in
-  the map-govlib PR were: keep the non-geometry model byte-identical and bump `recipe_version`.
-  (2026-11-01)
 - **Cloud Run → Bank of Israel connects still drop SYNs.** About half of the TCP connects to
   `edge.boi.org.il` from the job stall (up to ~135s); from outside GCP none do. The provider
   now reuses one connection and reconnects after `connect_timeout_s` (10s), which hides it but
@@ -235,11 +159,6 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
   looking for a column that never moved. Fix: a strike key for 403-blocked previews that
   escalates to `download_blocked`. (2026-11-11)
 
-- **The export's closing re-preview ignores the fetch deadline.** `_check_unchanged`
-  (`ckan_export.py`) runs one more `fetch_resource_preview` after a multi-page walk without
-  checking `deadline`, so a walk that finished just in time can overrun the wall budget by up to
-  ~20s. Negligible today; check the deadline first if budgets get tight. (2026-11-11)
-
 - **A failed rollback can leave GCS and Firestore describing different renders.** When the
   upload lands, `mark_refreshed` fails and the rollback can't run (the previous body couldn't be
   read, or the restore write failed), GCS holds the new body while Firestore keeps the old
@@ -248,28 +167,6 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
   mismatch in place. Fix: when the mark fails with no rollback, also clear the stored
   fingerprints and hashes in the `mark_refresh_failed` call, then drop `staging_suspect`.
   (2026-11-11)
-
-- **The file export holds the raw download and two normalized copies on tmpfs at once.**
-  `fetch_resource_csv` keeps the raw file (up to `REFRESH_FILE_MAX_BYTES`, 1.5GB) until its
-  `finally`, through normalization and `_patch_rows`, which writes a full `.patch` copy of the
-  output. With a recipe's earlier inputs that peaks near 3GB of RAM-backed `/tmp` in the 4Gi job
-  (largest file today: 879MB, so this is headroom, not a failure). Fix: unlink the raw file as
-  soon as normalization has read it, before `_patch_rows`. (2026-11-11)
-
-- **The sanitizer's JS string walker has no regex-literal state.** `_escape_js_string_controls`
-  (`sanitize.py`) reads a quote inside a regex literal (`/'/g`) as the start of a string and
-  rewrites the newlines up to the next quote as `\n`, which breaks valid JS (check.py then
-  reports JS-SYNTAX for code that is correct in the template). `_SCRIPT_DATA_TYPE` also treats
-  `type="text/javascript"` as a data block, so that script skips the repair while check.py
-  parses it as JS. No template has either today. Fix: limit `_SCRIPT_DATA_TYPE` to JSON types,
-  and walk strings with the esprima tokenizer (or escape only U+2028/U+2029). (2026-11-11)
-
-- **Status strings are still written as literals outside `states.py`.** `RecipeError`'s default
-  reasons and call sites in `recipe.py`, `author.py` and `refresh.py` use `"recipe_failed"`,
-  `"schema_changed"`, `"geometry_stale"`, `"preview_unavailable"` and friends as plain strings;
-  `staging_down` and the strike keys have no member at all. Same bytes today, but a member rename
-  would leave them behind. Fix: use the `FailReason` members, and add members for
-  `staging_down` and the strike keys. (2026-11-11)
 
 - **The builder SA's grants reach too far.** Recipe compute no longer reaches the metadata
   server (netguard's seccomp filter), but the builder SA's grants still cover the
@@ -300,67 +197,12 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
   cell breaks the table row or starts a line with `#`. Fix: collapse whitespace in every
   provider cell, or fence each provider section as a whole in `_brief`. (2026-11-11)
 
-- **The datastore page walk has no per-page retry.** `fetch_resource_records_to_file`
-  (`ckan_export.py`) calls `_fetch_page` once per page, so one transient error (a timeout, a reset,
-  a 5xx) discards a whole multi-page export, and the end-of-run retry starts again from row 0.
-  Fix: retry a failed page a bounded number of times (with a short backoff, inside the wall
-  budget) before failing the export; the post-walk re-preview already catches a table that moved
-  between pages. (2026-11-11)
-
-- **Every GCS read or write builds a new `storage.Client()`.** `_write_gcs` and `_read_gcs`
-  (`refresh.py`) create a client per call, about four per refreshed source (the previous body read
-  for rollback, the body, two model-history objects), each with its own auth and connection setup. Fix: reuse one client per run,
-  after checking it is safe across the sandbox spawns (the gRPC fork abort behind
-  `sandbox_failed`, see CLAUDE.md layer 5). (2026-11-11)
-
-- **A snapshot input's resource rename can still fingerprint-skip.** `input_fingerprint` and
-  `file_fingerprint` add only `[name, by_id, "snapshot"]` for a snapshot input, not its CKAN
-  resource name, so in `full` mode a bump that only renamed that resource (other inputs unchanged)
-  skips until the 14-day max age forces a render. Rare, and bounded like check A's other blind
-  spots. Fix: add the resolved resource's name for snapshot inputs too. (2026-11-11)
-
-- **check.py's SCRIPT-URL rule still fires on data in attribute values.** The security rules now
-  skip string literals in code, but attribute values stay scanned, so a template that puts a data
-  value in `title="{{ v }}"` fails when the value happens to read like a `javascript:` URL.
-  Fix: decide whether attribute values written from autoescaped data can be exempted (for
-  non-URL attributes only), or tell authors to keep data out of attributes. (2026-11-11)
-
-- **check.py's non-recipe mode has no production caller.** Since the agent builder was retired,
-  every caller passes `--recipe` (`refresh.py` via `page_gate.run_host_check(..., recipe=True)`),
-  so `check_percent_consistency` (the one rule gated on `not recipe`), the `--recipe` flag and
-  `run_host_check`'s `recipe=False` default are dead; only one test (`test_local_sandbox.py`)
-  still runs that mode. Removing it is safe. check.py is folded into the failure-lock hash
-  (`_builder_code_hash`, not the render-code hash), so it retries every locked source once after
-  the deploy: do it in a builder-code change that moves that hash anyway. (2026-11-11)
-
-- **`by_schema` drops same-named resources of the same format.** `select_prefetch_resources`
-  (`services/shared/resources.py`) collapses resources whose normalized names match, meant for
-  CSV/XLSX twins, but it also drops a second CSV with the same name: three monthly CSVs all named
-  `דוח חודשי` resolve to one, with no error, and `author prepare` hides them the same way. Fix:
-  collapse only when the formats differ. It can change what existing pages read, so first list
-  the recipes whose match set would grow (needs the live `sources/*` docs). (2026-11-11)
-- **`author prepare` fetches with different caps than the refresh.** `author.py` `prepare` passes
-  `_DEFAULT_PAGE_SIZE` (ignores `REFRESH_PAGE_SIZE`), takes its wall budget from
-  `_PREPARE_WALL_S` (not `REFRESH_WALL_BUDGET_S`) and applies no `REFRESH_TOTAL_BYTES` budget
-  across inputs, so a recipe can pass authoring and fail `too_large` in the job. Fix: decide
-  which differences are meant, and take the rest from `refresh.resolved_limits`. (2026-11-11)
-- **The Hebrew maqaf glues words in slugs.** `services/shared/slug.py` strips U+0591-U+05C7 as
-  niktud before the maqaf (U+05BE) rule can split on it, so "תל־אביב" becomes `תלאביב`. A fix
-  changes `page_slug` for every title with a maqaf: count them in the manifest first and rely
-  on the slug-redirect map. (2026-11-11)
 - **The live `govdata-publisher-image` trigger still watches the old requirements file.**
   `infra/Dockerfile.publisher` installs `requirements-publish.txt` since 2026-11-11 and
   `infra/bootstrap.sh` prints the matching `--included-files`, but the trigger that exists in
   GCP was created with `services/page_builder/requirements.txt`. Fix: update the trigger's
   included files (`gcloud builds triggers update`), or an edit to the publish requirements
   won't rebuild the image. (2026-11-11)
-
-- **Provider sources with a pending bump still fetch in a gated hour.**
-  `PROVIDER_<KEY>_SYNC_HOURS` gates only the sync (`providers/sync.py`); the refresh doesn't
-  consult it, so a provider source whose doc already carries a newer version is previewed and
-  fetched on any tick until it renders or settles. No-op bumps are bounded by
-  `REFRESH_REPROBE_MIN_HOURS`; a bump that keeps failing transiently retries hourly. Fix: have
-  `run_refresh` skip a provider source outside its sync hours unless forced. (2026-11-12)
 
 ## CBS reports (cbs_releases provider)
 
@@ -396,14 +238,6 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
 
 ## Shared recipe code (govlib, gov.j2, page libs)
 
-Recipes adopt the shared code as they're next touched. Each item below is a copy-pasted helper
-family found in the corpus survey of 2026-11-01, with the behaviour it should converge on.
-
-- **`GovEcharts.option` merges shallowly.** A page's own `tooltip` or `grid` object replaces
-  the shared one whole, so the shared tooltip style (Rubik, white background, RTL) never applies:
-  every chart page passes its own `tooltip`. Fix: deep-merge `tooltip` and `textStyle` in
-  `option()`. It changes how every chart's tooltip looks, so check a sample of pages first.
-  (2026-11-01)
 - **Tooltip escaping still has gaps the runtime belt can't close.** The gov-echarts.js belt
   escapes the params' label fields and, deeply, `data`, `value` and the tree path arrays, but
   a string nested past its depth cap is returned unescaped, a `tooltip` set under a tree
@@ -413,44 +247,9 @@ family found in the corpus survey of 2026-11-01, with the behaviour it should co
   `children`/`levels`, and for closure strings export an escape helper from gov-echarts.js, use
   it in the formatters that append a model string (about 26 templates) and make that an
   authoring rule. (2026-11-01)
-- **About 177 recipes format integers by truncating.** `_int`/`n` copies use `int(v)`, so a
-  median or mean of x.5 shows x. Move them to `govlib.fmt.int_he` (half up). The builder's
-  `fmt_int` filter uses `round()` (half to even), which differs at exact halves. (2026-11-01)
-- **`pct` means two things.** 204 recipe copies take a fraction, 86 a 0–100 value, under the
-  same names. Move them to `govlib.fmt.pct` / `pct_of`, whose names say the scale. (2026-11-01)
-- **`join_he` glues ו to a number** ("ו2024") in 6cf0c0e3, 505aa85e and 09f0e9ee. Use
-  `govlib.fmt.join_he`. (2026-11-01)
-- **Chart mount boilerplate in 304 templates.** Each does `echarts.init` + a window resize
-  listener. Most don't guard a missing element (`echarts.init(null)` throws and stops the rest of
-  the script), and the listeners are never removed on SPA navigation. Fix: a
-  `GovEcharts.mount(id, option)` that guards, uses one ResizeObserver and disposes with the page;
-  then move templates onto it. (2026-11-01)
-- **Template blocks repeated in every template** (section head, lede, KPI card, insights, the
-  "הצג כטבלה" table: ~35k lines; 121 templates define their own local macros for them). Move
-  them onto `gov.j2` as they're next touched. (2026-11-01)
-- **`geo_snapshot.py` keeps its own Douglas-Peucker.** It and `govlib.geo.simplify` should be one
-  implementation. Fold it in once a map input's converted table can be compared before and after.
-  (2026-11-01)
-- **`govlib.geo` can't encode points that are already quantized.** d8767745 and 4bee0109 quantize
-  once, simplify per tolerance step, then divide back to floats only so `geo.encode` re-quantizes
-  them (correct, since round(x / 1e5 * 1e5) recovers x, but a wasted round trip on every step).
-  Add a `geo.deltas(points, origin)` for integer points, deploy the job, then call it from
-  those two recipes. (2026-11-01)
 
 ## Tags, related datasets and list pages
 
-- **A superseded dataset's `content.html` is still deployed.** `dataset_successors.json` 301s the
-  page route, but the publish workflows still rsync its staged body from GCS, so the frozen
-  snapshot stays reachable at `/datasets/<old-id>/content.html` (unlinked). Fix: skip superseded
-  ids in the rsync step, or delete their GCS staging prefix when a successor entry is added.
-  (2026-11-04)
-- **Topic hub pages.** Topics exist only as sections of `/tags/` (and a broad tag per topic,
-  like `/tags/תחבורה/`). A `/topics/<id>/` hub with the topic intro, its tags and its datasets
-  would be a stronger landing page than the broad tag, which three topics (ביטחון והצלה,
-  אוכלוסין והגירה, חינוך תיירות ופנאי) don't have. (2026-10-30)
-- **Intros for the busiest tags.** `taxonomy/tags.json` supports a per-tag `intro_he`; none is
-  written yet, so tag pages show their topic's intro. Write ~25 for the tags with the most
-  datasets, the same way `hub-intros.json` was written. (2026-10-30)
 - **Firebase Hosting redirect count is unverified.** `gen-redirects.mjs` now writes ~550 tag
   redirects next to ~560 dataset ones. The docs state no cap; confirm on a preview channel deploy
   that ~1,100 rules are accepted before relying on growth beyond that. (2026-10-30)
@@ -459,22 +258,9 @@ family found in the corpus survey of 2026-11-01, with the behaviour it should co
 
 ## Frontend
 
-- **Shared dataset links preview with the generic image.** Dataset pages set no `ogImage`, so
-  every link shared from the new share button (`components/ShareButton.vue`) shows
-  `/og-default.png` in WhatsApp/X/Facebook cards. News articles use their hero. Fix: a
-  per-dataset og:image (e.g. a build-time card with the title and one headline number) passed
-  to `useSeo` in `pages/datasets/[slug].vue`. (2026-11-10)
-
 - **The shared `node_modules` lacks `vue-tsc`.** `npm run typecheck` fails locally ("A type
   checker is required") although `package.json` lists it; the main checkout's install predates
   it. Fix: `npm ci` in the main checkout's `frontend/` (not in a worktree). (2026-11-10)
-
-- **First-pass chart and map instances leak on every dataset page.** The browser runs the SSG
-  body's scripts once before Vue re-sets the article, and `executeBodyScripts` disposes only
-  instances in the new container, so the first ECharts/Leaflet instances stay alive, held by the
-  resize listeners the bodies register (GovMap's duplicate fetch loop now stops). Fix: have
-  gov-echarts.js remember the instances its patched `echarts.init` creates, and dispose those
-  whose `getDom().isConnected` is false. (2026-11-11)
 
 - **Enter in the header search opens the first hit, though the footer says all results.**
   `HeaderSearch.vue` highlights the first result whenever there is one, so Enter goes to that
@@ -482,69 +268,14 @@ family found in the corpus survey of 2026-11-01, with the behaviour it should co
   "הקשה על Enter תפתח את כל התוצאות". Fix: start the highlight at -1 (Enter opens the full list,
   ArrowDown picks a hit), or change the footer text. A product choice. (2026-11-11)
 
-- **Nuxt build cache.** ~95s of each ~118s "Generate site" step is Vite bundling that
-  `experimental.buildCache` would skip, but it is unsafe as is: Tailwind scans
-  `public/datasets/**/*.html` and Nuxt's cache key ignores `public/`, so a class first used by a
-  new page ships without its CSS rule (reproduced 2026-11-12). A safe version: key the CI cache on
-  the lockfile + frontend sources + a hash of the CSS Tailwind generates from
-  `public/datasets/**/*.html`, restore `node_modules/.cache/nuxt/builds` only on an exact key,
-  then enable the flag. Local timings 12.4s → 5.6s on a hit. (2026-11-12)
-
-- **IndexNow's delta is date-granular.** `indexnow-ping.mjs` submits URLs whose `<lastmod>`
-  moved against the live sitemap, and `<lastmod>` is a date, so a page that changes twice in one
-  day is submitted once (the first time). Fix, if it matters: a full timestamp in `<lastmod>`
-  (`build-sitemap.mjs`). (2026-11-12)
-
-- **A publish run cancelled between the deploy and the IndexNow step never pings its URLs.**
-  `publish.yml` runs with `cancel-in-progress`, and the next run's baseline is the live sitemap,
-  which already holds the cancelled run's changes (a builder dispatch followed within seconds
-  by a news dispatch). Those pages wait for their next change. Fix, if it matters: keep the
-  last pinged sitemap in the actions cache and diff against that. (2026-11-12)
-
-- **The publish cache can carry stale `index.html` and orphan dataset dirs.** `publish.yml`'s
-  "Drop cached publisher JSON" step deletes only `data.json`/`agent_data.json`, while
-  `infra/sync-datasets.sh` also deletes `index.html`; the rsync excludes `index.html`, so a cached
-  one could linger under `public/datasets/<id>/`. A staged body whose dataset has no manifest
-  entry is still copied into the deploy by `nuxt generate`. Fix: delete `index.html` in the same
-  step, and have the publisher remove dataset dirs with no manifest entry. (2026-11-11)
-
 - **Header search shows "אין תוצאות" while the index loads or after it failed.** A failed load is
   retried on the next open, but there is no loading or retry hint, and the hub pages' 503 path for
   a failed index fetch has no automated test (it lives in an SFC). Fix: a loading state and a
   "try again" line in `HeaderSearch.vue`, and move the hub's fetch-failure branch somewhere the
   `node --test` suite can reach. (2026-11-11)
 
-- **Explorer search misses cells spelled without the geresh/gershayim.** `buildTsQuery`
-  (`frontend/utils/explorer-query.ts`) turns `בע"מ` into the phrase `בע <-> מ:*`, which matches
-  cells written with the mark, but not `בעמ`. Fix: emit `(בעמ:* | בע <-> מ:*)` for such words,
-  after checking the live counts as for the phrase form. (2026-11-11)
-
-- **List pages ship every card twice.** `/datasets/` is 1.29MB of HTML (139KB brotli): 590
-  server-rendered cards plus the 559KB slim index inlined as payload; `/kinds/registry/` is
-  668KB. Hub payloads carry whole `SlimEntry` objects though `DatasetCard` reads a few fields.
-  Fix, in rising effort: project hub payloads to card fields, render only the first ~60 cards
-  with "show more", or make the card lists server-only components. Header search also fetches
-  the index again on `/datasets/` (seed `searchIndexCache` from the page's data). (2026-11-11)
-- **`firebase.json` commits ~2,800 lines of redirects that every deploy overwrites.**
-  `gen-redirects.mjs` rewrites `hosting.redirects` from the manifest, and `publish-local.sh`
-  leaves the tracked file modified in the main checkout. Fix: commit `"redirects": []` and
-  deploy from a generated, untracked config (`firebase deploy --config`). (2026-11-11)
-- **`gov-explorer.js` is ~300 lines behind a no-op.** `normalizeAgentBody` strips every legacy
-  explorer section, so `GovExplorer.create` always returns at its missing-container check (15
-  of 555 bodies call it, all stripped, on a 2026-10-30 corpus copy). Fix: re-check against the
-  current GCS corpus, then replace the file with a stub `create`. (2026-11-11)
-
 ## Dependencies
 
-- **ECharts 6 migration.** The moderate ECharts advisory is fixed only in 6.x, a major bump for
-  the runtime every page body uses. No published page uses the affected series type, so this is a
-  planned migration, not an urgent fix: do it with a corpus-wide visual check. (2026-10-30)
-- **Dependabot alerts with no fix to take.** deepmerge (GHSA-gcqx-w48m-w2h4, low, pulled in by
-  nitropack's `@rollup/plugin-node-resolve`) has no patched release at all. `npm audit` also
-  flags `@opentelemetry/core` <2.8.0 under firebase-tools' `@google-cloud/pubsub` (emulator
-  only, not in the GitHub alerts); only a 2.x major fixes it, and overriding across that major
-  under pubsub's 1.x pins is unsafe. Fix: take the upstream bumps when nitropack / firebase-tools
-  ship them, then drop the matching entry here. (2026-11-08)
 - **Pillow's lower bound admits releases with decoder advisories, and nothing pins what the
   images install.** `services/news/requirements.txt` says `pillow>=11`, and the 13.0.0 release
   fixes a long list of decoder advisories; the news job now opens model images with only the PNG,
@@ -565,19 +296,6 @@ family found in the corpus survey of 2026-11-01, with the behaviour it should co
   runtime; no code under `services/` or `agent/` calls it, and it is one more binary the
   sandboxed `compute.py` can reach. Fix: drop it after checking no deploy or debug step relies
   on it. (2026-11-11)
-
-## Validation speed
-
-- **`author verify` runs its four compute passes one after another.** The determinism, truncated
-  and shuffled passes depend only on the first (full) pass, so they could run concurrently and
-  cut verify's wall time about in half. The catch is memory: each pass may use up to
-  `REFRESH_COMPUTE_MEMORY_MB` (3GB), so a heavy recipe would need up to 3× that. Fix: a thread
-  pool sized by a flag, defaulting to serial for recipes with `limits`. (2026-11-01)
-- **The check.py literal-scan timing test has a tight bound.**
-  `services/page_builder/tests/test_check_security.py` asserts the 30k-row scan finishes in under
-  20s; it takes about 4-5s locally under `-n 4`, and the quadratic version it guards against took
-  about 2 minutes. If it ever flakes on a slow CI runner, raise the bound to about 45s rather than
-  dropping the test. (2026-11-11)
 
 ## News
 
