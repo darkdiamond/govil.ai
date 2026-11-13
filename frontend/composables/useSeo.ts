@@ -6,6 +6,10 @@ import { SITE_URL } from "~/utils/paths";
 
 const SITE_NAME = "govil.ai";
 const DEFAULT_OG = "/og-default.png";
+// The WebSite JSON-LD describes the site, so every page carries the same text
+// (the homepage's description), not its own.
+const SITE_DESCRIPTION =
+  "כל מאגר מידע ממשלתי חדש מוסבר בעברית פשוטה בעמוד אחד — תקציר, תובנות, גרפים ומפות אינטראקטיביות. בלי הורדות ובלי Excel.";
 
 const BASE_KEYWORDS = [
   "מידע ממשלתי",
@@ -62,7 +66,7 @@ export function useSeo(input: SeoInput) {
     name: SITE_NAME,
     url: SITE_URL,
     inLanguage: "he-IL",
-    description: input.description,
+    description: SITE_DESCRIPTION,
     image: `${SITE_URL}/web-app-manifest-512x512.png`,
   };
 

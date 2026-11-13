@@ -79,11 +79,27 @@ onBeforeUnmount(() => {
   if (debounceTimer) clearTimeout(debounceTimer);
 });
 
+// Write one filter into the URL, unless the URL already says it. The guard is
+// load-bearing: a prerendered page hydrates on the bare path (Nuxt defers
+// ?q=/?tag=/?sort= until the page resolves), then restores the real URL with
+// a forced router.replace that is still in flight when the route.query
+// watchers below copy the values into the filters. A second replace to the
+// same query at that moment cancels Nuxt's (vue-router keeps only the newest)
+// and is itself dropped as a duplicate of the current route, so the address
+// bar stayed on /datasets/ with the filter applied.
+function syncQuery(key: "q" | "tag" | "sort", value: string | undefined) {
+  const cur = route.query[key];
+  if ((typeof cur === "string" ? cur : undefined) === value) return;
+  // An explicit path: a query-only location resolves to "/datasets" (the
+  // route record's path), dropping the trailing slash the site's URLs keep.
+  router.replace({
+    path: "/datasets/",
+    query: { ...route.query, [key]: value },
+  });
+}
+
 watch(debouncedQuery, (q) => {
-  const next = q.trim()
-    ? { ...route.query, q: q.trim() }
-    : { ...route.query, q: undefined };
-  router.replace({ query: next });
+  syncQuery("q", q.trim() || undefined);
 });
 
 // Normalized search text per dataset (final letters, quotes, hyphens folded;
@@ -172,7 +188,7 @@ watch(
 );
 
 watch(tagFilter, (t) => {
-  router.replace({ query: { ...route.query, tag: t || undefined } });
+  syncQuery("tag", t || undefined);
 });
 
 watch(
@@ -184,8 +200,7 @@ watch(
 );
 
 watch(sortKey, (s) => {
-  const next = { ...route.query, sort: s === "site" ? undefined : s };
-  router.replace({ query: next });
+  syncQuery("sort", s === "site" ? undefined : s);
 });
 
 watch(
@@ -212,6 +227,7 @@ watch(
         class="mt-4 flex items-center gap-2 bg-white border border-rule rounded-gov px-3 py-2 max-w-xl focus-within:border-brand transition-colors"
       >
         <img src="/icons/search.svg" alt="" class="w-5 h-5 opacity-70" />
+        <span class="sr-only">חיפוש מאגרים, נושאים ומשרדים</span>
         <input
           v-model="query"
           type="search"
@@ -293,6 +309,8 @@ watch(
           <ul class="list-none m-0 p-0 space-y-1">
             <li v-for="[org, n] in organizations" :key="org">
               <button
+                type="button"
+                :aria-pressed="orgFilter === org"
                 class="w-full text-right text-sm px-2 py-1 rounded-md hover:bg-surface flex items-center justify-between gap-2"
                 :class="{ 'bg-brand-50 text-brand-700': orgFilter === org }"
                 @click="orgFilter = orgFilter === org ? null : org"
@@ -309,6 +327,8 @@ watch(
             <button
               v-for="[fmt, n] in formats"
               :key="fmt"
+              type="button"
+              :aria-pressed="formatFilter === fmt"
               class="badge hover:bg-brand-50"
               :class="{
                 '!bg-brand-50 !text-brand-700 !border-brand-100':

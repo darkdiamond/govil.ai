@@ -52,13 +52,6 @@ This repo is public: describe a security gap by what to change, never by how to 
   once), but authors waste fix rounds on it. Fix: have `preview` restart the dev server, or
   touch the Tailwind config, when a newly rendered body adds unseen classes. (2026-11-09)
 
-- **A long resource name widens the page on mobile.** The data explorer's resource pill
-  (`.explorer-pill`, `frontend/components/DatasetExplorer.vue`) caps its label at
-  `max-w-[40ch] truncate`, which is still wider than a 375px viewport, so on 7a6d0673 ("מדינות
-  מאוחד (קוד בינלאומי, שם…") the page scrolls sideways by 40px and on 85451410 the scroll width
-  is 381px. Fix: `max-width: 100%` (with `min-width: 0` on the label so the ellipsis applies) or
-  wrapping on the pill and its label. (2026-11-09)
-
 - **The sanitizer's tag counter misreads some literal shapes, and a miscount fails the render.**
   `_balance_raw_text_tag` (`services/page_builder/sanitize.py`) counts `<script>`/`<style>`
   openers and closers by regex after removing `<!--…-->` across the whole body, and refuses the
@@ -578,10 +571,6 @@ family found in the corpus survey of 2026-11-01, with the behaviour it should co
 - **Intros for the busiest tags.** `taxonomy/tags.json` supports a per-tag `intro_he`; none is
   written yet, so tag pages show their topic's intro. Write ~25 for the tags with the most
   datasets, the same way `hub-intros.json` was written. (2026-10-30)
-- **`/datasets/` drops `?q=` (and now `?tag=`) from the URL after load.** The filter still
-  applies, but the address bar loses it, so a filtered view can't be shared or bookmarked. Seen on
-  the live site too, so it predates the tag filter. Find which watcher's `router.replace` runs on
-  hydration with an empty value. (2026-10-30)
 - **Firebase Hosting redirect count is unverified.** `gen-redirects.mjs` now writes ~550 tag
   redirects next to ~560 dataset ones. The docs state no cap; confirm on a preview channel deploy
   that ~1,100 rules are accepted before relying on growth beyond that. (2026-10-30)
@@ -606,11 +595,6 @@ family found in the corpus survey of 2026-11-01, with the behaviour it should co
   resize listeners the bodies register (GovMap's duplicate fetch loop now stops). Fix: have
   gov-echarts.js remember the instances its patched `echarts.init` creates, and dispose those
   whose `getDom().isConnected` is false. (2026-11-11)
-
-- **GovMap stops on engines without `Node.isConnected`.** `gov-map.js` checks
-  `!container.isConnected`, which is true on engines that lack the property (EdgeHTML 18 and
-  older), so every map there stops after its first step. Fix: `container.isConnected === false`
-  at both sites. (2026-11-11)
 
 - **Enter in the header search opens the first hit, though the footer says all results.**
   `HeaderSearch.vue` highlights the first result whenever there is one, so Enter goes to that
@@ -655,11 +639,6 @@ family found in the corpus survey of 2026-11-01, with the behaviour it should co
   cells written with the mark, but not `בעמ`. Fix: emit `(בעמ:* | בע <-> מ:*)` for such words,
   after checking the live counts as for the phrase form. (2026-11-11)
 
-- **The "updated since the analysis" icon compares UTC days.** `sourceUpdatedSinceAnalysis` in
-  `pages/datasets/[slug].vue` reduces both dates to UTC calendar days, so near midnight Israel
-  time a same-day update can show or hide the icon wrongly. Fix: compare Asia/Jerusalem days.
-  (2026-11-11)
-
 - **List pages ship every card twice.** `/datasets/` is 1.29MB of HTML (139KB brotli): 590
   server-rendered cards plus the 559KB slim index inlined as payload; `/kinds/registry/` is
   668KB. Hub payloads carry whole `SlimEntry` objects though `DatasetCard` reads a few fields.
@@ -674,13 +653,6 @@ family found in the corpus survey of 2026-11-01, with the behaviour it should co
   explorer section, so `GovExplorer.create` always returns at its missing-container check (15
   of 555 bodies call it, all stripped, on a 2026-10-30 corpus copy). Fix: re-check against the
   current GCS corpus, then replace the file with a stub `create`. (2026-11-11)
-- **Small accessibility and markup gaps.** Header search: Escape and arrows work only while the
-  input has focus, and the highlighted result isn't exposed (`aria-activedescendant`).
-  `/datasets/` filter buttons lack `aria-pressed` and the search input has no label text. Every
-  page's `WebSite` JSON-LD carries that page's description (`useSeo.ts`). (2026-11-11)
-- **A failed manifest read sticks for the whole build.** `loadFullManifestServer` caches the
-  rejected promise, so one transient read error fails every later page of the same
-  `nuxt generate`. Fix: clear the cache on rejection. (2026-11-11)
 
 ## Dependencies
 

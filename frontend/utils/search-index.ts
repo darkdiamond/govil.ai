@@ -67,7 +67,13 @@ export function loadFullManifestServer(): Promise<Manifest> {
   }
   // A preview's overlay manifest changes under the running server: re-read it.
   if (!fullManifestCache || process.env.NUXT_PREVIEW_ROOT) {
-    fullManifestCache = readPublicJson<Manifest>("data/manifest.json");
+    // Don't pin a failed read for the whole build: the next page retries.
+    fullManifestCache = readPublicJson<Manifest>("data/manifest.json").catch(
+      (e) => {
+        fullManifestCache = null;
+        throw e;
+      }
+    );
   }
   return fullManifestCache;
 }

@@ -522,7 +522,7 @@ onBeforeUnmount(() => {
           :aria-pressed="c.rid === activeRid"
           @click="switchResource(c.rid)"
         >
-          <span class="max-w-[40ch] truncate">{{ c.name }}</span>
+          <span class="explorer-pill-name">{{ c.name }}</span>
           <span v-if="c.format" class="explorer-pill-fmt">{{ c.format }}</span>
         </button>
       </div>
@@ -909,6 +909,15 @@ onBeforeUnmount(() => {
   font-family: Rubik, sans-serif;
   font-size: 0.8rem;
   cursor: pointer;
+  max-width: 100%;
+  min-width: 0;
+}
+.explorer-pill-name {
+  max-width: 40ch;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .explorer-pill:hover {
   background: #f1f7ff;
