@@ -16,16 +16,6 @@ This repo is public: describe a security gap by what to change, never by how to 
   percentiles, cells over a threshold) plus an optional coarse grid. Pillow opens these files;
   ship a TIFF reader in the builder image and redeploy before authoring. (2026-11-09)
 
-- **Sources ingested before `datastore_active` existed can't be authored.** Their Firestore
-  `resources[]` has no `datastore_active` key, and the scanner rewrites a source only when
-  `metadata_modified` moves, so `author prepare` selects nothing and a `by_id` recipe would fail
-  `schema_changed`. `backfill_datastore_active --dry-run` listed 23 such sources on 2026-11-09;
-  ebe5ec6f was fixed by hand on 2026-11-10 (one `set_resource_datastore_flags` call), leaving 22.
-  Fix: run the backfill with `--write` (without it, it only lists them; with it, it writes prod
-  Firestore) before authoring any of them. Its write (`set_resource_datastore_flags`) reads the
-  doc and writes it back outside a transaction, so a scan landing in between can be overwritten:
-  run it when no job is running, or move the write into a Firestore transaction. (2026-11-09)
-
 - **The preview's Tailwind misses classes added after the dev server started.** A chart height
   like `h-[30rem]` that no page had when `preview` started renders at 0px until
   `preview stop` and a restart. Production builds are unaffected (they scan every body at
@@ -122,36 +112,23 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
   deploy. If it's frequent, or a sync fails after 5 reconnects, try a static egress IP (VPC +
   Cloud NAT) to tell whether BoI is filtering Google's shared egress range. (2026-11-04)
 
-- **The builder SA's grants reach too far.** Recipe compute no longer reaches the metadata
-  server (netguard's seccomp filter), but the builder SA's grants still cover the
-  dispatch-token secret, project-wide Firestore (the `news` database too) and the whole
-  staging bucket (`news/`, `models/`), and the publisher SA has `datastore.user` where it only
-  reads. Fix: condition the builder's `roles/datastore.user` to the `(default)` database, give
-  the publisher `roles/datastore.viewer`, and optionally condition the bucket grant to exclude
-  `news/`. (2026-11-11)
-
 - **The local permission allowlist is broad for an unattended routine.** The gitignored
   `.claude/settings.local.json`, copied into every worktree by `.worktreeinclude`, pre-approves
   broad wildcard rules for the GitHub, cloud and HTTP CLIs and for inline Python, while the
   07:00 routine reads untrusted issue text. The checked-in `.claude/settings.json` now has a
   `permissions.deny` list (credential output, merges outside the guard, mutating GitHub API
   calls, force pushes, uploads, bucket deletes) that wins over those allows; deploys and IAM
-  role bindings are deliberately not denied (the user approves Claude deploying). Left:
-  narrow the broad entries in `settings.local.json`, and consider not copying it into
-  worktrees. (2026-11-11)
+  role bindings are deliberately not denied (the user approves Claude deploying). On
+  2026-11-13 `settings.local.json` lost inline Python, `rtk curl`, `r.jina.ai`, `gh auth *` and
+  stale one-off curls; `rtk gh *`, `rtk gcloud *` and `gcloud storage *` stay because the
+  routine may rely on them. Left: narrow those once the routine's actual commands are logged,
+  and consider not copying the file into worktrees. (2026-11-11)
 
 - **Provider brief sections reach BRIEF.md unfenced.** CBS `brief_section` prints sheet cells
   through `_md()`, which escapes only `|`; BoI `SERIES_NAME_HE` and CBS index `NAME_HE` go into
   markdown tables raw. They come from official feeds, not CKAN, but a multi-line Excel header
   cell breaks the table row or starts a line with `#`. Fix: collapse whitespace in every
   provider cell, or fence each provider section as a whole in `_brief`. (2026-11-11)
-
-- **The live `govdata-publisher-image` trigger still watches the old requirements file.**
-  `infra/Dockerfile.publisher` installs `requirements-publish.txt` since 2026-11-11 and
-  `infra/bootstrap.sh` prints the matching `--included-files`, but the trigger that exists in
-  GCP was created with `services/page_builder/requirements.txt`. Fix: update the trigger's
-  included files (`gcloud builds triggers update`), or an edit to the publish requirements
-  won't rebuild the image. (2026-11-11)
 
 ## CBS reports (cbs_releases provider)
 
@@ -194,14 +171,6 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
 - **Firebase Hosting redirect count is unverified.** `gen-redirects.mjs` now writes ~550 tag
   redirects next to ~560 dataset ones. The docs state no cap; confirm on a preview channel deploy
   that ~1,100 rules are accepted before relying on growth beyond that. (2026-10-30)
-- **Stale Firestore fields.** `sources/<id>.embedding` (Voyage, removed) is still on the docs
-  that had it; nothing reads it. A one-off cleanup would shrink the docs. (2026-10-30)
-
-## Frontend
-
-- **The shared `node_modules` lacks `vue-tsc`.** `npm run typecheck` fails locally ("A type
-  checker is required") although `package.json` lists it; the main checkout's install predates
-  it. Fix: `npm ci` in the main checkout's `frontend/` (not in a worktree). (2026-11-10)
 
 ## News
 
@@ -223,12 +192,6 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
   the job's task timeout caps it. Fix: a per-hop timeout of
   `min(TIMEOUT, remaining)`, or a watchdog that closes the connection at the deadline.
   (2026-11-11)
-
-- **The `news` database's security rules aren't in the repo.** `firebase.json` deploys
-  `firestore.rules` (deny all) to `(default)` only; the `news` database, created by
-  `infra/news-iam.setup.sh`, keeps whatever rules it was created with. Fix: list both databases
-  in `firebase.json`'s `firestore` config with the same rules file and deploy them with
-  `firebase deploy --only firestore:rules`. (2026-11-11)
 
 - **Watch the stricter number gate's reject rate.** Since 2026-11-11 the gate also fails
   quantities in words ("חמש מאות דירות", "פי שלושה", "חצי מהתושבים", a bare "מיליון שקלים") and
