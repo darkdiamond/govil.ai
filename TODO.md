@@ -53,9 +53,11 @@ This repo is public: describe a security gap by what to change, never by how to 
   touch the Tailwind config, when a newly rendered body adds unseen classes. (2026-11-09)
 
 - **A long resource name widens the page on mobile.** The data explorer's resource pill
-  (`.explorer-pill`, `frontend/public/lib/gov-explorer.js`) doesn't wrap or truncate, so on
-  7a6d0673 ("מדינות מאוחד (קוד בינלאומי, שם…") the page scrolls sideways by 40px at 375px.
-  Fix: `max-width: 100%` with ellipsis (or wrapping) on the pill label. (2026-11-09)
+  (`.explorer-pill`, `frontend/components/DatasetExplorer.vue`) caps its label at
+  `max-w-[40ch] truncate`, which is still wider than a 375px viewport, so on 7a6d0673 ("מדינות
+  מאוחד (קוד בינלאומי, שם…") the page scrolls sideways by 40px and on 85451410 the scroll width
+  is 381px. Fix: `max-width: 100%` (with `min-width: 0` on the label so the ellipsis applies) or
+  wrapping on the pill and its label. (2026-11-09)
 
 - **The sanitizer's tag counter misreads some literal shapes, and a miscount fails the render.**
   `_balance_raw_text_tag` (`services/page_builder/sanitize.py`) counts `<script>`/`<style>`
@@ -75,12 +77,13 @@ This repo is public: describe a security gap by what to change, never by how to 
   week, both at position 7.3). Neither can 301 to the other while both exist upstream. Fix: if
   the CSVs turn out to be the same journal index, give 1ba21c94 a recipe that points readers to
   the other page, or add a successor entry once one of them is removed. (2026-11-06)
-- **Legacy pages with search traffic and no recipe** (GSC, 7 days to 2026-11-05): dff8a168
-  (13 clicks), 51227f7b, 945b3682, 41c2db9f, 2987efb0, 3a4c012f, 8b3d9aa2 (1d2d0ec1 and
-  65dafbb0 got recipes 2026-11-06: compare their CTR at the same check). The selector never queues them while their data stays put.
-  A recipe is not sure to win more clicks for pages that already rank, so these wait for the
-  batch 1-2 CTR check (~2026-12-02); then open `gsc_traffic` issues as for #338-#344.
-  (2026-11-06)
+- **Legacy pages with search traffic and no recipe** (GSC, 7 days to 2026-11-05): 945b3682,
+  2987efb0, 3a4c012f, 8b3d9aa2 (dff8a168, 13 clicks, waits on its 667MB SHP: see the top-100
+  map pages item). 1d2d0ec1 and 65dafbb0 got recipes 2026-11-06, 51227f7b in #381 (2026-11-09) and
+  41c2db9f in #460 (2026-11-13): compare their CTR at the same check. The selector never queues
+  the rest while their data stays put. A recipe is not sure to win more clicks for pages that
+  already rank, so these wait for the batch 1-2 CTR check (~2026-12-02); then open `gsc_traffic`
+  issues as for #338-#344. (2026-11-06)
 - **Most recipes still don't set `agent_data.seo`.** Batches 1 and 2 (the 41 recipes with the
   most GSC clicks lost to low CTR, 90 days to 2026-11-03) have it; the other ~276 keep their CKAN
   titles (some over 60 chars, 45 summaries over 160) and a " · ministry" suffix. Fix: next
@@ -121,8 +124,9 @@ This repo is public: describe a security gap by what to change, never by how to 
   `by_schema` can't clear. Fix: let a recipe exclude resource ids from `by_schema` matching,
   or ignore an unanswered resource whose CKAN name/format can't be a match. (2026-11-02)
 - **`sandbox_failed` never escalates.** It opens no issue and keeps no strike count, so a spawn
-  abort that turns deterministic (an image that loses `GRPC_ENABLE_FORK_SUPPORT=0`) freezes
-  every page with only log lines. Fix: raise `_SpawnFlake` as a `refresh.StrikeError`
+  abort that turns deterministic (an image that loses `GRPC_ENABLE_FORK_SUPPORT=0`) or a no-network
+  filter that can never install (`_NetguardFailed`, since #458) freezes every page with only log
+  lines. Fix: raise `_SpawnFlake` and `_NetguardFailed` as a `refresh.StrikeError`
   (`strike="sandbox_failed"`, an `escalate_to` reason added to `AUTHORING_REASONS` and
   `notify.REASON_TEXT`); the `transient_strikes` counter does the rest. (2026-10-31)
 - **Top-100 legacy map pages that the snapshot path can't serve.** חלקות (dff8a168, 667MB SHP)
@@ -130,10 +134,6 @@ This repo is public: describe a security gap by what to change, never by how to 
   (the גושים/תצ"ר recipes reduce each polygon to a centroid in compute, but the file must still
   download and convert). הגבולות המשטרתיים (d01a5ee3) and קדסטר במבנה חדש (bd74ce49) ship an Esri FileGDB, which
   `read_map_file` can't read and there is no GDAL locally. (2026-10-31)
-- **Removed registries still draw top-100 traffic.** 8152ebdf (קבלני כח אדם), bc0e0381 (קבלני
-  שמירה וניקיון) and a698417e (לשכות תיווך) are `unavailable` upstream; the ministry merged them
-  into 90b08091, which has a recipe. Their gone-state pages could link (or 301) to 90b08091 to
-  keep the search traffic. (2026-10-31)
 - **Three new recipes can go quietly wrong as their data moves.** 4eef54bc's `recent` input
   matches files by `קוד`; a new yearly file named like the 2019 one (`קוד_מיפוי`) is silently
   skipped, so the page stays on 2024 with no issue (match both names, or fail when the newest
@@ -141,9 +141,6 @@ This repo is public: describe a security gap by what to change, never by how to 
   renamed authority splits in two. ab746a13 uses `pick: "latest"` by `last_modified`: a
   re-upload of a closed year flips the page to that year (pick by the year in the resource
   name instead). (2026-10-31)
-- **Explorer resource pills overflow at 375px.** A long resource name pushes `.explorer-pill`
-  past the viewport (85451410: 381px scroll width). Shell CSS, not the recipe: truncate or wrap
-  the pill label. (2026-10-31)
 - **A map snapshot misses a same-size edit when CKAN has no md5.** `snapshot_stale` compares
   CKAN's `hash` when both sides have one, else `size` (#184's GeoJSON has an empty `hash`), and
   ignores `last_modified` because CKAN bumps it on byte-identical re-uploads. An edit that keeps
@@ -518,10 +515,6 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
   `cbs-dwelling-transactions` from `t3a`/`t3b`. Swap the 23 copies of the "latest release" sort
   (`RELEASE_DATE`, then `RELEASE_NO` as a string, so "99/2026" beats "100/2026") for
   `cbs.latest_release`. (2026-11-09)
-- **Every run downloads every CBS table to version it.** ~0.1s a file now; with ~20 pages × ~5
-  tables it costs about a minute a run. If it grows, give `version()` a cheap path that hashes
-  the release number + file names and sizes from the folder listing, and download only when
-  that moves. (2026-11-05)
 - **An honestly sized oversized CBS file fails as a preview, not as `too_large`.** The table
   listing's pre-check (`f["Length"] > max_bytes` in `cbs.py`) raises a plain `ProviderError`,
   which `preview` turns into None, so the refresh records `preview_unavailable` and later
@@ -643,10 +636,6 @@ family found in the corpus survey of 2026-11-01, with the behaviour it should co
   which already holds the cancelled run's changes (a builder dispatch followed within seconds
   by a news dispatch). Those pages wait for their next change. Fix, if it matters: keep the
   last pinged sitemap in the actions cache and diff against that. (2026-11-12)
-
-- **Partial Hosting deploys were considered and rejected for now.** Deploying only changed
-  pages would save little: `firebase deploy` takes ~9s and already uploads files by hash; the
-  cost of a publish is the build. Revisit only if the deploy step itself grows. (2026-11-12)
 
 - **The publish cache can carry stale `index.html` and orphan dataset dirs.** `publish.yml`'s
   "Drop cached publisher JSON" step deletes only `data.json`/`agent_data.json`, while
