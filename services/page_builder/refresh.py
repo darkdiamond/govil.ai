@@ -30,11 +30,14 @@ import re
 import shutil
 import tempfile
 import time
+import typing
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from urllib import error as urllib_error
+
+from pydantic import BaseModel
 
 from services.providers import ProviderUnavailable, provider_for_key, provider_invalid
 from services.shared import model_history
@@ -67,10 +70,12 @@ from .local_sandbox import LocalSandbox, OutputTooLarge
 from .page_gate import CHECK_SCRIPT_PATH, run_host_check
 from .recipe import (
     RECIPE_FILES,
+    PageModel,
     PreviewUnavailable,
     Recipe,
     RecipeError,
     RecipeLimits,
+    RecipeManifest,
     feature_table,
     kpi_format_findings,
     render_template,
@@ -1821,7 +1826,39 @@ _EXCEPTION_LINE = re.compile(
 _EXCEPTION_NAME = re.compile(r"\b([A-Z][A-Za-z0-9_]*(?:Error|Exception))\b")
 _VALIDATION = re.compile(r"(\d+) validation errors? for ([A-Za-z_]\w*)\n")
 _PYDANTIC_TYPE = re.compile(r"\[type=([a-z_]+)")
-_SAFE_LOC = re.compile(r"[A-Za-z_][A-Za-z0-9_-]{0,63}|\d{1,6}")
+_INDEX_LOC = re.compile(r"[0-9]{1,6}")
+
+
+def _model_field_names(*models: type[BaseModel]) -> frozenset[str]:
+    """Every field name (and alias) declared on these pydantic models and the
+    models nested in their annotations: the only location segments a public
+    issue may show. A dict key in a location (`kpis.<key>`) is data's or the
+    recipe's, never one of these, so it is withheld."""
+    names: set[str] = set()
+    seen: set[type] = set()
+
+    def walk(tp) -> None:
+        if isinstance(tp, type) and issubclass(tp, BaseModel):
+            if tp in seen:
+                return
+            seen.add(tp)
+            for name, f in tp.model_fields.items():
+                names.add(name)
+                if f.alias:
+                    names.add(f.alias)
+                walk(f.annotation)
+            return
+        for arg in typing.get_args(tp):
+            walk(arg)
+
+    for m in models:
+        walk(m)
+    return frozenset(names)
+
+
+# The page model compute() returns (AgentData, SeoMeta, Kpi, Insight inside it)
+# and recipe.json's manifest: the models whose errors reach an issue.
+_SAFE_LOC_NAMES = _model_field_names(PageModel, RecipeManifest)
 # The pipeline's own lead-ins before a ": <text that may quote data>"
 # (recipe.py, refresh.run_compute, page_gate).
 _KNOWN_HEAD = re.compile(
@@ -1879,11 +1916,13 @@ def _head(text: str) -> str:
 
 
 def _validation_summary(m: re.Match, detail: str) -> str:
-    """A pydantic error: field locations and error types, never `input_value`."""
+    """A pydantic error: field locations and error types, never `input_value`.
+    A location keeps only declared field names and list indices (`…` else)."""
     errors, loc = [], None
     for line in detail[m.end():].splitlines():
         if line and not line[0].isspace():
-            loc = ".".join(seg if _SAFE_LOC.fullmatch(seg) else "…" for seg in line.split("."))
+            loc = ".".join(seg if seg in _SAFE_LOC_NAMES or _INDEX_LOC.fullmatch(seg) else "…"
+                           for seg in line.split("."))
         elif loc is not None and (t := _PYDANTIC_TYPE.search(line)):
             errors.append(f"{loc} ({t.group(1)})")
             loc = None

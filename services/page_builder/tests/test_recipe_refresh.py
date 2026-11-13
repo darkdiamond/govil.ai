@@ -855,49 +855,47 @@ def test_public_detail_withholds_everything_else(reason, detail, lead):
         assert out.splitlines()[0] == lead
 
 
-def test_public_detail_validation_error_keeps_locations_not_inputs():
-    from pydantic import BaseModel, Field, ValidationError
+def _page_model_error() -> str:
+    """A real page-model error whose input and a dict key are data."""
+    from pydantic import ValidationError
 
-    class Kpi(BaseModel):
-        display: str = Field(max_length=5)
-
-    class Model(BaseModel):
-        count: int
-        kpis: dict[str, Kpi]
+    from services.page_builder.recipe import PageModel
 
     try:
-        Model(count="052-1234567", kpis={"total": {"display": "Dana Cohen"},
-                                         "\u05d3\u05e0\u05d4": {"display": "Dana Levi"}})
+        PageModel.model_validate({"kpis": {"John_Smith": {"display": 7}},
+                                  "insights": [{"id": "Dana Cohen 052-1234567"}]})
     except ValidationError as e:
-        detail = f"compute() output is not a valid page model: {e}"
-    out = rf.public_detail(detail, "recipe_failed")
-    assert "052-1234567" not in out and "Dana" not in out and "\u05d3\u05e0\u05d4" not in out
+        return f"compute() output is not a valid page model: {e}"
+    raise AssertionError("expected a validation error")
+
+
+def test_public_detail_validation_error_keeps_declared_locations_only():
+    out = rf.public_detail(_page_model_error(), "recipe_failed")
+    assert "052-1234567" not in out and "Dana" not in out
+    assert "John_Smith" not in out  # a data-derived dict key in the location
     assert out.splitlines()[0] == (
         "compute() output is not a valid page model: ValidationError: 3 validation error(s) "
-        "for Model: count (int_parsing); kpis.total.display (string_too_long); "
-        "kpis.\u2026.display (string_too_long)")
+        "for PageModel: agent_data (missing); kpis.\u2026.display (string_type); "
+        "insights.0.text_he (missing)")
+
+
+def test_safe_locations_are_the_declared_field_names():
+    assert {"agent_data", "kpis", "display", "text_he", "summary_he", "seo"} <= rf._SAFE_LOC_NAMES
+    assert "John_Smith" not in rf._SAFE_LOC_NAMES
 
 
 def test_queue_authoring_redacts_a_validation_error_in_the_issue(monkeypatch):
-    from pydantic import BaseModel, ValidationError
-
-    class Model(BaseModel):
-        phone: int
-
-    try:
-        Model(phone="Dana Cohen 052-1234567")
-    except ValidationError as e:
-        detail = f"compute() output is not a valid page model: {e}"
     sent = []
     monkeypatch.setattr("services.page_builder.notify.open_authoring_issue",
                         lambda **kw: sent.append(kw) or 5)
     from services.page_builder import notify
     store = FakeStore(_src())
-    assert rf.queue_authoring(store, store.src, "recipe_failed", detail=detail) == 5
+    assert rf.queue_authoring(store, store.src, "recipe_failed",
+                              detail=_page_model_error()) == 5
     body = notify.issue_body(dataset_id=DS, title="t", org="o", reason="recipe_failed",
                              detail=sent[0]["detail"])
-    assert "Dana" not in body and "052-1234567" not in body
-    assert "phone (int_parsing)" in body
+    assert "Dana" not in body and "052-1234567" not in body and "John_Smith" not in body
+    assert "insights.0.text_he (missing)" in body
 
 
 def test_bare_sigabrt_is_not_retried(env, monkeypatch):
