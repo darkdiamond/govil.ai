@@ -126,7 +126,25 @@
       "Read(**/service-account*.json)",
       "Read(**/*credentials*.json)",
       "Read(**/*.pem)",
-      "Read(**/*.key)"
+      "Read(**/*.key)",
+      "Bash(gcloud iam service-accounts keys create*)",
+      "Bash(rtk gcloud iam service-accounts keys create*)",
+      "Bash(gcloud iam service-accounts sign-blob*)",
+      "Bash(rtk gcloud iam service-accounts sign-blob*)",
+      "Bash(gcloud iam service-accounts sign-jwt*)",
+      "Bash(rtk gcloud iam service-accounts sign-jwt*)",
+      "Bash(gcloud secrets create*)",
+      "Bash(rtk gcloud secrets create*)",
+      "Bash(gcloud secrets versions add*)",
+      "Bash(rtk gcloud secrets versions add*)",
+      "Bash(gh repo edit*)",
+      "Bash(rtk gh repo edit*)",
+      "Bash(gh secret *)",
+      "Bash(rtk gh secret *)",
+      "Bash(gh variable set*)",
+      "Bash(rtk gh variable set*)",
+      "Bash(gh variable delete*)",
+      "Bash(rtk gh variable delete*)"
     ]
   },
   "worktree": {

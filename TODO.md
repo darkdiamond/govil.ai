@@ -136,7 +136,7 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
   07:00 routine reads untrusted issue text. The checked-in `.claude/settings.json` now has a
   `permissions.deny` list (credential output, merges outside the guard, mutating GitHub API
   calls, force pushes, uploads, bucket deletes) that wins over those allows; deploys and IAM
-  changes are deliberately not denied (the user approves Claude deploying). Left:
+  role bindings are deliberately not denied (the user approves Claude deploying). Left:
   narrow the broad entries in `settings.local.json`, and consider not copying it into
   worktrees. (2026-11-11)
 
