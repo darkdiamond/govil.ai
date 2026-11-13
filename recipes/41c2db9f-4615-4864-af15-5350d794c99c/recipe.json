@@ -1,0 +1,60 @@
+{
+  "contract_version": 1,
+  "dataset_id": "41c2db9f-4615-4864-af15-5350d794c99c",
+  "recipe_version": 1,
+  "authored_at": "2026-11-13T07:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-11-13T00:00:29.619208+00:00",
+    "rows": { "vacant": 1197, "stock": 899, "purchases": 240 }
+  },
+  "inputs": [
+    {
+      "name": "vacant",
+      "by_id": "c3a68837-9b7a-4ee7-bd92-130678dc8ae3",
+      "required_columns": [
+        "CityLmsName",
+        "NumOfRooms",
+        "Floor",
+        "TotalArea",
+        "ValidityDate",
+        "CompanyName",
+        "StatusChangeDate",
+        "PropertyTypeName"
+      ]
+    },
+    {
+      "name": "stock",
+      "by_id": "ece87d7d-d79f-4278-8559-921218bc2b6a",
+      "required_columns": [
+        "CityLMSName",
+        "Floor",
+        "NoRooms",
+        "OneRooms",
+        "TwoRooms",
+        "ThreeRooms",
+        "FourRooms",
+        "FiveRooms",
+        "SixRooms",
+        "SevenRooms",
+        "EightRooms",
+        "NineRooms",
+        "TenRooms",
+        "MoreRooms"
+      ]
+    },
+    {
+      "name": "purchases",
+      "by_id": "d6d2046b-ccba-4d09-8778-ee9aa57cdf0c",
+      "required_columns": [
+        "Lamas_name",
+        "year",
+        "3 rooms apartments",
+        "average price (NIS) 3 rooms apartments",
+        "4+ rooms apartments",
+        "average price (NIS) 4+ rooms apartments"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

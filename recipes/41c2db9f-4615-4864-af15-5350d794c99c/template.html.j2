@@ -1,0 +1,401 @@
+{% import "gov.j2" as gov %}
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+{{ gov.lede(model.labels.lede) }}
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור דירות דיור ציבורי פנויות לפי עיר, חדרים וקומה ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר: יישוב, מספר חדרים, קומה, שטח, חברה מנהלת (עמידר, עמיגור ועוד) ותאריך שינוי הסטטוס.</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+  {{ gov.kpi(model.kpis.stock, "דירות במלאי הדיור הציבורי") }}
+  {{ gov.kpi(model.kpis.vacant, "דירות ראויות למגורים, פנויות מעל שלושה חודשים") }}
+  {{ gov.kpi(model.kpis.share, "שיעור הדירות הפנויות מתוך המלאי") }}
+  {{ gov.kpi(model.kpis.months, "חציון משך הפנייה (חודשים)") }}
+  {{ gov.kpi(model.kpis.cities, "יישובים עם דירות דיור ציבורי") }}
+  {{ gov.kpi(model.kpis.purch, model.labels.purch_kpi) }}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("map-pin", "איפה עומדות הדירות הפנויות") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.vac_city_lede }}</p>
+  {{ gov.chart("chart-vac-city", model.labels.vac_city_aria, "h-96 md:h-[460px]") }}
+  {{ gov.table(model.labels.vac_city_aria, ["יישוב", "דירות פנויות", "דירות במלאי", "שיעור פנייה"], model.tables.vac_city, ltr=(1, 2, 3)) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("chart-bar", "שיעור הדירות הפנויות בכל יישוב") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.vac_rate_lede }}</p>
+  {{ gov.chart("chart-vac-rate", model.labels.vac_rate_aria, "h-96 md:h-[460px]") }}
+  {{ gov.table(model.labels.vac_rate_aria, ["יישוב", "שיעור פנייה", "דירות פנויות", "דירות במלאי"], model.tables.vac_rate, ltr=(1, 2, 3)) }}
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ gov.head("calendar", "כמה זמן הדירות עומדות ריקות") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.dur_lede }}</p>
+    {{ gov.chart("chart-duration", model.labels.dur_aria, "h-64 md:h-80") }}
+    {{ gov.table(model.labels.dur_aria, ["חודשים", "דירות", "שיעור"], model.tables.duration, ltr=(1, 2)) }}
+  </section>
+  <section class="card p-5">
+    {{ gov.head("building-2", "לפי חברה מנהלת") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.company_lede }}</p>
+    {{ gov.chart("chart-company", model.labels.company_aria, "h-64 md:h-80") }}
+    {{ gov.table(model.labels.company_aria, ["חברה", "דירות פנויות", "שיעור", "יישובים", "חציון חודשים"], model.tables.company, ltr=(1, 2, 3, 4)) }}
+  </section>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ gov.head("chart-bar", "מספר חדרים: המלאי מול הפנויות") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.rooms_lede }}</p>
+    {{ gov.chart("chart-rooms", model.labels.rooms_aria, "h-64 md:h-80") }}
+    {{ gov.table(model.labels.rooms_aria, ["חדרים", "במלאי", "שיעור במלאי", "פנויות", "שיעור בפנויות"], model.tables.rooms, ltr=(1, 2, 3, 4)) }}
+  </section>
+  <section class="card p-5">
+    {{ gov.head("chart-bar", "קומה: המלאי מול הפנויות") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.floor_lede }}</p>
+    {{ gov.chart("chart-floor", model.labels.floor_aria, "h-64 md:h-80") }}
+    {{ gov.table(model.labels.floor_aria, ["קומה", "במלאי", "שיעור במלאי", "פנויות", "שיעור בפנויות"], model.tables.floor, ltr=(0, 1, 2, 3, 4)) }}
+  </section>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ gov.head("list", "שטח הדירות הפנויות") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.area_lede }}</p>
+    {{ gov.chart("chart-area", model.labels.area_aria, "h-64 md:h-80") }}
+    {{ gov.table(model.labels.area_aria, ["חדרים", "דירות", "חציון (מ\"ר)", "רבעון תחתון עד עליון", "טווח"], model.tables.area, ltr=(1, 2, 3, 4)) }}
+  </section>
+  <section class="card p-5">
+    {{ gov.head("tag", "סוג הנכס") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.ptype_lede }}</p>
+    <table class="w-full text-sm">
+      <caption class="sr-only">דירות פנויות לפי סוג הנכס</caption>
+      <thead><tr>
+        <th scope="col" class="px-2 py-1 text-start">סוג הנכס</th>
+        <th scope="col" class="px-2 py-1 text-start">דירות</th>
+        <th scope="col" class="px-2 py-1 text-start">שיעור</th>
+      </tr></thead>
+      <tbody>
+{%- for r in model.tables.ptype %}
+        <tr class="border-t border-rule"><th scope="row" class="px-2 py-1 text-start font-normal">{{ r[0] }}</th><td class="px-2 py-1 text-start tabular-nums" dir="ltr">{{ r[1] }}</td><td class="px-2 py-1 text-start tabular-nums" dir="ltr">{{ r[2] }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "מלאי הדיור הציבורי לפי יישוב") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.stock_city_lede }}</p>
+  {{ gov.chart("chart-stock-city", model.labels.stock_city_aria, "h-96 md:h-[460px]") }}
+  {{ gov.table(model.labels.stock_city_aria, ["יישוב", "דירות", "שיעור מהמלאי"], model.tables.stock_city, ltr=(1, 2)) }}
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ gov.head("download", "רכש דירות למלאי לפי שנה") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.purch_lede }}</p>
+    {{ gov.chart("chart-purch-year", model.labels.purch_aria, "h-64 md:h-80") }}
+    {{ gov.table(model.labels.purch_aria, ["שנה", "שלושה חדרים", "ארבעה חדרים ומעלה", "סך הכול"], model.tables.purch_year, ltr=(0, 1, 2, 3)) }}
+  </section>
+  <section class="card p-5">
+    {{ gov.head("trending-up", "מחיר ממוצע לדירה שנרכשה") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.price_lede }}</p>
+    {{ gov.chart("chart-price", model.labels.price_aria, "h-64 md:h-80") }}
+    {{ gov.table(model.labels.price_aria, ["שנה", "שלושה חדרים (מיליון ₪)", "ארבעה חדרים ומעלה (מיליון ₪)"], model.tables.price, ltr=(0, 1, 2)) }}
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("map-pin", "היכן נרכשו הדירות") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.purch_city_lede }}</p>
+  {{ gov.chart("chart-purch-city", model.labels.purch_city_aria, "h-96 md:h-[460px]") }}
+  {{ gov.table(model.labels.purch_city_aria, ["יישוב", "שלושה חדרים", "ארבעה חדרים ומעלה", "סך הכול"], model.tables.purch_city, ltr=(1, 2, 3)) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("triangle-alert", "על הנתונים") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm text-subtle">
+    <li>טבלת הדירות הפנויות כוללת רק דירות ראויות למגורים שפנויות יותר משלושה חודשים. דירות שפונו לאחרונה או שדורשות שיפוץ אינן בה, ולכן שיעור הפנייה כאן הוא חסם תחתון.</li>
+    <li>משך הפנייה נמדד מתאריך שינוי הסטטוס האחרון של הדירה ועד תאריך הדוח ({{ model.labels.asof }}).</li>
+    <li>{{ model.labels.partial_note }}</li>
+    <li>{{ model.labels.half_note }}</li>
+    <li>המחיר הממוצע לשנה משוקלל לפי מספר הדירות שנרכשו בכל יישוב, ולכן הוא מושפע גם מהיישובים שבהם נרכשו דירות באותה שנה ולא רק משינוי המחירים.</li>
+    <li>ההקצאה של דירות דיור ציבורי נעשית לפי זכאות ותור, דרך משרד הבינוי והשיכון והחברות המנהלות. רשימה זו אינה הצעה לדירה.</li>
+  </ul>
+</section>
+
+<style>
+  @media (max-width: 639px) {
+    #chart-vac-city, #chart-vac-rate, #chart-stock-city, #chart-purch-city { height: 30rem !important; }
+  }
+</style>
+
+<script>
+  (function () {
+    var d = {{ model.charts.vac_city | tojson }};
+    var enc = echarts.format.encodeHTML;
+    var el = document.getElementById("chart-vac-city");
+    var c = echarts.init(el);
+    function opt() {
+      return {
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+          var i = ps[0].dataIndex;
+          var t = enc(d.names[i]) + "<br>" + d.vac[i].toLocaleString("he-IL") + " דירות פנויות";
+          if (d.stock[i]) { t += "<br>מתוך " + d.stock[i].toLocaleString("he-IL") + " במלאי (" + (100 * d.vac[i] / d.stock[i]).toFixed(1) + "%)"; }
+          return t;
+        } },
+        grid: { left: 16, right: 40, top: 8, bottom: 8, containLabel: true },
+        xAxis: { type: "value", minInterval: 1, splitNumber: 4 },
+        yAxis: { type: "category", data: d.names, inverse: true,
+                 axisLabel: { width: el.clientWidth < 520 ? 90 : 140, overflow: "truncate", fontSize: 11 } },
+        series: [{ type: "bar", name: "דירות פנויות", data: d.vac, barMaxWidth: 22,
+                   label: { show: true, position: "right", color: "#0c3058" } }]
+      };
+    }
+    c.setOption(window.GovEcharts.option(opt()));
+    window.addEventListener("resize", function () { c.setOption(opt()); c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.vac_rate | tojson }};
+    var enc = echarts.format.encodeHTML;
+    var el = document.getElementById("chart-vac-rate");
+    var c = echarts.init(el);
+    function opt() {
+      return {
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+          var i = ps[0].dataIndex;
+          return enc(d.names[i]) + "<br>" + d.rate[i].toFixed(1) + "% פנויות<br>" +
+            d.vac[i].toLocaleString("he-IL") + " מתוך " + d.stock[i].toLocaleString("he-IL") + " דירות";
+        } },
+        grid: { left: 16, right: 48, top: 24, bottom: 8, containLabel: true },
+        xAxis: { type: "value", axisLabel: { formatter: "{value}%" }, splitNumber: 4 },
+        yAxis: { type: "category", data: d.names, inverse: true,
+                 axisLabel: { width: el.clientWidth < 520 ? 90 : 140, overflow: "truncate", fontSize: 11 } },
+        series: [{ type: "bar", name: "שיעור פנייה", barMaxWidth: 22,
+                   data: d.rate.map(function (v) { return v >= 2 * d.avg ? { value: v, itemStyle: { color: "#dc3545" } } : v; }),
+                   label: { show: true, position: "right", color: "#0c3058", formatter: function (p) { return p.value.toFixed(1) + "%"; } },
+                   markLine: { symbol: "none", silent: true, lineStyle: { color: "#0c3058", type: "dashed" },
+                               label: { formatter: "ממוצע ארצי " + d.avg.toFixed(1) + "%", color: "#0c3058", position: "start" },
+                               data: [{ xAxis: d.avg }] } }]
+      };
+    }
+    c.setOption(window.GovEcharts.option(opt()));
+    window.addEventListener("resize", function () { c.setOption(opt()); c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.duration | tojson }};
+    var c = echarts.init(document.getElementById("chart-duration"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        return ps[0].name + " חודשים<br>" + ps[0].value.toLocaleString("he-IL") + " דירות";
+      } },
+      grid: { left: 16, right: 16, top: 24, bottom: 32, containLabel: true },
+      xAxis: { type: "category", data: d.x, name: "חודשים", nameLocation: "middle", nameGap: 26, axisLabel: { interval: 0, fontSize: 11 } },
+      yAxis: { type: "value", minInterval: 1, splitNumber: 4 },
+      series: [{ type: "bar", name: "דירות", barMaxWidth: 40,
+                 data: d.y.map(function (v, i) { return i >= d.long_from ? { value: v, itemStyle: { color: "#0b3668" } } : v; }),
+                 label: { show: true, position: "top", color: "#0c3058" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.company | tojson }};
+    var enc = echarts.format.encodeHTML;
+    var c = echarts.init(document.getElementById("chart-company"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        return enc(d.names[i]) + "<br>" + d.vac[i].toLocaleString("he-IL") + " דירות פנויות" +
+          (d.med[i] !== null ? "<br>חציון " + d.med[i].toFixed(1) + " חודשים" : "");
+      } },
+      grid: { left: 16, right: 16, top: 24, bottom: 8, containLabel: true },
+      xAxis: { type: "category", data: d.names, axisLabel: { interval: 0, fontSize: 11 } },
+      yAxis: { type: "value", minInterval: 1, splitNumber: 4 },
+      series: [{ type: "bar", name: "דירות פנויות", data: d.vac, barMaxWidth: 40,
+                 label: { show: true, position: "top", color: "#0c3058" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.rooms | tojson }};
+    var c = echarts.init(document.getElementById("chart-rooms"));
+    c.setOption(window.GovEcharts.option({
+      color: ["#0068f5", "#0b3668"],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        return ps[0].name + "<br>במלאי: " + d.stock[i].toFixed(1) + "% (" + d.stock_n[i].toLocaleString("he-IL") + ")" +
+          "<br>פנויות: " + d.vac[i].toFixed(1) + "% (" + d.vac_n[i].toLocaleString("he-IL") + ")";
+      } },
+      legend: { bottom: 0, left: "center" },
+      grid: { left: 16, right: 16, top: 24, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { interval: 0, fontSize: 11 } },
+      yAxis: { type: "value", axisLabel: { formatter: "{value}%" }, splitNumber: 4 },
+      series: [
+        { type: "bar", name: "מלאי", data: d.stock, barMaxWidth: 28 },
+        { type: "bar", name: "פנויות", data: d.vac, barMaxWidth: 28 }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.floor | tojson }};
+    var c = echarts.init(document.getElementById("chart-floor"));
+    c.setOption(window.GovEcharts.option({
+      color: ["#0068f5", "#0b3668"],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        return "קומה " + ps[0].name + "<br>במלאי: " + d.stock[i].toFixed(1) + "% (" + d.stock_n[i].toLocaleString("he-IL") + ")" +
+          "<br>פנויות: " + d.vac[i].toFixed(1) + "% (" + d.vac_n[i].toLocaleString("he-IL") + ")";
+      } },
+      legend: { bottom: 0, left: "center" },
+      grid: { left: 16, right: 16, top: 24, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { interval: 0, fontSize: 11 } },
+      yAxis: { type: "value", axisLabel: { formatter: "{value}%" }, splitNumber: 4 },
+      series: [
+        { type: "bar", name: "מלאי", data: d.stock, barMaxWidth: 24 },
+        { type: "bar", name: "פנויות", data: d.vac, barMaxWidth: 24 }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.area | tojson }};
+    var c = echarts.init(document.getElementById("chart-area"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: function (p) {
+        var v = p.data.slice(-5), i = p.dataIndex;
+        return p.name + " (" + d.n[i].toLocaleString("he-IL") + " דירות)<br>חציון " + v[2] + " מ\"ר<br>רבעונים " +
+          v[1] + "-" + v[3] + " מ\"ר<br>טווח " + v[0] + "-" + v[4] + " מ\"ר";
+      } },
+      grid: { left: 16, right: 16, top: 24, bottom: 8, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { interval: 0, fontSize: 11 } },
+      yAxis: { type: "value", name: "מ\"ר", splitNumber: 4 },
+      series: [{ type: "boxplot", name: "שטח", data: d.data,
+                 itemStyle: { color: "#f1f7ff", borderColor: "#0068f5" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.stock_city | tojson }};
+    var enc = echarts.format.encodeHTML;
+    var el = document.getElementById("chart-stock-city");
+    var c = echarts.init(el);
+    function opt() {
+      return {
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+          return enc(ps[0].name) + "<br>" + ps[0].value.toLocaleString("he-IL") + " דירות";
+        } },
+        grid: { left: 16, right: 48, top: 8, bottom: 8, containLabel: true },
+        xAxis: { type: "value", minInterval: 1, splitNumber: 4 },
+        yAxis: { type: "category", data: d.names, inverse: true,
+                 axisLabel: { width: el.clientWidth < 520 ? 90 : 140, overflow: "truncate", fontSize: 11 } },
+        series: [{ type: "bar", name: "דירות", barMaxWidth: 22,
+                   data: d.y.map(function (v, i) { return i === d.other_idx ? { value: v, itemStyle: { color: "#c3cfe7" } } : v; }),
+                   label: { show: true, position: "right", color: "#0c3058", formatter: function (p) { return p.value.toLocaleString("he-IL"); } } }]
+      };
+    }
+    c.setOption(window.GovEcharts.option(opt()));
+    window.addEventListener("resize", function () { c.setOption(opt()); c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.purch_year | tojson }};
+    var c = echarts.init(document.getElementById("chart-purch-year"));
+    c.setOption(window.GovEcharts.option({
+      color: ["#0068f5", "#0b3668"],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0, left: "center" },
+      grid: { left: 16, right: 16, top: 24, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { fontSize: 11 } },
+      yAxis: { type: "value", minInterval: 1, splitNumber: 4 },
+      series: [
+        { type: "bar", name: "שלושה חדרים", stack: "all", data: d.n3, barMaxWidth: 36 },
+        { type: "bar", name: "ארבעה חדרים ומעלה", stack: "all", data: d.n4, barMaxWidth: 36 }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.price | tojson }};
+    var c = echarts.init(document.getElementById("chart-price"));
+    c.setOption(window.GovEcharts.option({
+      color: ["#0068f5", "#0b3668"],
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v === null || v === undefined ? "–" : v.toFixed(2) + " מיליון ₪"; } },
+      legend: { bottom: 0, left: "center" },
+      grid: { left: 16, right: 16, top: 24, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { fontSize: 11 } },
+      yAxis: { type: "value", name: "מיליון ₪", scale: true, splitNumber: 4 },
+      series: [
+        { type: "line", name: "שלושה חדרים", data: d.p3, connectNulls: true, symbolSize: 7 },
+        { type: "line", name: "ארבעה חדרים ומעלה", data: d.p4, connectNulls: true, symbolSize: 7 }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.purch_city | tojson }};
+    var el = document.getElementById("chart-purch-city");
+    var c = echarts.init(el);
+    function opt() {
+      return {
+        color: ["#0068f5", "#0b3668"],
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        legend: { bottom: 0, left: "center" },
+        grid: { left: 16, right: 24, top: 8, bottom: 36, containLabel: true },
+        xAxis: { type: "value", minInterval: 1, splitNumber: 4 },
+        yAxis: { type: "category", data: d.names, inverse: true,
+                 axisLabel: { width: el.clientWidth < 520 ? 90 : 140, overflow: "truncate", fontSize: 11 } },
+        series: [
+          { type: "bar", name: "שלושה חדרים", stack: "all", data: d.n3, barMaxWidth: 22 },
+          { type: "bar", name: "ארבעה חדרים ומעלה", stack: "all", data: d.n4, barMaxWidth: 22 }
+        ]
+      };
+    }
+    c.setOption(window.GovEcharts.option(opt()));
+    window.addEventListener("resize", function () { c.setOption(opt()); c.resize(); });
+  })();
+</script>
