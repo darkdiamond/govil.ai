@@ -51,6 +51,7 @@ from .base import (
     ProviderFacts,
     ProviderResource,
     ProviderSettings,
+    ProviderTooLarge,
     SourceConfig,
     SourcePresentation,
     SourceProvider,
@@ -532,8 +533,9 @@ class CbsReleasesProvider(SourceProvider):
             if f is None:
                 continue  # optional: this edition has no such table
             if f["Length"] > self.settings.max_bytes:
-                raise ProviderError(f"{rel.pub_no} {f['Name']}: {f['Length']:,} bytes > "
-                                    f"max_bytes {self.settings.max_bytes:,}")
+                # `too_large` like the capped read below, not a failed preview.
+                raise ProviderTooLarge(f"{rel.pub_no} {f['Name']}: {f['Length']:,} bytes > "
+                                       f"max_bytes {self.settings.max_bytes:,}")
             # The listing's Length is only a hint: the read itself stops at the cap.
             r = self.http_get(self.file_url(rel, f["Name"]), max_bytes=self.settings.max_bytes)
             if r.status_code != 200:

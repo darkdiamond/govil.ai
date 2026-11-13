@@ -11,6 +11,7 @@ from .base import (
     ProviderResource,
     ProviderSettings,
     ProviderTooLarge,
+    ProviderUnavailable,
     SourceConfig,
     SourcePresentation,
     SourceProvider,
@@ -21,6 +22,7 @@ from .registry import (
     enabled_providers,
     provider_for_id,
     provider_for_key,
+    provider_invalid,
 )
 
 __all__ = [
@@ -31,6 +33,7 @@ __all__ = [
     "ProviderResource",
     "ProviderSettings",
     "ProviderTooLarge",
+    "ProviderUnavailable",
     "SourceConfig",
     "SourcePresentation",
     "SourceProvider",
@@ -38,4 +41,5 @@ __all__ = [
     "enabled_providers",
     "provider_for_id",
     "provider_for_key",
+    "provider_invalid",
 ]

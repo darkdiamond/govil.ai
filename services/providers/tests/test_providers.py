@@ -406,7 +406,12 @@ def test_body_under_the_cap_reads_as_before(monkeypatch):
     p = _served(monkeypatch, handler, max_bytes=len(data))
     r = p.http_get("https://edge.boi.org.il/a", max_bytes=len(data))  # exactly at the cap
     assert r.content == want.content == data
-    assert r.text == want.text and r.headers == want.headers and r.status_code == 200
+    assert r.text == want.text and r.status_code == 200
+    # The headers describe the decoded body (no second gunzip on access).
+    assert r.headers["content-type"] == want.headers["content-type"]
+    assert "content-encoding" not in r.headers
+    assert r.headers["content-length"] == str(len(data))
+    assert isinstance(r, httpx.Response) and r.request.url == "https://edge.boi.org.il/a"
 
 
 # ── liveness ─────────────────────────────────────────────────────────────
@@ -529,6 +534,75 @@ def test_refresh_skips_a_doc_whose_provider_is_disabled(tmp_path):
     out = rf.refresh_one(src, recipe, store=None, staging_bucket="b",
                          work_root=tmp_path, trigger="never_refreshed", providers={})
     assert (out.status, out.reason) == ("skipped", "provider_disabled:boi_sdmx")
+
+
+def _no_write_store():
+    def boom(*a, **k):
+        raise AssertionError("a provider skip writes nothing")
+    return SimpleNamespace(mark_refresh_failed=boom, mark_refreshed=boom,
+                           mark_refresh_unchanged=boom)
+
+
+def test_fetch_fns_refuse_an_unhealthy_provider(boi):
+    from services.providers import ProviderUnavailable
+
+    boi.answers.clear()  # the health series 404s
+    with pytest.raises(ProviderUnavailable):
+        boi.fetch_fns([_res(boi)])
+
+
+def test_refresh_skips_an_unhealthy_provider_without_a_strike(boi, monkeypatch, tmp_path):
+    # A source outage must not count `preview_unavailable` strikes toward a
+    # false `schema_changed` issue: skipped, nothing written, nothing fetched.
+    monkeypatch.setattr(rf, "probe_inputs", lambda *a, **k: pytest.fail("fetched"))
+    boi.answers.clear()
+    src = SimpleNamespace(id="boi-x", provider="boi_sdmx", resources=[_res(boi)])
+    recipe = SimpleNamespace(manifest=SimpleNamespace(recipe_version=1))
+    out = rf.refresh_one(src, recipe, store=_no_write_store(), staging_bucket="b",
+                         work_root=tmp_path, trigger="data_updated",
+                         providers={"boi_sdmx": boi})
+    assert (out.status, out.reason) == ("skipped", "provider_unhealthy:boi_sdmx")
+
+
+def test_refresh_names_a_provider_left_off_for_invalid_settings(monkeypatch, tmp_path, caplog):
+    from services.providers import registry
+    monkeypatch.setattr(registry, "_enabled", None)
+    monkeypatch.setattr(registry, "_invalid", set())
+    monkeypatch.setenv("PROVIDER_CBS_INDEX_ENABLED", "true")
+    monkeypatch.setenv("PROVIDER_CBS_INDEX_TIMEOUT_S", "60s")
+    monkeypatch.delenv("PROVIDER_BOI_SDMX_ENABLED", raising=False)
+    recipe = SimpleNamespace(manifest=SimpleNamespace(recipe_version=1))
+
+    def run(key):
+        src = SimpleNamespace(id=f"{key}-x", provider=key, resources=[])
+        return rf.refresh_one(src, recipe, store=_no_write_store(), staging_bucket="b",
+                              work_root=tmp_path, trigger="data_updated")
+
+    with caplog.at_level("ERROR", logger="providers"):
+        out = run("cbs_index")
+    assert (out.status, out.reason) == ("skipped", "provider_invalid:cbs_index")
+    assert registry.provider_invalid("cbs_index") and not registry.provider_invalid("boi_sdmx")
+    out = run("boi_sdmx")  # simply off
+    assert (out.status, out.reason) == ("skipped", "provider_disabled:boi_sdmx")
+
+
+def test_a_crashing_provider_lookup_is_recorded_by_refresh_one(monkeypatch, tmp_path):
+    # Inside refresh_one's guard: an `error` outcome with its duration and a
+    # state write, not a bare batch-guard record.
+    def boom(*a, **k):
+        raise RuntimeError("registry bug")
+
+    monkeypatch.setattr(rf, "provider_for_key", boom)
+    writes = []
+    store = SimpleNamespace(mark_refresh_failed=lambda *a, **k: writes.append(k))
+    src = SimpleNamespace(id="boi-x", provider="boi_sdmx", resources=[], metadata_modified=None)
+    recipe = SimpleNamespace(manifest=SimpleNamespace(recipe_version=1), files=[], root=tmp_path)
+    monkeypatch.setattr(rf, "failed_version_key", lambda src, recipe: "v")
+    out = rf.refresh_one(src, recipe, store=store, staging_bucket="b",
+                         work_root=tmp_path, trigger="data_updated", providers={})
+    assert (out.status, out.reason) == ("failed", "error")
+    assert "RuntimeError: registry bug" in out.error and out.elapsed_s >= 0
+    assert writes and writes[0]["reason"] == "error"
 
 
 def test_reconcile_asks_the_provider_not_ckan(boi):

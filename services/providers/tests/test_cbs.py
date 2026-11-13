@@ -391,6 +391,17 @@ def test_table_file_over_the_cap_is_refused_whatever_the_listing_says(cbs, monke
     assert cbs.download(res).startswith(b"RELEASE_NO,")
 
 
+def test_table_file_the_listing_sizes_over_the_cap_is_too_large(cbs):
+    # An honestly sized file past max_bytes: refused before the download, as
+    # ProviderTooLarge, so preview raises it (refresh: `too_large`) instead of
+    # answering None (a failed preview, which escalates as `schema_changed`).
+    res = resource(cbs, table_cfg())
+    cbs.settings = cbs.settings.model_copy(update={"max_bytes": len(XLSX) - 1})
+    with pytest.raises(ProviderTooLarge, match="max_bytes"):
+        cbs.preview(res)
+    assert not any(u.endswith("28_26_345t1.xlsx") for u in cbs.calls)  # never downloaded
+
+
 def test_real_cbs_xls_reads_hebrew():
     sheets = workbook_grid((FIX / "visitors_t5_real.xls").read_bytes())
     (_, name, sheet_rows), = sheets
