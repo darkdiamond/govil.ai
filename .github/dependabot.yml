@@ -1,5 +1,8 @@
 version: 2
 updates:
+  # Also holds the hashed locks the images and CI install
+  # (requirements.lock.txt = builder + news, requirements-publish.lock.txt), so
+  # Dependabot bumps the versions that actually ship, hashes included.
   - package-ecosystem: "pip"
     directory: "/services/page_builder"
     schedule:

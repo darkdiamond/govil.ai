@@ -13,7 +13,7 @@ ENV PYTHONUNBUFFERED=1 \
     GRPC_ENABLE_FORK_SUPPORT=0
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl ca-certificates \
+    && apt-get install -y --no-install-recommends ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 # Unprivileged identity for recipe compute.py subprocesses
@@ -28,10 +28,12 @@ WORKDIR /app
 
 # Install deps first so the layer is cached across code changes. The same
 # image also runs govdata-news-job (services/news, its own command and
-# service account — infra/news-job.deploy.sh), which needs a few more libs.
-COPY services/page_builder/requirements.txt ./requirements.txt
-COPY services/news/requirements.txt ./requirements-news.txt
-RUN pip install --no-cache-dir -r requirements.txt -r requirements-news.txt
+# service account — infra/news-job.deploy.sh), which needs a few more libs:
+# the lock is compiled from services/page_builder/requirements.txt +
+# services/news/requirements.txt together (pip-compile --generate-hashes;
+# CLAUDE.md "Running things locally").
+COPY services/page_builder/requirements.lock.txt ./requirements.lock.txt
+RUN pip install --no-cache-dir --require-hashes -r requirements.lock.txt
 
 # Copy only what the job needs.
 COPY services/__init__.py ./services/__init__.py

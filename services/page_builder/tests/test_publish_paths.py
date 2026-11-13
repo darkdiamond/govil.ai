@@ -215,12 +215,24 @@ def test_publisher_image_installs_the_primary_paths_requirements():
     # Both paths run `services.page_builder.publish`; the fallback image must
     # install the same requirements file publish.yml does, so the dependency
     # set exercised every day is the one the fallback ships.
-    req = r"services/page_builder/requirements-publish\.txt"
+    # It is the hashed lock, installed with --require-hashes on both paths.
+    req = r"services/page_builder/requirements-publish\.lock\.txt"
     workflow = (ROOT / ".github/workflows/publish.yml").read_text(encoding="utf-8")
-    assert re.search(rf"pip install\b[^\n]*-r\s+{req}", workflow)
+    assert re.search(rf"pip install\b[^\n]*--require-hashes[^\n]*-r\s+{req}", workflow)
     dockerfile = (ROOT / "infra/Dockerfile.publisher").read_text(encoding="utf-8")
     copied = re.findall(r"^COPY\s+(services/\S*requirements\S*\.txt)\s", dockerfile, re.MULTILINE)
-    assert copied == ["services/page_builder/requirements-publish.txt"], copied
+    assert copied == ["services/page_builder/requirements-publish.lock.txt"], copied
+    assert re.search(r"pip install\b[^\n]*--require-hashes", dockerfile)
+
+
+def test_publisher_image_python_matches_the_primary_path():
+    # The fallback must run publish on the Python minor publish.yml sets up.
+    workflow = (ROOT / ".github/workflows/publish.yml").read_text(encoding="utf-8")
+    py = re.search(r'python-version:\s*"(\d+\.\d+)"', workflow)
+    assert py, "publish.yml python-version not found"
+    dockerfile = (ROOT / "infra/Dockerfile.publisher").read_text(encoding="utf-8")
+    base = re.search(r"^FROM\s+python:(\d+\.\d+)[-.\s]", dockerfile, re.MULTILINE)
+    assert base and base.group(1) == py.group(1), (base and base.group(1), py.group(1))
 
 
 @pytest.mark.parametrize("rel", PATHS)

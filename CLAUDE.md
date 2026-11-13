@@ -935,6 +935,19 @@ source .venv/bin/activate
 # Lint (CI runs this; ruff.toml pins the version, requirements-dev.txt installs it)
 ruff check .
 
+# Requirements: edit the ranges in the *.txt inputs, then recompile the hashed
+# locks the images and CI install (`--require-hashes`). Use pip-tools from a
+# throwaway Python 3.12 venv, never the shared .venv. pip-compile keeps a lock's
+# existing pins; add --upgrade-package <name> to move one on purpose.
+#   builder + news image, CI:  services/page_builder/requirements.lock.txt
+#   publisher (publish.yml, infra/Dockerfile.publisher): requirements-publish.lock.txt
+pip-compile --generate-hashes --allow-unsafe --strip-extras --no-emit-index-url \
+  -o services/page_builder/requirements.lock.txt \
+  services/page_builder/requirements.txt services/news/requirements.txt
+pip-compile --generate-hashes --allow-unsafe --strip-extras --no-emit-index-url \
+  -o services/page_builder/requirements-publish.lock.txt \
+  services/page_builder/requirements-publish.txt
+
 # Firestore emulator (so nothing hits prod)
 gcloud emulators firestore start --host-port=localhost:8080 &
 export FIRESTORE_EMULATOR_HOST=localhost:8080 FIRESTORE_PROJECT_ID=local-dev
