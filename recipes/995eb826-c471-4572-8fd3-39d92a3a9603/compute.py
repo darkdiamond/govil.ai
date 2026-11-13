@@ -11,6 +11,8 @@ import re
 import pandas as pd
 
 TOP_JURIS = 15
+DATE_COLS = ("built", "operating", "inspected")
+REF_GAP_DAYS = 14
 OTHER = "אחר"
 RAD_COL = "תוצאה מירבית ב% ביחס לסף הבריאות"
 RAD_BINS = [(0, 0, "0"), (0.0001, 1, "עד 1%"), (1.0001, 5, "1%–5%"), (5.0001, 10, "5%–10%"),
@@ -130,10 +132,23 @@ def insight_no_permit(df):
     return f"{_int(n)} אתרים פעילים רשומים ללא היתר קרינה."
 
 
+def _ref_date(df):
+    """The data's "now": its latest date, skipping isolated future typos (a
+    10/12/2026 inspection when everything else ends 11/2026). A latest date more
+    than REF_GAP_DAYS past the next-latest distinct date is dropped, repeatedly."""
+    dates = pd.concat([df[c] for c in DATE_COLS]).dropna().drop_duplicates()
+    dates = dates.sort_values(ascending=False).tolist()
+    while len(dates) > 1 and (dates[0] - dates[1]).days > REF_GAP_DAYS:
+        dates.pop(0)
+    return dates[0]
+
+
 def compute(frames):
     df = _prepare(frames["sites"])
     n = len(df)
-    ref = max(df["built"].max(), df["operating"].max(), df["inspected"].max())
+    ref = _ref_date(df)
+    for c in DATE_COLS:  # a date after "now" is a typo: treat it as unknown
+        df.loc[df[c] > ref, c] = pd.NaT
 
     ops = _ranked(df["operator"])
     o_chart = {"names": list(ops.index), "values": [int(v) for v in ops]}
@@ -222,6 +237,16 @@ def compute(frames):
             "summary_he": (f"{_int(n)} אתרי שידור סלולריים פעילים של סלקום, פלאפון ו-PHI, נכון ל-"
                            f"{_d_he(ref)}: מיקום, סוג אתר, טכנולוגיה, היתרים ותוצאת הקרינה המרבית "
                            "ביחס לסף הבריאות."),
+            "seo": {
+                "title": "מפת אנטנות סלולריות: פריסת אתרי שידור ורמות קרינה",
+                "description": (f"מפת אנטנות סלולריות: {_int(n)} אתרי שידור פעילים של סלקום, "
+                                f"פלאפון ו-PHI, עם טכנולוגיה, היתרים ורמת הקרינה ביחס לסף "
+                                f"הבריאות. מעודכן ל-{_d_he(ref)}."),
+                "name": "מפת אנטנות סלולריות פעילות",
+                "alternate_names": ["אנטנות סלולריות", "פריסת אנטנות סלולריות",
+                                    "מפת אנטנות", "אתרי שידור סלולריים",
+                                    "קרינה מאנטנות סלולריות"],
+            },
             "dataset_kind": "map",
             "related_ids": [],
             "suggested_tags": ["אנטנות סלולריות", "קרינה", "תקשורת", "דור 5", "סביבה"],
