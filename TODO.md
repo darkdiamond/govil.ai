@@ -134,8 +134,9 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
   `.claude/settings.local.json`, copied into every worktree by `.worktreeinclude`, pre-approves
   broad wildcard rules for the GitHub, cloud and HTTP CLIs and for inline Python, while the
   07:00 routine reads untrusted issue text. The checked-in `.claude/settings.json` now has a
-  `permissions.deny` list (credential output, deploys, IAM, merges outside the guard, mutating
-  GitHub API calls, force pushes, uploads, bucket deletes) that wins over those allows. Left:
+  `permissions.deny` list (credential output, merges outside the guard, mutating GitHub API
+  calls, force pushes, uploads, bucket deletes) that wins over those allows; deploys and IAM
+  changes are deliberately not denied (the user approves Claude deploying). Left:
   narrow the broad entries in `settings.local.json`, and consider not copying it into
   worktrees. (2026-11-11)
 

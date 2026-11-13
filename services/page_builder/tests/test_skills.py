@@ -157,10 +157,10 @@ def test_routine_merges_only_through_the_guard():
 SETTINGS = SKILLS_DIR.parent / "settings.json"
 
 
-def _deny_patterns() -> list[re.Pattern]:
+def _deny_patterns(key: str = "deny") -> list[re.Pattern]:
     import json
 
-    rules = json.loads(SETTINGS.read_text(encoding="utf-8"))["permissions"]["deny"]
+    rules = json.loads(SETTINGS.read_text(encoding="utf-8"))["permissions"][key]
     out = []
     for rule in rules:
         m = re.fullmatch(r"Bash\((.*)\)", rule)
@@ -212,10 +212,6 @@ def test_deny_list_blocks_what_it_names():
         "rtk gh pr merge 5 --auto",
         "gcloud auth print-access-token",
         "gcloud secrets versions access latest --secret=x",
-        "gcloud run jobs deploy govdata-builder-job --source=.",
-        "gcloud projects add-iam-policy-binding govdata-il --member=x --role=y",
-        "firebase deploy --only hosting",
-        "./frontend/node_modules/.bin/firebase deploy --only hosting",
         "gh api -X DELETE repos/x/y/git/refs/heads/main",
         "gh api repos/x/y --method PATCH -f private=false",
         "git push --force origin main",
@@ -237,3 +233,17 @@ def test_deny_list_blocks_what_it_names():
         "curl -fsSG https://data.gov.il/api/3/action/datastore_search --data-urlencode limit=5",
     ):
         assert not _denied(cmd, patterns), cmd
+
+
+def test_deploys_and_iam_changes_are_not_denied():
+    # The user approves Claude deploying and changing IAM from an interactive
+    # session; only credential output, force pushes, uploads and destructive
+    # deletes are denied.
+    deny = _deny_patterns()
+    for cmd in (
+        "gcloud run jobs deploy govdata-builder-job --source=.",
+        "gcloud projects add-iam-policy-binding govdata-il --member=x --role=y",
+        "firebase deploy --only hosting",
+        "bash builder-job.deploy.sh",
+    ):
+        assert not _denied(cmd, deny), cmd
