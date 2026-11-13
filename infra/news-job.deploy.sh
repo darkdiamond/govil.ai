@@ -3,7 +3,7 @@
 # signals from the page-model history → editor → writer agent → gates +
 # critic → image → Firestore articles/ + gs://<staging>/news/ → publish
 # dispatch when ≥1 article was accepted. The ONLY job that calls a model
-# (OpenRouter: GPT-6.1 Terra at high effort for text, Nano Banana for the illustration).
+# (OpenRouter: Gemini 4 Hydrogen at high effort for text, cheapest endpoint via :floor, Nano Banana for the illustration).
 #
 # Same image as the builder (Dockerfile), different command and its own,
 # minimal service account (infra/news-iam.setup.sh — run that first).
@@ -35,7 +35,8 @@ TASK_TIMEOUT=${TASK_TIMEOUT:-3600s}
 QUIET_WINDOW=${QUIET_WINDOW-fri15-sat21}
 
 NEWS_PUBLISH=${NEWS_PUBLISH:-live}
-NEWS_MODEL=${NEWS_MODEL:-openai/gpt-6.1-terra}
+# :floor = cheapest endpoint first (AI Studio Flex, half price), then by price.
+NEWS_MODEL=${NEWS_MODEL:-google/gemini-4-hydrogen:floor}
 NEWS_REASONING_EFFORT=${NEWS_REASONING_EFFORT:-high}
 NEWS_IMAGE_MODEL=${NEWS_IMAGE_MODEL:-google/gemini-3.1-flash-image}
 NEWS_SEARCH_ENGINE=${NEWS_SEARCH_ENGINE:-exa}

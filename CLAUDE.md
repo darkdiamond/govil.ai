@@ -465,7 +465,7 @@ catalog` lists chapters → subjects → codes.
    editor's list for 7 days (`editor.REJECT_DAYS`; a reject from an error
    doesn't count), so hourly runs don't re-roll the critic. The only
    model-calling code
-   (OpenRouter; `NEWS_MODEL` GPT-6.1 Terra at `NEWS_REASONING_EFFORT=high`, `NEWS_IMAGE_MODEL` Nano Banana,
+   (OpenRouter; `NEWS_MODEL` Gemini 4 Hydrogen (`google/gemini-4-hydrogen:floor`: cheapest endpoint, AI Studio Flex when up) at `NEWS_REASONING_EFFORT=high`, `NEWS_IMAGE_MODEL` Nano Banana,
    `NEWS_SEARCH_ENGINE` exa). Articles publish with **no human approval**
    (user decision), so the guards are mechanical:
    - signals (deterministic, from the `models/` history the builder keeps) →
