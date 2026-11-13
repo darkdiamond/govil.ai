@@ -1809,34 +1809,124 @@ def snapshot_diff(before: dict | None, after: dict) -> dict:
     }
 
 
+_WITHHELD = ("(details withheld from this public issue: they can quote data. The full "
+             "error is in the job's refresh_outcome log line and the source doc's "
+             "refresh_error.)")
 _COMPUTE_FAILED = re.compile(r"\Acompute\(\) failed \(([^)\n]*)\)")
-_RECIPE_FRAME = re.compile(r'^\s*File "[^"\n]*/recipe/compute\.py", line (\d+), in (\S+)', re.MULTILINE)
+_RECIPE_FRAME = re.compile(r'^\s*File "[^"\n]*/recipe/compute\.py", line (\d+), in (\S+)',
+                           re.MULTILINE)
 _EXCEPTION_LINE = re.compile(
-    r"^([A-Za-z_][\w.]*(?:Error|Exception|Warning|Exit|Iteration|Interrupt))(?::|$)", re.MULTILINE)
+    r"^([A-Za-z_][\w.]*(?:Error|Exception|Warning|Exit|Iteration|Interrupt))(?::|$)",
+    re.MULTILINE)
+_EXCEPTION_NAME = re.compile(r"\b([A-Z][A-Za-z0-9_]*(?:Error|Exception))\b")
+_VALIDATION = re.compile(r"(\d+) validation errors? for ([A-Za-z_]\w*)\n")
+_PYDANTIC_TYPE = re.compile(r"\[type=([a-z_]+)")
+_SAFE_LOC = re.compile(r"[A-Za-z_][A-Za-z0-9_-]{0,63}|\d{1,6}")
+# The pipeline's own lead-ins before a ": <text that may quote data>"
+# (recipe.py, refresh.run_compute, page_gate).
+_KNOWN_HEAD = re.compile(
+    r"template render failed|compute\(\) output is not a valid page model"
+    r"|compute\(\) wrote no model|compute\(\) wrote an unreadable model\.json"
+    r"|duplicate insight ids|host self-check failed \(exit -?\d+\)")
+# Whole recipe_failed messages that hold only counts and caps.
+_RECIPE_SHAPES = re.compile(
+    r"only \d+ insight\(s\) survived \(min_insights=\d+\) — the data no longer fits the rules"
+    r"|compute\(\) model\.json is a \w+, not an object"
+    r"|host self-check timed out after \d+s \([\d,]+ bytes of content\)")
+# The recipe's own input name (recipe.json: public) and an escalation's suffix.
+_INPUT_PREFIX = re.compile(r"""\Ainput (?:'[^'\n]{0,80}'|"[^"\n]{0,80}"): """)
+_RUNS_SUFFIX = re.compile(r" — \d+ runs in a row\Z")
+_ID = r"[A-Za-z0-9_-]{1,64}"
+_COLS = r"\[[^\]\n]{0,2000}\]"  # column names: the schema, not cells
+# Every schema_changed message the pipeline writes (recipe.resolve_inputs,
+# refresh._fetch_map / _project_csv / feature_table, the preview strike).
+_SCHEMA_SHAPES = re.compile("|".join([
+    rf"resource {_ID} lost column\(s\) {_COLS}",
+    rf"resource {_ID} is no longer a datastore-active resource of this dataset",
+    rf"no resource has columns {_COLS}",
+    rf"no preview for resource\(s\)? (?:{_COLS}|{_ID})",
+    rf"map file {_ID} is gone from the dataset",
+    rf"map file {_ID}: lacks column\(s\) {_COLS}",
+    rf"map file {_ID}: has no features",
+    rf"map file {_ID}: the file is gone \(HTTP \d{{3}}\)",
+    (rf"map file {_ID}: (?:not a GeoJSON FeatureCollection|bad feature \(not an object\)"
+     r"|bad feature properties)"),
+    rf"[\w.-]{{1,120}}: export lacks column\(s\) {_COLS}",
+]))
+# too_large / geometry_stale / download_blocked messages are sizes, caps, ids,
+# hashes and HTTP statuses: one line with no quote that could open a value.
+_METADATA_ONLY = re.compile(r"[\w .,:;()/<>=+°%#&?~`\[\]–—-]{1,500}")
+_METADATA_REASONS = frozenset({
+    FailReason.TOO_LARGE, FailReason.GEOMETRY_STALE, FailReason.DOWNLOAD_BLOCKED,
+})
 
 
-def public_detail(detail: str) -> str:
-    """The part of a refresh error that may go into a public GitHub issue.
-
-    A compute failure carries the tail of compute's stderr, and pandas/Python
-    errors quote the failing cell value, which can be personal data from a
-    registry. Such a detail keeps only the sandbox's exit status, the
-    exception type and the recipe's own frames (compute.py line + function);
-    the full text stays in the `refresh_outcome` log line and the source
-    doc's `refresh_error`. Any other detail (schema, size, map messages: the
-    pipeline's own words) passes through."""
-    m = _COMPUTE_FAILED.match(detail or "")
-    if not m:
-        return detail
+def _compute_summary(m: re.Match, detail: str) -> str:
     exc = _EXCEPTION_LINE.findall(detail[m.end():])
     frames = [f'  File "recipe/compute.py", line {ln}, in {fn}'
               for ln, fn in _RECIPE_FRAME.findall(detail)]
     return "\n".join([
         f"compute() failed ({m.group(1)}): {exc[-1] if exc else 'no exception type found'}",
-        *frames,
-        ("(stderr withheld: it can quote data cells. The full error is in the job's "
-        "refresh_outcome log line and the source doc's refresh_error.)"),
+        *frames, _WITHHELD,
     ])
+
+
+def _head(text: str) -> str:
+    """The pipeline's own lead-in ("template render failed", "compute() output
+    is not a valid page model"), or "" when it isn't a known one."""
+    head = text.split(": ", 1)[0]
+    return head if head != text and _KNOWN_HEAD.fullmatch(head) else ""
+
+
+def _validation_summary(m: re.Match, detail: str) -> str:
+    """A pydantic error: field locations and error types, never `input_value`."""
+    errors, loc = [], None
+    for line in detail[m.end():].splitlines():
+        if line and not line[0].isspace():
+            loc = ".".join(seg if _SAFE_LOC.fullmatch(seg) else "…" for seg in line.split("."))
+        elif loc is not None and (t := _PYDANTIC_TYPE.search(line)):
+            errors.append(f"{loc} ({t.group(1)})")
+            loc = None
+    head = _head(detail[:m.start()])
+    lead = f"{head}: " if head else ""
+    return (f"{lead}ValidationError: {m.group(1)} validation error(s) for {m.group(2)}: "
+            f"{'; '.join(errors[:20]) or 'no field locations found'}\n{_WITHHELD}")
+
+
+def public_detail(detail: str, reason: str | None = None) -> str:
+    """The part of a refresh error that may go into a public GitHub issue.
+
+    Deny by default: errors can quote data cells (pandas/Python exceptions,
+    pydantic's `input_value`, template errors, check.py findings), and a cell
+    can be personal data from a registry. What passes through:
+      - a compute failure: exit status, exception type, compute.py's frames;
+      - a pydantic error: field locations and error types;
+      - a `schema_changed` message of a known shape (input, resource ids,
+        column names), a one-line, quote-free `too_large` /
+        `geometry_stale` / `download_blocked` message (sizes, caps, statuses),
+        or a counts-only recipe message (min_insights, check.py timeout);
+      - anything else: its known lead-in and exception type only.
+    The full text stays in the `refresh_outcome` log line and the source doc's
+    `refresh_error`."""
+    detail = detail or ""
+    if not detail:
+        return ""
+    if m := _COMPUTE_FAILED.match(detail):
+        return _compute_summary(m, detail)
+    if m := _VALIDATION.search(detail):
+        return _validation_summary(m, detail)
+    core = _RUNS_SUFFIX.sub("", _INPUT_PREFIX.sub("", detail, count=1))
+    if reason == FailReason.SCHEMA_CHANGED and _SCHEMA_SHAPES.fullmatch(core):
+        return detail
+    if reason in _METADATA_REASONS and _METADATA_ONLY.fullmatch(core):
+        return detail
+    if _RECIPE_SHAPES.fullmatch(detail):
+        return detail
+    head = _head(detail)
+    exc = _EXCEPTION_NAME.search(detail[len(head):])
+    parts = [p for p in (head, exc.group(1) if exc else "") if p]
+    lead = ": ".join(parts) if parts else f"{reason or 'refresh'} failed"
+    return f"{lead}\n{_WITHHELD}"
 
 
 def queue_authoring(store, src, reason: str, *, detail: str = "") -> int | None:
@@ -1862,7 +1952,7 @@ def queue_authoring(store, src, reason: str, *, detail: str = "") -> int | None:
         title=src.title or src.id,
         org=(src.organization or {}).get("title", "") or "",
         reason=reason,
-        detail=public_detail(detail),
+        detail=public_detail(detail, reason),
         source_url=getattr(src, "source_url", None),
     )
     if number is not None:

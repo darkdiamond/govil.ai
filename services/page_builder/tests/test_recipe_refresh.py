@@ -791,15 +791,14 @@ def test_a_compute_error_issue_withholds_stderr(env, tmp_path):
     assert '  File "recipe/compute.py", line ' in detail and ", in compute" in detail
 
 
-def test_public_detail_shapes():
-    assert rf.public_detail("input x: column 'y' missing") == "input x: column 'y' missing"
+def test_public_detail_compute_failures():
     assert rf.public_detail("") == ""
     out = rf.public_detail("compute() failed (Timeout: killed after 300s): row 7 Dana Cohen")
     assert out.startswith("compute() failed (Timeout: killed after 300s): no exception type")
     assert "Dana" not in out
     escalated = rf.public_detail(
         "compute() failed (NonZeroExit: exit code -6): E1027 ev_epoll1_linux.cc abort"
-        " \u2014 6 runs in a row")
+        " \u2014 6 runs in a row", "sandbox_broken")
     assert escalated.startswith("compute() failed (NonZeroExit: exit code -6): ")
     assert "ev_epoll1" not in escalated
     chained = rf.public_detail(
@@ -808,13 +807,97 @@ def test_public_detail_shapes():
         "KeyError: 'Dana'\n\nDuring handling of the above exception:\n"
         '  File "/s/a/recipe/compute.py", line 9, in compute\n'
         '  File "/s/a/govlib/fmt.py", line 2, in n\n'
-        "pandas.errors.ParserError: bad cell 'Dana'")
+        "pandas.errors.ParserError: bad cell 'Dana'", "recipe_failed")
     assert chained.splitlines()[:3] == [
         "compute() failed (NonZeroExit: exit code 1): pandas.errors.ParserError",
         '  File "recipe/compute.py", line 3, in _load',
         '  File "recipe/compute.py", line 9, in compute',
     ]
     assert "Dana" not in chained and "govlib" not in chained
+
+
+@pytest.mark.parametrize("reason, detail", [
+    ("schema_changed", "input 'events': resource 0b8ce2f1 lost column(s) ['\u05de\u05d7\u05d5\u05d6']"),
+    ("schema_changed", "input 'events': no resource has columns ['a', 'b']"),
+    ("schema_changed", ("input 'x': resource 0b8ce2f1-3c4d-4e5f-8a9b-1c2d3e4f5a6b is no longer "
+                       "a datastore-active resource of this dataset")),
+    ("schema_changed", "input 'x': no preview for resource(s) ['0b8ce2f1'] \u2014 6 runs in a row"),
+    ("schema_changed", "input 'geo': map file 0b8ce2f1: the file is gone (HTTP 404)"),
+    ("schema_changed", "events__1.csv: export lacks column(s) ['a']"),
+    ("too_large", "input 'events': 3,000,001 rows > REFRESH_MAX_RECORDS 2,000,000"),
+    ("too_large", ("input 'events': export of 0b8ce2f1 crossed the 300,000,000-byte cap "
+                  "(REFRESH_MAX_BYTES / REFRESH_TOTAL_BYTES / recipe limits)")),
+    ("too_large", ("compute() model.json too large: model.json is 70,000,000 bytes, over the "
+                  "67,108,864-byte cap (REFRESH_MODEL_MAX_BYTES)")),
+    ("download_blocked", ("input 'geo': map file 0b8ce2f1: download blocked (HTTP 403) "
+                         "\u2014 6 runs in a row")),
+])
+def test_public_detail_keeps_known_metadata_shapes(reason, detail):
+    assert rf.public_detail(detail, reason) == detail
+
+
+@pytest.mark.parametrize("reason, detail, lead", [
+    # a known reason whose message isn't a known shape
+    ("schema_changed", "input 'geo': map file 0b8ce2f1: bad geometry near 'Dana Cohen 12'",
+     "schema_changed failed"),
+    ("too_large", "input 'x': row 'Dana Cohen' is huge", "schema_changed failed"),
+    # recipe_failed text is never trusted
+    ("recipe_failed", "template render failed: UndefinedError: 'Dana Cohen' is undefined",
+     "template render failed: UndefinedError"),
+    ("recipe_failed", "check.py: literal 052-1234567 in the body", ""),
+    (None, "input x: column 'Dana Cohen' missing", "refresh failed"),
+])
+def test_public_detail_withholds_everything_else(reason, detail, lead):
+    out = rf.public_detail(detail, reason)
+    assert "Dana" not in out and "052-1234567" not in out
+    assert "details withheld" in out
+    if lead and reason != "too_large":
+        assert out.splitlines()[0] == lead
+
+
+def test_public_detail_validation_error_keeps_locations_not_inputs():
+    from pydantic import BaseModel, Field, ValidationError
+
+    class Kpi(BaseModel):
+        display: str = Field(max_length=5)
+
+    class Model(BaseModel):
+        count: int
+        kpis: dict[str, Kpi]
+
+    try:
+        Model(count="052-1234567", kpis={"total": {"display": "Dana Cohen"},
+                                         "\u05d3\u05e0\u05d4": {"display": "Dana Levi"}})
+    except ValidationError as e:
+        detail = f"compute() output is not a valid page model: {e}"
+    out = rf.public_detail(detail, "recipe_failed")
+    assert "052-1234567" not in out and "Dana" not in out and "\u05d3\u05e0\u05d4" not in out
+    assert out.splitlines()[0] == (
+        "compute() output is not a valid page model: ValidationError: 3 validation error(s) "
+        "for Model: count (int_parsing); kpis.total.display (string_too_long); "
+        "kpis.\u2026.display (string_too_long)")
+
+
+def test_queue_authoring_redacts_a_validation_error_in_the_issue(monkeypatch):
+    from pydantic import BaseModel, ValidationError
+
+    class Model(BaseModel):
+        phone: int
+
+    try:
+        Model(phone="Dana Cohen 052-1234567")
+    except ValidationError as e:
+        detail = f"compute() output is not a valid page model: {e}"
+    sent = []
+    monkeypatch.setattr("services.page_builder.notify.open_authoring_issue",
+                        lambda **kw: sent.append(kw) or 5)
+    from services.page_builder import notify
+    store = FakeStore(_src())
+    assert rf.queue_authoring(store, store.src, "recipe_failed", detail=detail) == 5
+    body = notify.issue_body(dataset_id=DS, title="t", org="o", reason="recipe_failed",
+                             detail=sent[0]["detail"])
+    assert "Dana" not in body and "052-1234567" not in body
+    assert "phone (int_parsing)" in body
 
 
 def test_bare_sigabrt_is_not_retried(env, monkeypatch):
