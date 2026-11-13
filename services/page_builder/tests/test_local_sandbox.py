@@ -51,7 +51,9 @@ def as_root(monkeypatch):
     )
     rec = _RunRecorder()
     monkeypatch.setattr(ls, "_run_capped", rec)
-    return SimpleNamespace(chowns=chowns, run=rec)
+    subreaper = []
+    monkeypatch.setattr(ls, "_become_subreaper", lambda: subreaper.append(1))
+    return SimpleNamespace(chowns=chowns, run=rec, subreaper=subreaper)
 
 
 def test_root_drops_to_sandbox_user(tmp_path, as_root):
@@ -376,3 +378,61 @@ def test_grpc_fork_support_disabled_by_package_import():
         env=env, capture_output=True, text=True, check=True,
     )
     assert out.stdout.strip() == "0"
+
+
+# ── process cap + end-of-session reap (privilege-separated only) ─────────
+
+
+def test_privsep_commands_get_the_process_cap(tmp_path, as_root):
+    sb = ls.LocalSandbox.create(tmp_path / "s", max_procs=256)
+    assert as_root.subreaper  # orphans come back to the host to be reaped
+    sb.run_code("print(1)", language="python")
+    sb.run_code("echo hi", language="bash")
+    (py, _), (sh, _) = as_root.run.calls
+    assert py[2].startswith("import resource as _r; _r.setrlimit(_r.RLIMIT_NPROC, (256, 256))")
+    assert py[2].endswith("\nprint(1)")
+    assert sh[2] == "ulimit -u 256\necho hi"
+
+
+def test_no_cap_without_privsep_or_without_a_value(tmp_path, as_root, monkeypatch):
+    ls.LocalSandbox.create(tmp_path / "a").run_code("print(1)")
+    assert as_root.run.calls[-1][0][2] == "print(1)"
+    monkeypatch.setattr(ls.os, "geteuid", lambda: 1000)  # local authoring: the user's own uid
+    ls.LocalSandbox.create(tmp_path / "b", max_procs=256).run_code("print(1)")
+    assert as_root.run.calls[-1][0][2] == "print(1)"
+
+
+def test_reap_kills_every_process_of_the_uid_and_waits_for_them(tmp_path, monkeypatch):
+    sb = ls.LocalSandbox(tmp_path, (UID, GID))
+    scans = iter([[11, 12], [12, 13], []])  # 13 forked while the first pass ran
+    killed, waited = [], []
+    monkeypatch.setattr(ls, "_pids_of_uid", lambda uid: next(scans, []))
+    monkeypatch.setattr(ls.os, "kill", lambda pid, sig: killed.append((pid, sig)))
+
+    def waitpid(pid, flags):
+        waited.append(pid)
+        if pid == 12:
+            raise ChildProcessError  # not ours: left to its parent
+        return pid, 9
+
+    monkeypatch.setattr(ls.os, "waitpid", waitpid)
+    monkeypatch.setattr(ls.time, "sleep", lambda s: None)
+    assert sb._reap_stragglers() == 3
+    assert killed == [(11, ls.signal.SIGKILL), (12, ls.signal.SIGKILL), (13, ls.signal.SIGKILL)]
+    assert waited == [11, 12, 12, 13]
+
+
+def test_reap_gives_up_after_its_deadline(tmp_path, monkeypatch):
+    sb = ls.LocalSandbox(tmp_path, (UID, GID))
+    clock = iter(range(100))
+    monkeypatch.setattr(ls.time, "monotonic", lambda: next(clock))
+    monkeypatch.setattr(ls.time, "sleep", lambda s: None)
+    monkeypatch.setattr(ls, "_pids_of_uid", lambda uid: [42])  # never goes away
+    monkeypatch.setattr(ls.os, "kill", lambda pid, sig: None)
+    monkeypatch.setattr(ls.os, "waitpid", lambda pid, flags: (0, 0))
+    assert sb._reap_stragglers() == 1  # signalled once, not on every rescan
+
+
+def test_pids_of_uid_reads_proc():
+    assert os.getpid() in ls._pids_of_uid(os.getuid())
+    assert os.getpid() not in ls._pids_of_uid(os.getuid() + 12345)

@@ -556,7 +556,13 @@ def test_map_download_failures_are_classified(tmp_path, files, kw, reason):
         rf.fetch_inputs(recipe, _map_resources(), tmp_path / "d", preview_fn=preview,
                         fetch_fn=fetch, fetch_file_fn=files)
     assert e.value.reason == reason, e.value
-    assert isinstance(e.value, rf.StrikeError) == isinstance(files.error, DownloadBlocked)
+    strike = getattr(e.value, "strike", None)
+    if isinstance(files.error, DownloadBlocked):
+        assert strike == "download_blocked"
+    elif isinstance(files.error, URLError):
+        assert strike == "download_failed"  # network: retried, counted
+    else:
+        assert strike is None
 
 
 def test_map_input_fingerprints(tmp_path):
@@ -788,10 +794,11 @@ def test_dbf_record_count_is_bounded_by_the_bytes():
 
 
 @pytest.mark.parametrize("files, reason, strike", [
-    (FakeFiles(error=HTTPError(MAP_URL, 404, "x", {}, None)), "fetch_failed", True),
-    (FakeFiles(error=HTTPError(MAP_URL, 502, "x", {}, None)), "fetch_failed", False),
-    (FakeFiles(error=IncompleteRead(b"")), "fetch_failed", False),
-    (FakeFiles(_fc({"type": "Point", "coordinates": ["35.2", "31.7"]})), "schema_changed", False),
+    (FakeFiles(error=HTTPError(MAP_URL, 404, "x", {}, None)), "fetch_failed", "download_missing"),
+    # Any other failed download: retried, a `download_blocked` issue once it repeats.
+    (FakeFiles(error=HTTPError(MAP_URL, 502, "x", {}, None)), "fetch_failed", "download_failed"),
+    (FakeFiles(error=IncompleteRead(b"")), "fetch_failed", "download_failed"),
+    (FakeFiles(_fc({"type": "Point", "coordinates": ["35.2", "31.7"]})), "schema_changed", None),
 ])
 def test_more_map_failures_are_classified(tmp_path, files, reason, strike):
     recipe = Recipe.load(_with_map(tmp_path) / DS)
@@ -800,9 +807,11 @@ def test_more_map_failures_are_classified(tmp_path, files, reason, strike):
         rf.fetch_inputs(recipe, _map_resources(), tmp_path / "d", preview_fn=preview,
                         fetch_fn=fetch, fetch_file_fn=files)
     assert e.value.reason == reason, e.value
-    assert isinstance(e.value, rf.StrikeError) == strike
+    assert getattr(e.value, "strike", None) == strike
     if strike:
-        assert e.value.escalate_to == "schema_changed"
+        escalate = {"download_missing": "schema_changed", "download_failed": "download_blocked"}
+        assert e.value.escalate_to == escalate[strike]
+        assert rf._retry_later(e.value) is (strike == "download_failed")
 
 
 def test_redirect_off_data_gov_il_is_refused():

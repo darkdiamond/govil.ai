@@ -88,6 +88,33 @@ class FailReason(StrEnum):
     ERROR = "error"
     STAGE_FAILED = "stage_failed"
     RECIPE_INVALID = "recipe_invalid"
+    # check.py ran past its timeout on the rendered body: transient (the page
+    # may sit near the limit) until it repeats REFRESH_TRANSIENT_STRIKES runs,
+    # then `recipe_failed`.
+    CHECK_TIMEOUT = "check_timeout"
+
+
+class StrikeKind(StrEnum):
+    """A key of `transient_strikes`: one kind of transient refresh failure,
+    counted per consecutive run until REFRESH_TRANSIENT_STRIKES escalates it
+    (refresh.StrikeError)."""
+    PREVIEW_UNAVAILABLE = "preview_unavailable"  # a datastore preview didn't answer
+    PREVIEW_BLOCKED = "preview_blocked"          # ...and datastore_search 403s (the WAF)
+    DOWNLOAD_BLOCKED = "download_blocked"        # a map-file download the WAF refused
+    DOWNLOAD_MISSING = "download_missing"        # a map file CKAN lists answers 404/410
+    SANDBOX_FAILED = "sandbox_failed"            # spawn flake / netguard install
+    # Reset when the recipe or the builder code moves (a fix gets fresh tries):
+    NO_ROWS = "no_rows"                          # a required resource has no rows
+    EXPORT_FAILED = "export_failed"              # a full export came back failed/short
+    DOWNLOAD_FAILED = "download_failed"          # a map-file download failed otherwise
+    CHECK_TIMEOUT = "check_timeout"              # check.py timed out on the body
+    ERROR = "error"                              # an unexpected exception
+
+
+class StageStep(StrEnum):
+    """`RefreshOutcome.stage`: which staging write a `stage_failed` lost."""
+    UPLOAD = "upload"  # the GCS upload of content.html
+    STORE = "store"    # a Firestore state write
 
 
 class AuthoringReason(StrEnum):

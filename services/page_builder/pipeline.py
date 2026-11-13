@@ -545,6 +545,9 @@ async def _run_pipeline_body(
             )
             if summary["providers"]["failed"]:
                 log.warning("provider sync failures: %s", summary["providers"]["failed"])
+            if summary["providers"].get("escalated"):
+                await asyncio.to_thread(
+                    queue_provider_escalations, store, summary["providers"]["escalated"])
         except Exception:
             log.exception("provider sync failed — provider pages stay last-good this run")
 
@@ -719,6 +722,27 @@ def summarize_for_log(summary: dict) -> list[str]:
         kept = {k: v for k, v in o.items() if v is not None and v != {} and v != []}
         lines.append(line({"refresh_outcome": kept}))
     return lines
+
+
+def queue_provider_escalations(store, escalated: list[dict]) -> None:
+    """Open the needs-authoring issue of each provider dataset whose sync kept
+    failing (`sync_provider_sources`' `escalated`). Its page is frozen
+    last-good and the refresh never runs for it, so nothing else would. Same
+    path as a refresh failure (`queue_authoring`: an open issue is reused).
+    Writes the issue number into each entry; one dataset's error never stops
+    the others."""
+    for item in escalated:
+        try:
+            src = store.get_source(item["id"])
+        except Exception:
+            log.exception("provider sync %s: reading the source doc failed", item["id"])
+            continue
+        if src is None:
+            continue
+        item["issue"] = _refresh._queue_authoring_safely(
+            store, src, AuthoringReason.SCHEMA_CHANGED,
+            detail=f"provider sync failed {item['strikes']} runs in a row: {item['error']}",
+        )
 
 
 def _cli() -> None:

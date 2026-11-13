@@ -36,6 +36,9 @@ JOB_STATE_COLL = "job_state"
 # when the strike counts reset, the fingerprint probe once its bump settles.
 _CLEAR_STRIKE_SINCE = {"wall_budget_strikes_since": None, "transient_strikes_since": None}
 _CLEAR_PROBE = {"probed_at": None, "probed_metadata_modified": None, "probed_key": None}
+# The refresh precheck's stored fingerprints and hashes (refresh.py, checks A/A′/B/B′/C).
+_CLEAR_HASHES = {"input_fingerprint": None, "file_fingerprint": None, "inputs_hash": None,
+                 "inputs_hash_unordered": None, "content_hash": None}
 
 
 def _count(query) -> int:
@@ -288,8 +291,19 @@ class FirestoreStateStore:
         """The fields the provider sync's listing-key skip reads (empty when
         the doc doesn't exist)."""
         snap = self.client.collection(SOURCES_COLL).document(dataset_id).get(
-            field_paths=["provider_listing_key", "provider_verified_at", "resources"])
+            field_paths=["provider_listing_key", "provider_verified_at", "resources",
+                         "provider_sync_strikes", "provider_sync_strikes_since"])
         return (snap.to_dict() or {}) if snap.exists else {}
+
+    def set_provider_sync_strikes(self, dataset_id: str, strikes: int,
+                                  since: datetime | None) -> None:
+        """Consecutive provider-sync failures of an existing provider doc and
+        when that run of them began (0 / None clears them). `update`, not
+        `set`: a dataset whose first sync never landed gets no stub doc."""
+        self.client.collection(SOURCES_COLL).document(dataset_id).update({
+            "provider_sync_strikes": strikes or None,
+            "provider_sync_strikes_since": since if strikes else None,
+        })
 
     def save_provider_source(self, dataset_id: str, payload: dict) -> bool:
         """Upsert a provider dataset's `sources/{id}` doc (services/providers/
@@ -727,6 +741,7 @@ class FirestoreStateStore:
         wall_budget_strikes: int | None = None,
         transient_strikes: dict[str, int] | None = None,
         strike_since: dict[str, Any] | None = None,
+        clear_hashes: bool = False,
     ) -> None:
         """Record a failed refresh. Never touches `analysis_status`: the
         last-good page stays live. `failed_version`
@@ -739,7 +754,10 @@ class FirestoreStateStore:
         kind) are written only when given; other failures leave them alone.
         `strike_since` (only with REFRESH_STRIKE_MIN_HOURS) writes the
         strike-start fields it names, as given. Any failure drops a recorded
-        fingerprint probe, so the next run probes again."""
+        fingerprint probe, so the next run probes again. `clear_hashes` also
+        drops the precheck fingerprints and hashes (a staged body they no
+        longer describe: the refresh's failed rollback), so no skip can match
+        them until the next full render."""
         payload: dict[str, Any] = {
             "refresh_status": RefreshStatus.FAILED,
             "refresh_error": (error or "")[:1000],
@@ -754,6 +772,8 @@ class FirestoreStateStore:
         if strike_since:
             payload.update(strike_since)
         payload.update(_CLEAR_PROBE)
+        if clear_hashes:
+            payload.update(_CLEAR_HASHES)
         # merge= field paths, not merge=True: each listed field is replaced
         # whole, so a key popped from `transient_strikes` is really gone
         # (merge=True deep-merges maps). Unlisted fields are left alone.
