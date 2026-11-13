@@ -280,11 +280,13 @@ landing pages. Six layers:
    that changes code or libraries retries a locked source once (an env- or
    Dockerfile-only redeploy doesn't; force it with `pipeline --source`) and
    reuses its open issue; a
-   transient fetch failure (network, or the fetch wall budget running out) or
-   sandbox-spawn crash (`sandbox_failed`: the gRPC fork abort, after an in-run
-   retry) just retries next run, except that `REFRESH_WALL_BUDGET_STRIKES` (6) wall-budget
+   transient fetch failure (network, or the fetch wall budget running out)
+   just retries next run, except that `REFRESH_WALL_BUDGET_STRIKES` (6) wall-budget
    overruns since the last full fetch (`wall_budget_strikes` in the refresh
-   state) open a `too_large` issue. A datastore preview that fails (CKAN
+   state) open a `too_large` issue. A sandbox-spawn crash (`sandbox_failed`:
+   the gRPC fork abort after an in-run retry, or a failed no-network filter)
+   counts strikes and, after `REFRESH_TRANSIENT_STRIKES` runs, opens a
+   `sandbox_broken` issue and locks until the next builder redeploy. A datastore preview that fails (CKAN
    timeout/5xx) is transient too, never a lost column: `preview_unavailable`
    escalates to `schema_changed` only after `REFRESH_TRANSIENT_STRIKES` (6)
    runs in a row (a slow CKAN falsely locked 16 sources on 2026-11-02).
@@ -314,7 +316,7 @@ landing pages. Six layers:
    `oom_score_adj=1000`, so an outsized recipe dies alone, and with no
    network (`REFRESH_COMPUTE_NETWORK`, default `deny`: a seccomp filter,
    `netguard.py`, refuses every non-AF_UNIX socket; a failed install is
-   `sandbox_failed`, transient; `allow` turns it off). **Map files:**
+   `sandbox_failed`, see above; `allow` turns it off). **Map files:**
    geometry that exists only in an uploaded SHP/KMZ/GeoJSON is read by an
    input with `map: true`. The refresh downloads the file on every run
    (`ckan_export.fetch_resource_file`, `data.gov.il` host only) and converts
