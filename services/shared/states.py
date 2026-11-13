@@ -124,7 +124,7 @@ class NewsRunStatus(StrEnum):
     the two SKIPPED_* exit non-zero."""
     OK = "ok"
     IDLE = "idle"
-    DISABLED = "disabled"                # NEWS_PUBLISH is not 'live'
+    DISABLED = "disabled"                # NEWS_PUBLISH or news_state/control is not "live"
     SKIPPED_QUIET = "skipped_quiet"      # inside QUIET_WINDOW: nothing read or written
     SKIPPED_OVERLAP = "skipped_overlap"  # another run holds news_state/lock
     FAILED = "failed"

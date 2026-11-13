@@ -6,6 +6,13 @@ re-renders something).
     python -m services.news.admin unpublish <slug>            # page removed on next publish
     python -m services.news.admin republish <slug>
     python -m services.news.admin correct <slug> --note "…"   # shown on the page, bumps dateModified
+    python -m services.news.admin publish on|off|status       # the kill switch
+
+`publish off` writes `news_state/control {publish: "off"}`: from the next run
+on, the job publishes nothing, whatever its NEWS_PUBLISH env says (a deploy
+can't reset it). `publish on` writes "live", which hands the decision back to
+the env: the job still needs NEWS_PUBLISH=live. `status` prints the flag
+(not set = the env decides).
 """
 from __future__ import annotations
 
@@ -15,7 +22,14 @@ import sys
 
 
 def main(argv: list[str] | None = None) -> int:
-    from .store import ARTICLES, LIVE_STATUSES, REJECTS, FirestoreArticles
+    from .store import (
+        ARTICLES,
+        CONTROL,
+        LIVE_STATUSES,
+        REJECTS,
+        STATE,
+        FirestoreArticles,
+    )
 
     ap = argparse.ArgumentParser(prog="python -m services.news.admin")
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -27,9 +41,18 @@ def main(argv: list[str] | None = None) -> int:
     c = sub.add_parser("correct")
     c.add_argument("slug")
     c.add_argument("--note", required=True)
+    sub.add_parser("publish").add_argument("mode", choices=("on", "off", "status"))
     a = ap.parse_args(argv)
 
     st = FirestoreArticles()
+    if a.cmd == "publish":
+        if a.mode != "status":
+            st.set_publish_flag("live" if a.mode == "on" else "off")
+        flag = st.read_publish_flag()
+        print(f"{STATE}/{CONTROL} publish={flag or '(not set: the env NEWS_PUBLISH decides)'}")
+        if flag == "live":
+            print("the job publishes only while its NEWS_PUBLISH env is also 'live'", file=sys.stderr)
+        return 0
     if a.cmd == "list":
         if a.rejected:
             for d in st.db.collection(REJECTS).order_by("at", direction="DESCENDING").limit(50).stream():

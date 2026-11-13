@@ -5,7 +5,8 @@ high-demand datasets when event news left the Israel date short.
     python -m services.news.run --signals-only                 # rank signals, write nothing
     python -m services.news.run --signals-only --models-dir D  # …from local snapshots/dumps
     python -m services.news.run --dry-run --out tmp/news/      # the whole day, written to a dir
-    python -m services.news.run                                # live (needs NEWS_PUBLISH=live)
+    python -m services.news.run                                # live (needs NEWS_PUBLISH=live and
+                                                               # news_state/control not "off")
 
 Live writes `articles/<slug>` (Firestore) + `gs://<staging>/news/<slug>/`
 (images) and dispatches the publish workflow when ≥1 article was accepted.
@@ -71,7 +72,7 @@ from .llm import LLMError, LLMTransient, LLMUnavailable
 from .series import Series, extract_series
 from .signals import Signal, detect_all, is_new_dataset, new_dataset_signal, rank
 from .snapshots import GcsSnapshots, History, LocalSnapshots, Snapshot, history
-from .store import LIVE_STATUSES, LOCK_DOC, published_at
+from .store import CONTROL, LIVE_STATUSES, LOCK_DOC, STATE, published_at
 from .tools import Toolbox
 from .writer import DATA_ONLY_KINDS, Outcome, write
 
@@ -756,6 +757,26 @@ def _lease_ttl_s() -> float:
     return float(_env_int("NEWS_LEASE_TTL_S", LEASE_TTL_DEFAULT_S))
 
 
+def _kill_switch(articles, bucket: str) -> tuple[str | None, str | None]:
+    """The Firestore half of the kill switch (`news_state/control`, which a
+    deploy can't reset); the env half (NEWS_PUBLISH) is checked first.
+    Returns (refusal, error): both None when the flag allows a live run or is
+    missing (the env decides); `refusal` when it says anything but "live";
+    `error` when it couldn't be read, which counts as off (logged at error
+    level). `articles` None (an ad-hoc run that opened no store): opened here."""
+    try:
+        if articles is None:
+            from .store import FirestoreArticles
+            articles = FirestoreArticles(bucket=bucket)
+        flag = articles.read_publish_flag()
+    except Exception as e:
+        log.exception("news: reading %s/%s failed; treating the kill switch as off", STATE, CONTROL)
+        return None, f"kill switch unreadable (treated as off): {type(e).__name__}: {str(e)[:300]}"
+    if flag is None or flag == "live":
+        return None, None
+    return f"{STATE}/{CONTROL} publish={flag!r}", None
+
+
 def _acquire_lease(articles, holder: str) -> bool | None:
     """True: ours. False: another run holds it. None: Firestore error, logged
     at error level; the run goes on without it (as the builder does)."""
@@ -894,6 +915,16 @@ def main(argv: list[str] | None = None) -> int:
                                   "error": f"cursor: {type(e).__name__}: {str(e)[:300]}"}))
                 return 1
             log.warning("news: article store unavailable — using the bootstrap window", exc_info=True)
+    if live:
+        refusal, error = _kill_switch(articles, a.bucket)
+        if error:
+            print(json.dumps({"type": "news_summary", "status": NewsRunStatus.FAILED, "error": error}))
+            return 1
+        if refusal:
+            log.info("news: publishing is off (%s)", refusal)
+            print(json.dumps({"type": "news_summary", "status": NewsRunStatus.DISABLED,
+                              "reason": refusal}))
+            return 0
     if gated and articles is not None:
         holder = _lease_holder()
         acquired = _acquire_lease(articles, holder)

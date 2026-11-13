@@ -143,6 +143,9 @@ class _FakeArticles:
         _FakeArticles.cursor = upto
         return True
 
+    def read_publish_flag(self):
+        return None   # the kill switch's doc is missing: the env decides
+
 
 # The live tests run on the real clock: a cursor two days back is in reach.
 CURSOR = (datetime.now(UTC) - timedelta(days=2)).strftime("%Y%m%dT%H%M%SZ")

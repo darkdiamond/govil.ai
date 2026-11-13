@@ -16,7 +16,9 @@
 # in the OpenRouter dashboard, plus a GCP budget alert. A refused key ends
 # the run `llm_unavailable` (non-zero exit), pages untouched.
 #
-# Kill switch without a redeploy:
+# Kill switch (a Firestore flag no deploy touches; the next run honors it):
+#   python -m services.news.admin publish off      # `on` / `status`
+# The env is the second switch: a run publishes only while both say live.
 #   gcloud run jobs update govdata-news-job --region=me-west1 --update-env-vars NEWS_PUBLISH=off
 # A redeploy keeps the live job's NEWS_PUBLISH unless one is exported
 # (`NEWS_PUBLISH=live ./infra/news-job.deploy.sh` turns it back on); a first

@@ -539,7 +539,12 @@ catalog` lists chapters → subjects → codes.
      and files dropped), capped by `NEWS_TABLE_MAX_ROWS` (1M) and
      `NEWS_TABLE_MAX_BYTES` (150MB of CSV); over a cap the writer has no SQL
      for that dataset (`data.py`).
-   - kill switch: `NEWS_PUBLISH=off` (env update, no redeploy). Unpublish /
+   - kill switch: `python -m services.news.admin publish off|on|status`, the
+     Firestore flag `news_state/control` `{publish}` in the `news` database,
+     which no deploy resets. A live run publishes only when both it and the
+     env `NEWS_PUBLISH` say live: either one off → off, a missing doc follows
+     the env, and a flag the run can't read counts as off (`failed`, exit 1).
+     Unpublish /
      correct: `python -m services.news.admin unpublish|correct <slug>`, then
      a publish run. Rejected drafts: `admin list --rejected`.
    - spending is capped by the key's limit in OpenRouter + a GCP budget
