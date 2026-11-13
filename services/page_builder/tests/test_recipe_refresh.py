@@ -2179,7 +2179,8 @@ def test_author_runtime_parity_covers_numpy(tmp_path, monkeypatch):
                author.BUILDER_REQUIREMENTS.read_text(encoding="utf-8").splitlines())
 
 
-@pytest.mark.parametrize("bad", ["../x", "/etc", "", "/tmp/x", "cbs-", "nope-x", "AAAAAAAA-0000-0000-0000-000000000001"])
+@pytest.mark.parametrize("bad", ["../x", "/etc", "", "/tmp/x", "cbs-", "nope-x", "AAAAAAAA-0000-0000-0000-000000000001",
+                                 DS + "\n", "cbs-average-wage\n", "cbs-" + "a" * 77])
 def test_author_rejects_path_like_ids(tmp_path, monkeypatch, bad):
     from services.page_builder import author
     from services.page_builder.cli import preview
@@ -2194,7 +2195,8 @@ def test_author_rejects_path_like_ids(tmp_path, monkeypatch, bad):
     assert not (tmp_path / "authoring").exists() and not (tmp_path / "preview").exists()
 
 
-@pytest.mark.parametrize("good", [DS, "cbs-average-wage", "boi-interest-rate", "cbs-index-cpi"])
+@pytest.mark.parametrize("good", [DS, "cbs-average-wage", "boi-interest-rate", "cbs-index-cpi",
+                                  "cbs-" + "a" * 76])
 def test_author_accepts_dataset_and_provider_ids(good):
     from services.page_builder import author
 

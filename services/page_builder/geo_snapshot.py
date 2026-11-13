@@ -400,7 +400,7 @@ def simplify_features(features: Iterable[dict], *, crs: str,
                 geom = _map_lines(geom, lambda pts, ring: _prepare_line(pts, ring, project))
             except SnapshotError:
                 raise
-            except (KeyError, TypeError, ValueError) as e:  # a geometry no check stopped
+            except (KeyError, TypeError, ValueError, IndexError) as e:  # a geometry no check stopped
                 raise SnapshotError(f"malformed geometry ({type(e).__name__}: {e})") from None
         own = list(_lines(geom))
         lines += own

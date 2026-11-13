@@ -19,20 +19,32 @@ new Function("module", "exports", resourceUrlJs)(
   resourceUrlModule,
   resourceUrlModule.exports
 );
-const { publicResourceUrl } = resourceUrlModule.exports;
+const { publicResourceUrl, resourceFormat } = resourceUrlModule.exports;
 
 // Shared with services/scanner/tests/test_models.py (the Python original).
-const { vectors: resourceUrlVectors } = JSON.parse(
-  readFileSync(
-    new URL("./fixtures/resource-url-vectors.json", import.meta.url),
-    "utf8"
-  )
-);
+const { vectors: resourceUrlVectors, format_vectors: formatVectors } =
+  JSON.parse(
+    readFileSync(
+      new URL("./fixtures/resource-url-vectors.json", import.meta.url),
+      "utf8"
+    )
+  );
 
 test("publicResourceUrl matches the shared vectors", () => {
   assert.ok(resourceUrlVectors.length > 10);
   for (const [input, expected] of resourceUrlVectors) {
     assert.equal(publicResourceUrl(input), expected, JSON.stringify(input));
+  }
+});
+
+test("resourceFormat matches the shared vectors", () => {
+  assert.ok(formatVectors.length > 10);
+  for (const [format, url, expected] of formatVectors) {
+    assert.equal(
+      resourceFormat({ format, url }),
+      expected,
+      JSON.stringify([format, url])
+    );
   }
 });
 

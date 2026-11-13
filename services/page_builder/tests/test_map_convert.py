@@ -279,6 +279,16 @@ def test_a_huge_integer_position_is_the_datas_error_not_a_crash():
         gs.simplify_features(feats, crs="wgs84")
 
 
+@pytest.mark.parametrize("coords", [[[35], [36]], [[], []], [[[35, 31]], [[35.1, 31]]]])
+def test_an_unchecked_short_or_deep_position_is_a_snapshot_error(coords):
+    # A direct caller skips iter_map's position check; the belt still turns
+    # the IndexError into the data's error.
+    feats = [{"type": "Feature", "properties": {},
+              "geometry": {"type": "LineString", "coordinates": coords}}]
+    with pytest.raises(gs.SnapshotError, match="malformed geometry"):
+        gs.simplify_features(feats, crs="wgs84")
+
+
 _BAD_COLLECTIONS = [
     {"type": "GeometryCollection"},                       # no geometries
     {"type": "GeometryCollection", "geometries": None},

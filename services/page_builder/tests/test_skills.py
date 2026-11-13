@@ -28,12 +28,57 @@ def _commands(text: str, prefix: str) -> list[str]:
     return [line.strip() for line in joined.splitlines() if line.strip().startswith(prefix)]
 
 
+# Any command (or prose mention) that reads PRs: list/view/checks/diff or the
+# raw API, wherever it sits on the line (`rtk gh pr list`, inline in prose).
+_PR_READ_RE = re.compile(r"\bgh (pr (view|list|checks|diff)|api)\b")
+SKILLS_DIR = SKILL.parents[1]
+
+
+def _pr_read_lines(text: str) -> list[str]:
+    joined = re.sub(r"\\\n\s*", " ", text)
+    return [line.strip() for line in joined.splitlines() if _PR_READ_RE.search(line)]
+
+
 def test_pr_list_counts_only_same_repo_prs_and_reads_no_pr_text():
-    cmds = _commands(_text(), "gh pr list")
-    assert cmds, "expected a gh pr list command in SKILL.md"
-    for cmd in cmds:
-        assert "isCrossRepository" in cmd, cmd
-        assert "--jq" in cmd, cmd
+    assert _commands(_text(), "gh pr list"), "expected a gh pr list command in SKILL.md"
+    for path in sorted(SKILLS_DIR.glob("*/SKILL.md")):
+        for line in _pr_read_lines(path.read_text(encoding="utf-8")):
+            assert "isCrossRepository" in line, f"{path.parent.name}: {line}"
+            assert "--jq" in line, f"{path.parent.name}: {line}"
+
+
+def test_pr_read_check_catches_reads_not_at_line_start():
+    text = (
+        "rtk gh pr list --repo x --json body\n"
+        "Read it with `gh pr view 12` first.\n"
+        "gh api repos/x/pulls \\\n  --jq '.[].body'\n"
+        "gh pr create --title t\n"
+        "gh pr merge 1 --merge\n"
+    )
+    assert len(_pr_read_lines(text)) == 3
+
+
+def test_open_pr_scan_matches_every_closing_keyword():
+    # GitHub closes an issue on close/closes/closed, fix/fixes/fixed,
+    # resolve/resolves/resolved, with an optional colon.
+    cmd = next(c for c in _commands(_text(), "gh pr list") if "scan(" in c)
+    m = re.search(r'scan\("(.+?)"\)', cmd)
+    assert m, cmd
+    pattern = m.group(1).replace("\\\\", "\\").replace("(?i)", "")
+    rx = re.compile(pattern, re.IGNORECASE)
+    body = ("Closes #1\nfixes #2\nResolves: #3\nclosed #4\nFix #5\nresolve #6\n"
+            "close: #7\nenclosed #8\nprefix-fixes#9\n")
+    assert sorted(int(n) for n in rx.findall(body)) == [1, 2, 3, 4, 5, 6, 7]
+
+
+def test_staging_stops_when_a_batch_id_staged_nothing():
+    text = _text()
+    m = re.search(r"^## 6\. One PR.*?(?=^## )", text, re.DOTALL | re.MULTILINE)
+    assert m, "step 6 not found"
+    section = m.group(0)
+    check = section.index('git diff --cached --quiet -- "recipes/$id"')
+    assert "exit 1" in section[check:section.index("git commit")]
+    assert section.index("git add \"recipes/$id/$f\"") < check < section.index("git commit")
 
 
 def test_trust_boundary_covers_pull_requests():

@@ -8,25 +8,11 @@ This repo is public: describe a security gap by what to change, never by how to 
 
 ## Recipes and refresh
 
-- **`public_resource_url` raises on a malformed bracketed host.** `urlsplit` throws
-  `ValueError` for a resource URL like `https://[::1/x`, so `Dataset.from_ckan_response` fails
-  for the whole dataset instead of blanking that one URL (the frontend mirror just returns it).
-  Fix: catch `ValueError` around `urlsplit` in `services/shared/ckan.py` and return "", with
-  a Python-only test (the shared vectors can't hold it unless `resource-url.ts` rejects it too).
-  (2026-11-10)
-
 - **The scanner's CKAN client ignores `CKAN_USER_AGENT`.** `services/scanner/client.py` sends a
   hardcoded Chrome User-Agent, while the builder's fetches (`services.shared.ckan.user_agent()`) use
   `govdata-builder/1.0` or the env override. A WAF change then needs a code change for the scan and
   the reconcile probes. Fix: have the scanner call `shared.ckan.user_agent()` too, after checking
   from Cloud Run that the builder UA passes the CKAN API for the scan's calls. (2026-11-10)
-
-- **Blank CKAN resource formats are inferred only at render time.** Some resources have an
-  empty `format` (02789da8 and d6b5032b .docx docs, 0180a8e4 .rar on 2026-11-10); the frontend's
-  `resourceFormat()` (`frontend/utils/resource-url.ts`) falls back to the URL extension for the
-  download badge, explorer and JSON-LD `encodingFormat`, but Firestore and the manifest's
-  `formats` stay blank. Fix: the same fallback in the scanner (`services/scanner/models.py`, next
-  `Dataset.from_ckan_response`), keeping the frontend helper as its mirror. (2026-11-10)
 
 - **Raster map layers have no input type.** 022552b2 (מפות מפלסים ומליחות באקוויפרים, a top
   no-recipe page by search clicks) ships only zips of yearly GeoTIFFs: coastal-aquifer water
@@ -351,38 +337,6 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
   cell breaks the table row or starts a line with `#`. Fix: collapse whitespace in every
   provider cell, or fence each provider section as a whole in `_brief`. (2026-11-11)
 
-- **`author prepare`'s stray-file check misses a symlinked directory.** `_stray_file_findings`
-  skips anything `is_dir()` (which follows symlinks) and `rglob` doesn't descend into it, so a
-  symlink to a directory in `recipes/<id>/` isn't flagged and a hand-made PR could commit it.
-  Fix: check `is_symlink()` before the directory skip. (2026-11-11)
-
-- **A mistyped id in the routine's staging loop stages nothing, silently.** In
-  solve-authoring-issues step 6, `jq` fails for a wrong id, the loop goes on, and that recipe
-  stays untracked; the `git status` check doesn't flag `?? recipes/<id>/`, so the PR closes the
-  issue without the recipe. Fix: after the loop, stop when any batch id has nothing staged
-  (`git diff --cached --quiet -- "recipes/$id"`). (2026-11-11)
-
-- **The routine's open-PR scan matches only `Closes #N`.** A same-repo PR that says
-  `Fixes #N`, `Resolves #N` or `closes: #N` no longer keeps its issue out of the batch, so that
-  dataset can be authored twice. Fix: match GitHub's closing keywords
-  (`(?i)\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?):?\s+#([0-9]+)`). (2026-11-11)
-
-- **`test_skills.py` checks only lines that start with `gh pr list`.** A PR read written as
-  `gh pr view`, `gh api …/pulls`, `rtk gh pr list` or inline in prose would pass without the
-  `isCrossRepository` filter. Fix: check every line matching
-  `\bgh (pr (view|list|checks|diff)|api)\b`. (2026-11-11)
-
-- **The CLI dataset-id check accepts a trailing newline and any length.** `_UUID_RE` and
-  `_PROVIDER_ID_RE` (`author.py`) use `re.match` with `$`, which also matches before a final
-  `\n`, and the provider form has no length cap (a 5,000-character id fails later with
-  ENAMETOOLONG). Neither can leave the directory. Fix: `fullmatch` and a `{1,80}` cap.
-  (2026-11-11)
-
-- **`simplify_features` raises `IndexError` on over-deep coordinates nobody checked.** The
-  belt in `geo_snapshot.simplify_features` catches `KeyError`/`TypeError`/`ValueError` only. The
-  production path rejects such a geometry first (`_checked`: "bad position"), so only a direct
-  caller can hit it. Fix: add `IndexError` to the tuple. (2026-11-11)
-
 - **Providers read bodies through httpx's private `Response._content`.** The capped read in
   `services/providers/base.py` assigns `r._content`; an httpx upgrade that renames it breaks
   every provider read (the provider tests would catch it at once). Fix: return the bytes
@@ -424,10 +378,7 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
   skip string literals in code, but attribute values stay scanned, so a template that puts a data
   value in `title="{{ v }}"` fails when the value happens to read like a `javascript:` URL.
   Fix: decide whether attribute values written from autoescaped data can be exempted (for
-  non-URL attributes only), or tell authors to keep data out of attributes. Separately,
-  `test_check_security.py`'s `_DATA_TEMPLATE` puts autoescaped `{{ model.v }}` inside a JS
-  template literal (autoescape doesn't touch a backtick or `${`): switch it to
-  `{{ model.v|tojson }}` so the test doesn't model a pattern recipes must not copy. (2026-11-11)
+  non-URL attributes only), or tell authors to keep data out of attributes. (2026-11-11)
 
 - **check.py's non-recipe mode has no production caller.** Since the agent builder was retired,
   every caller passes `--recipe` (`refresh.py` via `page_gate.run_host_check(..., recipe=True)`),

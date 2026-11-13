@@ -267,7 +267,9 @@ def test_dynamic_global_access_rejected(js, capsys):
 _DATA_TEMPLATE = (
     '<section class="card p-5 mb-6"><p>{{ model.v }}</p>'
     '<a href="/x" title="{{ model.v }}">x</a><script>(function(){'
-    "var rows = {{ model.rows|tojson }}; var t = `{{ model.v }}`;"
+    # Data reaches JS through tojson (a JSON string literal), never through
+    # autoescaped {{ }} in a template literal: autoescape leaves ` and ${ alone.
+    "var rows = {{ model.rows|tojson }}; var t = {{ model.v|tojson }};"
     ' var el = document.getElementById("x");'
     " if (el) { el.textContent = rows.length + t; }"
     '})();</script><script type="application/json" id="d">{{ model.rows|tojson }}'

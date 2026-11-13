@@ -132,8 +132,9 @@ def runtime_parity_problems(requirements: Path = BUILDER_REQUIREMENTS) -> list[s
     return problems
 
 
-_UUID_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
-_PROVIDER_ID_RE = re.compile(r"^[a-z0-9-]+$")
+# Matched with fullmatch: `$` would also accept a trailing newline.
+_UUID_RE = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
+_PROVIDER_ID_RE = re.compile(r"[a-z0-9-]{1,80}")
 
 
 def validate_dataset_id(dataset_id: str) -> str:
@@ -142,9 +143,9 @@ def validate_dataset_id(dataset_id: str) -> str:
     path-like id never reaches a path join or rmtree."""
     from services.providers import PROVIDER_CLASSES
 
-    if _UUID_RE.match(dataset_id):
+    if _UUID_RE.fullmatch(dataset_id):
         return dataset_id
-    if _PROVIDER_ID_RE.match(dataset_id) and any(
+    if _PROVIDER_ID_RE.fullmatch(dataset_id) and any(
         dataset_id.startswith(c.id_prefix) and dataset_id != c.id_prefix
         for c in PROVIDER_CLASSES.values()
     ):
@@ -807,7 +808,10 @@ def _stray_file_findings(recipe: Recipe) -> list[str]:
     out = []
     for path in sorted(recipe.root.rglob("*")):
         rel = path.relative_to(recipe.root)
-        if "__pycache__" in rel.parts or path.is_dir() or rel.as_posix() in allowed:
+        # is_dir() follows a symlink and rglob doesn't descend into one, so a
+        # symlinked directory would otherwise be skipped unflagged.
+        is_real_dir = path.is_dir() and not path.is_symlink()
+        if "__pycache__" in rel.parts or is_real_dir or rel.as_posix() in allowed:
             continue
         out.append(f"STRAY: recipes/{recipe.dataset_id}/{rel.as_posix()} is not a recipe "
                    "file; move it to tmp/authoring/ (raw rows must not be committed)")
