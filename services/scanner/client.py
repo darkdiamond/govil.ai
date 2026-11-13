@@ -19,7 +19,11 @@ from tenacity import (
     wait_exponential,
 )
 
-from services.shared.ckan import EXACT_TOTAL_THRESHOLD, is_authorization_error
+from services.shared.ckan import (
+    EXACT_TOTAL_THRESHOLD,
+    is_authorization_error,
+    user_agent,
+)
 
 from .config import ScannerSettings, settings
 from .models import Dataset
@@ -31,13 +35,31 @@ class CKANError(Exception):
     """Exception raised for CKAN API errors."""
 
 
+def _ckan_json(response: httpx.Response) -> bool:
+    """Whether a reply's body is CKAN's JSON envelope (`{"success": …}`)."""
+    try:
+        body = response.json()
+    except ValueError:
+        return False
+    return isinstance(body, dict) and "success" in body
+
+
 def _retryable(exc: BaseException) -> bool:
-    """Transport errors (timeouts included), 5xx, 408 and 429. Any other 4xx
-    (a WAF 403, a missing dataset's 404) answers the same on a second try."""
+    """Transport errors (timeouts included), 5xx, 408, 429, and a 404 whose
+    body isn't CKAN's JSON. Any other 4xx (a WAF 403, CKAN's own 404) answers
+    the same on a second try.
+
+    data.gov.il's edge answers an API 404 with its HTML "page not found"
+    screen, and has turned an origin 409 into that page (2026-11-11), so an
+    HTML 404 may hide an origin error that a second try gets past. It is also
+    what a dataset that really is missing gets (verified 2026-11-13), which
+    costs that lookup the bounded retries below."""
     if isinstance(exc, httpx.TransportError):
         return True
     if isinstance(exc, httpx.HTTPStatusError):
         code = exc.response.status_code
+        if code == 404:
+            return not _ckan_json(exc.response)
         return code >= 500 or code in (408, 429)
     return False
 
@@ -68,12 +90,10 @@ class CKANClient:
             timeout=httpx.Timeout(self.config.ckan_timeout),
             follow_redirects=True,
             headers={
-                # data.gov.il's WAF 403s requests without a browser User-Agent.
-                "User-Agent": (
-                    "Mozilla/5.0 (X11; Linux x86_64) "
-                    "AppleWebKit/537.36 (KHTML, like Gecko) "
-                    "Chrome/124.0.0.0 Safari/537.36"
-                ),
+                # The builder's UA (CKAN_USER_AGENT overrides it): data.gov.il's
+                # WAF passes it on the scan's API calls (checked from Cloud
+                # Run 2026-11-13), while python's default UA is refused.
+                "User-Agent": user_agent(),
                 "Accept": "application/json, text/plain, */*",
             },
         )

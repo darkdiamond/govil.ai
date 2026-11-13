@@ -17,6 +17,11 @@ an Israel date (`digest_attempt` / `floor_attempt`: an ISO date, plus the
 run id), so hourly runs try the weekly digest and the floor fill once
 (run.py `write_day`). `news_state/lock` is the run lease (services/shared/lease.py).
 
+`news_state/control` `{publish: "live" | "off"}` is the kill switch a deploy
+can't reset (`admin publish on|off|status`). A live run publishes only when
+both it and the job's NEWS_PUBLISH say live; a missing doc (or field) follows
+the env, and a read error counts as off (run.py `_kill_switch`).
+
 `signal_pool/<hash of key>` holds the signals the editor saw but didn't use,
 the weekly digest's raw material (digest.py), kept POOL_KEEP_DAYS.
 
@@ -32,7 +37,8 @@ from pathlib import Path
 
 ARTICLES, REJECTS, POOL = "articles", "article_rejects", "signal_pool"
 POOL_KEEP_DAYS = 14
-STATE, CURSOR, DAILY, LOCK = "news_state", "cursor", "daily", "lock"
+STATE, CURSOR, DAILY, LOCK, CONTROL = "news_state", "cursor", "daily", "lock", "control"
+PUBLISH_MODES = ("live", "off")
 LOCK_DOC = f"{STATE}/{LOCK}"
 META_FIELDS = ("slug", "status", "headline", "dek", "published_at", "updated_at", "byline",
                "dataset_ids", "tags", "signal_keys", "hero", "run_id", "models", "words",
@@ -104,6 +110,23 @@ class FirestoreArticles:
         """The stamp the last successful live run's window ended at, or None."""
         snap = self.db.collection(STATE).document(CURSOR).get()
         return (snap.to_dict() or {}).get("upto") if snap.exists else None
+
+    def read_publish_flag(self) -> str | None:
+        """`news_state/control.publish`, lower-cased, or None when the doc or
+        the field is missing (the env decides). Read errors propagate."""
+        snap = self.db.collection(STATE).document(CONTROL).get()
+        if not snap.exists:
+            return None
+        value = (snap.to_dict() or {}).get("publish")
+        if value is None:
+            return None
+        return str(value).strip().lower() or None
+
+    def set_publish_flag(self, mode: str) -> None:
+        if mode not in PUBLISH_MODES:
+            raise ValueError(f"publish flag must be one of {PUBLISH_MODES}, not {mode!r}")
+        self.db.collection(STATE).document(CONTROL).set(
+            {"publish": mode, "at": datetime.now(UTC)}, merge=True)
 
     def _transact(self, fn):
         """Run `fn(transaction)` in a Firestore transaction (retried on

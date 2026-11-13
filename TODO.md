@@ -8,12 +8,6 @@ This repo is public: describe a security gap by what to change, never by how to 
 
 ## Recipes and refresh
 
-- **The scanner's CKAN client ignores `CKAN_USER_AGENT`.** `services/scanner/client.py` sends a
-  hardcoded Chrome User-Agent, while the builder's fetches (`services.shared.ckan.user_agent()`) use
-  `govdata-builder/1.0` or the env override. A WAF change then needs a code change for the scan and
-  the reconcile probes. Fix: have the scanner call `shared.ckan.user_agent()` too, after checking
-  from Cloud Run that the builder UA passes the CKAN API for the scan's calls. (2026-11-10)
-
 - **Raster map layers have no input type.** 022552b2 (מפות מפלסים ומליחות באקוויפרים, a top
   no-recipe page by search clicks) ships only zips of yearly GeoTIFFs: coastal-aquifer water
   level 1954-2023 (70 files, 85MB) and chloride 1977-2020 (35 files, 38MB), 527×1250 float32
@@ -290,10 +284,14 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
 - **The writer's `fetch_url` gets HTTP 403 from www.gov.il pages.** In the 2026-11-11 explainer
   dry run, all 4 gov.il fetches (contractor classification pages, the doctors' registry service
   page) were refused, so an article can't cite or quote an official gov.il page and the attempts
-  waste tool calls (one draft ran out of its budget). boi.org.il was not tested. Fix: find out
-  what the site accepts for an identified, polite client (the builder's data.gov.il UA was
-  user-approved, see CLAUDE.md layer 5), get the user's approval for that client, and until then
-  tell the writer in `prompts/writer.md` that gov.il fetches fail. (2026-11-11)
+  waste tool calls (one draft ran out of its budget). Tested 2026-11-13: www.gov.il sits behind
+  Cloudflare and answers every identified UA tried (`govdata-news/1.0` and `govil.ai-news/1.0`
+  with the `+https://govil.ai/news/about/` link, `govdata-builder/1.0`, a non-Mozilla
+  `govil.ai-news/1.0`), with or without browser Accept headers, with its "Sorry, you have been
+  blocked" 403 page, from a home connection (all four) and from Cloud Run (the two news UAs);
+  only `/robots.txt` is served. boi.org.il and www.cbs.gov.il answer 200. The writer prompt
+  now says www.gov.il fetches fail. Fix: ask gov.il (the digital office) to allow an identified client, or find an official
+  API or feed for the pages we want to cite. (2026-11-11)
 
 - **`fetch.py` bounds slow response headers only per read.** The fetch's total deadline is
   checked between operations, so a very slow response header or TLS handshake is bounded only
@@ -301,11 +299,6 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
   the job's task timeout caps it. Fix: a per-hop timeout of
   `min(TIMEOUT, remaining)`, or a watchdog that closes the connection at the deadline.
   (2026-11-11)
-
-- **The news kill switch lives in the job's env.** The deploy scripts now keep a live
-  `NEWS_PUBLISH` (and the builder's `CKAN_USER_AGENT`) unless one is exported, but
-  `gcloud run jobs deploy` from anywhere else still resets it. Fix: move the kill switch to a
-  Firestore flag (the `news` database) that a deploy can't touch. (2026-11-11)
 
 - **The `news` database's security rules aren't in the repo.** `firebase.json` deploys
   `firestore.rules` (deny all) to `(default)` only; the `news` database, created by
@@ -318,8 +311,3 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
   thresholds or clock times in words. Compare `admin list --rejected` for the two weeks after
   the deploy with the two before; if stories die on phrasing the writer can't tokenize,
   loosen that rule in `ledger.spelled_numbers`. (2026-11-11)
-- **The scanner no longer retries a 4xx, and data.gov.il's edge can turn an origin error into
-  a 404 page.** A CKAN 409 was seen arriving as an HTTP 404 HTML page on 2026-11-11. If an
-  origin 5xx is rewritten the same way, `package_search` fails on the first try and the scan
-  ends `scan_failed` (the next run retries). Fix: capture what a real origin 5xx looks like
-  from Cloud Run; if it is masked, retry a 404 whose body is not CKAN JSON. (2026-11-11)

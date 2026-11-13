@@ -34,10 +34,16 @@ class _Articles:
     recent_docs: ClassVar[list] = []
     reads: ClassVar[list] = []
     constructed = 0
+    publish_flag: str | None = None
 
     def __init__(self, **_kw):
         _Articles.constructed += 1
         self.db = object()
+
+    def read_publish_flag(self):
+        if isinstance(_Articles.publish_flag, Exception):
+            raise _Articles.publish_flag
+        return _Articles.publish_flag
 
     def read_cursor(self):
         _Articles.reads.append("cursor")
@@ -59,10 +65,10 @@ class _Articles:
         _Articles.daily[f"{duty}_attempt"] = il_date
 
 
-@pytest.fixture
-def live(monkeypatch):
+def live_gates(monkeypatch):
+    """The `live` fixture's setup, callable from other test modules."""
     _Articles.cursor, _Articles.daily, _Articles.recent_docs = CURSOR, {}, []
-    _Articles.reads, _Articles.constructed = [], 0
+    _Articles.reads, _Articles.constructed, _Articles.publish_flag = [], 0, None
     for k in ("QUIET_WINDOW", "NEWS_MIN_PER_DAY", "NEWS_DIGEST_WEEKDAY", "NEWS_DIGEST_HOUR",
               "NEWS_FLOOR_HOUR", "NEWS_FLOOR_HOUR_FRIDAY", "NEWS_DAY_BUDGET", "NEWS_MAX_PER_RUN",
               "NEWS_MAX_PER_DAY"):
@@ -88,6 +94,11 @@ def live(monkeypatch):
     probes = []
     monkeypatch.setattr(run, "_renders_since", lambda since: probes.append(since) or False)
     return lease, probes
+
+
+@pytest.fixture
+def live(monkeypatch):
+    return live_gates(monkeypatch)
 
 
 def _full_path(monkeypatch, tmp_path):
