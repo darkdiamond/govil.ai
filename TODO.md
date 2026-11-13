@@ -132,12 +132,13 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
 
 - **The local permission allowlist is broad for an unattended routine.** The gitignored
   `.claude/settings.local.json`, copied into every worktree by `.worktreeinclude`, pre-approves
-  broad wildcard rules for the GitHub, cloud and HTTP CLIs and for inline Python, and the
-  checked-in `.claude/settings.json` has no `deny` list, while the 07:00 routine reads untrusted
-  issue text. Fix: a `permissions.deny` list in `.claude/settings.json` covering credential
-  output, deploys and merges, raw GitHub API calls, force pushes, arbitrary outbound requests
-  and writes to cloud resources; narrow the broad entries in `settings.local.json`; and consider
-  not copying it into worktrees. (2026-11-11)
+  broad wildcard rules for the GitHub, cloud and HTTP CLIs and for inline Python, while the
+  07:00 routine reads untrusted issue text. The checked-in `.claude/settings.json` now has a
+  `permissions.deny` list (credential output, merges outside the guard, mutating GitHub API
+  calls, force pushes, uploads, bucket deletes) that wins over those allows; deploys and IAM
+  role bindings are deliberately not denied (the user approves Claude deploying). Left:
+  narrow the broad entries in `settings.local.json`, and consider not copying it into
+  worktrees. (2026-11-11)
 
 - **Provider brief sections reach BRIEF.md unfenced.** CBS `brief_section` prints sheet cells
   through `_md()`, which escapes only `|`; BoI `SERIES_NAME_HE` and CBS index `NAME_HE` go into
@@ -201,29 +202,6 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
 - **The shared `node_modules` lacks `vue-tsc`.** `npm run typecheck` fails locally ("A type
   checker is required") although `package.json` lists it; the main checkout's install predates
   it. Fix: `npm ci` in the main checkout's `frontend/` (not in a worktree). (2026-11-10)
-
-## Dependencies
-
-- **Pillow's lower bound admits releases with decoder advisories, and nothing pins what the
-  images install.** `services/news/requirements.txt` says `pillow>=11`, and the 13.0.0 release
-  fixes a long list of decoder advisories; the news job now opens model images with only the PNG,
-  JPEG and WebP decoders, which narrows but doesn't remove the exposure. No requirements file has
-  a lock, so each image gets whatever pip resolves on deploy day. Fix: `pillow>=13.0.0`, and a
-  hashed lock file (`pip-compile --generate-hashes`) that the Dockerfiles and CI install from, so
-  Dependabot sees the resolved versions. (2026-11-11)
-- **The fallback publisher image runs Python 3.11, the primary path 3.12.** `infra/Dockerfile.publisher`
-  installs Debian bookworm's `python3` (3.11), while `publish.yml` sets up 3.12, so the Cloud Build
-  path runs `services.page_builder.publish` on a different interpreter than the one CI tests.
-  Fix: install 3.12 in the image (e.g. copy it from `python:3.12-slim`, or `uv python install`).
-  (2026-11-11)
-
-- **Two unused frontend packages.** `lucide-vue-next` (icons are static SVGs in
-  `public/icons/`) and `@types/leaflet` have no import. Remove both and refresh the lockfile
-  from the main checkout. (2026-11-11)
-- **The builder image still installs `curl`.** `Dockerfile` kept it from the retired agent
-  runtime; no code under `services/` or `agent/` calls it, and it is one more binary the
-  sandboxed `compute.py` can reach. Fix: drop it after checking no deploy or debug step relies
-  on it. (2026-11-11)
 
 ## News
 

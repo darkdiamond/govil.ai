@@ -133,3 +133,59 @@ def test_dependabot_covers_the_dockerfiles():
     # the builder's Dockerfile at the root and infra/Dockerfile.publisher
     missing = sorted({"/", "/infra"} - _dependabot_dirs("docker"))
     assert not missing, f"no dependabot docker entry for: {missing}"
+
+
+# Each hashed lock (pip-compile --generate-hashes) and the range files it is
+# compiled from (CLAUDE.md "Running things locally").
+LOCKS = {
+    "services/page_builder/requirements.lock.txt": (
+        "services/page_builder/requirements.txt", "services/news/requirements.txt"),
+    "services/page_builder/requirements-publish.lock.txt": (
+        "services/page_builder/requirements-publish.txt",),
+}
+
+
+def _pins(text: str) -> dict[str, str]:
+    from packaging.utils import canonicalize_name
+
+    pins = {}
+    for line in text.splitlines():
+        m = re.match(r"^([A-Za-z0-9_.-]+)==(\S+)", line)
+        if m:
+            pins[canonicalize_name(m.group(1))] = m.group(2)
+    return pins
+
+
+def test_locks_pin_every_requirement_within_its_range():
+    # An edit to a range file without recompiling its lock fails here, not in
+    # an image build. Every pin carries a hash (the images use --require-hashes).
+    from packaging.requirements import Requirement
+    from packaging.utils import canonicalize_name
+
+    for lock, sources in LOCKS.items():
+        text = (ROOT / lock).read_text(encoding="utf-8")
+        pins = _pins(text)
+        assert pins, lock
+        entries = re.split(r"\n(?=[A-Za-z0-9_.-]+==)", text)
+        unhashed = [e.split()[0] for e in entries if "==" in e.split()[0] and "--hash=" not in e]
+        assert not unhashed, f"{lock}: pins without a hash: {unhashed}"
+        for src in sources:
+            for line in (ROOT / src).read_text(encoding="utf-8").splitlines():
+                line = line.split("#", 1)[0].strip()
+                if not line:
+                    continue
+                req = Requirement(line)
+                have = pins.get(canonicalize_name(req.name))
+                assert have, f"{lock} lacks {req.name} ({src}); recompile it"
+                assert req.specifier.contains(have, prereleases=True), (
+                    f"{lock} pins {req.name}=={have}, outside {src}'s {req.specifier}; recompile it"
+                )
+
+
+def test_builder_image_and_ci_install_the_lock_with_hashes():
+    lock = r"services/page_builder/requirements\.lock\.txt"
+    builder = (ROOT / "Dockerfile").read_text(encoding="utf-8")
+    assert re.search(rf"^COPY\s+{lock}\s", builder, re.MULTILINE)
+    assert re.search(r"pip install\b[^\n]*--require-hashes", builder)
+    ci = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+    assert re.search(rf"pip install\b[^\n]*--require-hashes[^\n]*-r\s+{lock}", ci)

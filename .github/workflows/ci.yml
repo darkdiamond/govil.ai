@@ -66,12 +66,14 @@ jobs:
               - 'infra/publish-local.sh'
               - '.github/workflows/publish.yml'
               - 'infra/Dockerfile.publisher'
+              - 'Dockerfile'
               - 'frontend/package-lock.json'
               # Read by test_hosting_cache.py, test_tags.py, test_skills.py
               # and test_ci_paths.py.
               - 'firebase.json'
               - 'taxonomy/**'
               - '.claude/skills/**'
+              - '.claude/settings.json'
               - '.github/dependabot.yml'
             frontend:
               - 'frontend/**'
@@ -91,15 +93,16 @@ jobs:
           cache-dependency-path: |
             requirements.txt
             requirements-dev.txt
-            services/page_builder/requirements.txt
-            services/news/requirements.txt
+            services/page_builder/requirements.lock.txt
       - name: Install dependencies
-        # Root + builder + news requirements cover every import in the suite
-        # (news' brings duckdb, so its query tests run here instead of
-        # skipping); every test mocks Firestore, so no emulator is needed.
+        # The builder image's hashed lock (builder + news: duckdb, so the news
+        # query tests run here instead of skipping), then the root and dev
+        # tools (pytest, ruff, the scanner CLI), which leave the locked pins
+        # alone. Every test mocks Firestore, so no emulator is needed.
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt -r services/page_builder/requirements.txt -r services/news/requirements.txt -r requirements-dev.txt
+          pip install --require-hashes -r services/page_builder/requirements.lock.txt
+          pip install -r requirements.txt -r requirements-dev.txt
       - name: Lint (ruff)
         # Same check `author verify` runs per recipe; config + pinned version in ruff.toml.
         run: ruff check . --output-format github

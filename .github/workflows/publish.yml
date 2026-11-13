@@ -33,6 +33,7 @@ on:
       - "services/page_builder/schema.py"
       - "taxonomy/**"
       - "services/page_builder/requirements-publish.txt"
+      - "services/page_builder/requirements-publish.lock.txt"
       - "services/shared/**"
       - "firebase.json"
       - ".github/workflows/publish.yml"
@@ -122,11 +123,11 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-          cache-dependency-path: services/page_builder/requirements-publish.txt
+          cache-dependency-path: services/page_builder/requirements-publish.lock.txt
 
       - name: Publish artifacts from Firestore
         run: |
-          pip install -q -r services/page_builder/requirements-publish.txt
+          pip install -q --require-hashes -r services/page_builder/requirements-publish.lock.txt
           python -m services.page_builder.publish --from-firestore \
             --out frontend/public/
         env:

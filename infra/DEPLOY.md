@@ -175,30 +175,33 @@ Every publish step runs on a pre-baked image built by
 `cloudbuild-publisher-image.yaml` (Dockerfile at `infra/Dockerfile.publisher`).
 The image carries:
 
-- node 22 + a warm npm cache
+- node 22 (copied from the official node image) + a warm npm cache
 - `frontend/node_modules` under `/opt/frontend-deps/` so `npm ci` is skipped
   on the fast path (falls back to `npm ci --prefer-offline` if
   `package-lock.json` has drifted from the image)
-- python 3.11 (Debian bookworm's python3) + the publisher's deps,
-  `services/page_builder/requirements-publish.txt` (the file `publish.yml`
+- python 3.12 (the `python:3.12-slim-bookworm` base, the version `publish.yml`
+  sets up) + the publisher's deps from the hashed lock
+  `services/page_builder/requirements-publish.lock.txt` (the file `publish.yml`
   installs too)
 - the Google Cloud SDK (provides `gsutil` for the rsync step)
 - `firebase-tools` globally
 
 Registered as a second Cloud Build trigger path-filtered to
 `infra/Dockerfile.publisher`, `frontend/package-lock.json`,
-`services/page_builder/requirements-publish.txt` and `.dockerignore` — so
+`services/page_builder/requirements-publish.lock.txt` and `.dockerignore` — so
 the image only rebuilds when something it bundles actually changes.
 `infra/bootstrap.sh` prints the exact registration command alongside the
 publish-trigger command, plus a `gcloud builds triggers run` invocation to
 populate the `:latest` tag the first time. (A trigger created before
 2026-11-11 still watches `services/page_builder/requirements.txt`: see
-`TODO.md`.)
+`TODO.md`.) The lock is what the image installs, so an edit to
+`requirements-publish.txt` alone rebuilds nothing until the lock is
+recompiled.
 
 If you change `package-lock.json` and merge before the image trigger
 fires, the publish build detects the drift and falls back to running
 `npm ci` inline — correct but slower; trigger a rebuild of the publisher
-image to restore the fast path. A change to `requirements-publish.txt` has
+image to restore the fast path. A change to `requirements-publish.lock.txt` has
 no such fallback: the Cloud Build path uses it once the image is rebuilt.
 
 ## Local development
