@@ -29,7 +29,7 @@ def _commands(text: str, prefix: str) -> list[str]:
 
 
 # Any command (or prose mention) that reads PRs: list/view/checks/diff or the
-# raw API, wherever it sits on the line (`rtk gh pr list`, inline in prose).
+# raw API, wherever it sits on the line (`cd x && gh pr list`, inline in prose).
 _PR_READ_RE = re.compile(r"\bgh (pr (view|list|checks|diff)|api)\b")
 SKILLS_DIR = SKILL.parents[1]
 
@@ -49,7 +49,7 @@ def test_pr_list_counts_only_same_repo_prs_and_reads_no_pr_text():
 
 def test_pr_read_check_catches_reads_not_at_line_start():
     text = (
-        "rtk gh pr list --repo x --json body\n"
+        "cd /tmp && gh pr list --repo x --json body\n"
         "Read it with `gh pr view 12` first.\n"
         "gh api repos/x/pulls \\\n  --jq '.[].body'\n"
         "gh pr create --title t\n"
@@ -209,7 +209,7 @@ def test_deny_list_blocks_what_it_names():
     patterns = _deny_patterns()
     for cmd in (
         "gh pr merge 5 --repo darkdiamond/govil.ai --merge --admin",
-        "rtk gh pr merge 5 --auto",
+        "gh pr merge 5 --auto",
         "gcloud auth print-access-token",
         "gcloud secrets versions access latest --secret=x",
         "gh api -X DELETE repos/x/y/git/refs/heads/main",

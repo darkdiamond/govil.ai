@@ -119,10 +119,11 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
   `permissions.deny` list (credential output, merges outside the guard, mutating GitHub API
   calls, force pushes, uploads, bucket deletes) that wins over those allows; deploys and IAM
   role bindings are deliberately not denied (the user approves Claude deploying). On
-  2026-11-13 `settings.local.json` lost inline Python, `rtk curl`, `r.jina.ai`, `gh auth *` and
-  stale one-off curls; `rtk gh *`, `rtk gcloud *` and `gcloud storage *` stay because the
-  routine may rely on them. Left: narrow those once the routine's actual commands are logged,
-  and consider not copying the file into worktrees. (2026-11-11)
+  2026-11-13 `settings.local.json` lost inline Python, every `rtk` rule (the wrapper is no
+  longer used), `r.jina.ai`, `gh auth *` and stale one-off curls. Left: `gcloud storage *`,
+  `gcloud scheduler *`, `gh run *` and `gh workflow *` are still wildcards; narrow them once
+  the routine's actual commands are logged, and consider not copying the file into worktrees.
+  (2026-11-11)
 
 - **Provider brief sections reach BRIEF.md unfenced.** CBS `brief_section` prints sheet cells
   through `_md()`, which escapes only `|`; BoI `SERIES_NAME_HE` and CBS index `NAME_HE` go into
