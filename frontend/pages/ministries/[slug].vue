@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { hubPageError } from "~/utils/hub-page";
 import { SITE_URL } from "~/utils/paths";
 import { buildDatasetLdSummary } from "~/composables/useDatasetLd";
 import { loadSearchIndex } from "~/utils/search-index";
@@ -22,20 +23,12 @@ const ministryTitle = computed(
 );
 
 // A failed fetch on client-side navigation (offline, 5xx) is not a 404.
-if (error.value) {
-  throw createError({
-    statusCode: 503,
-    statusMessage: "Ministry unavailable",
-    fatal: true,
-  });
-}
-if (entries.value.length === 0) {
-  throw createError({
-    statusCode: 404,
-    statusMessage: "Ministry not found",
-    fatal: true,
-  });
-}
+const pageError = hubPageError(
+  error.value,
+  entries.value.length > 0,
+  "Ministry"
+);
+if (pageError) throw createError({ ...pageError, fatal: true });
 
 const intro = computed(
   () => (hubIntros.ministries as Record<string, string>)[slug.value] ?? ""

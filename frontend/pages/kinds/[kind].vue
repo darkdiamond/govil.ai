@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { hubPageError } from "~/utils/hub-page";
 import { SITE_URL } from "~/utils/paths";
 import { buildDatasetLdSummary } from "~/composables/useDatasetLd";
 import { loadSearchIndex } from "~/utils/search-index";
@@ -21,20 +22,8 @@ const label = computed(
 );
 
 // A failed fetch on client-side navigation (offline, 5xx) is not a 404.
-if (error.value) {
-  throw createError({
-    statusCode: 503,
-    statusMessage: "Kind unavailable",
-    fatal: true,
-  });
-}
-if (entries.value.length === 0) {
-  throw createError({
-    statusCode: 404,
-    statusMessage: "Kind not found",
-    fatal: true,
-  });
-}
+const pageError = hubPageError(error.value, entries.value.length > 0, "Kind");
+if (pageError) throw createError({ ...pageError, fatal: true });
 
 const intro = computed(
   () => (hubIntros.kinds as Record<string, string>)[kind.value] ?? ""

@@ -51,6 +51,17 @@ _YEAR_LEAD = re.compile(
     rf"|\(|(?:\d|{MONTHS})\s*[–-]\s*)$"
 )
 _DIGITS = re.compile(r"\d")
+# A number that is part of a proper name: a road, a bus or train line, a route
+# ("כביש 6", "בקו 480", "מהכביש מס' 90", "מסלול 3"). Only the digits right after
+# the word (optionally "מס'"/"מספר" and a hyphen) are a name, at most four of
+# them, and not when a unit or a percent follows ("כביש 6 ק\"מ" is no name). The
+# check reads every other digit as before: "כביש 6 נסעו 500" still flags the 500.
+# Street numbers are left out: a street name has no fixed length, so "רחוב
+# הרצל 5" can't be told from a count by pattern.
+_NAMED_NUMBER = re.compile(
+    r"(?<![א-ת])([ובלמהש]{0,3}(?:כביש|קו|מסלול)(?:\s+(?:מס['׳]|מספר))?)\s*[-־–]?\s*"
+    r"\d{1,4}(?![\d%]|[.,/]\d)"
+    r"(?!\s*(?:אחוז|ק[\"״]מ|קמ\"ש|קילומטר|מטר|ש[\"״]ח|שקל|₪|דקות|שעות|שנים|נקודות)(?![א-ת]))")
 SCALE_FACTORS = {1e-9, 1e-6, 1e-3, 1e3, 1e6}
 DESCRIBE_DEPTH, DESCRIBE_CHARS = 4, 1500   # a calc's provenance as the critic reads it
 # A quantity spelled in words ("שמונה אחוזים", "שלושה מיליארד שקל") is a typed
@@ -58,7 +69,12 @@ DESCRIBE_DEPTH, DESCRIBE_CHARS = 4, 1500   # a calc's provenance as the critic r
 _NUMBER_WORD = (r"(?:אחד|אחת|שתיים|שניים|שתי|שני|שלוש|שלושה|ארבע|ארבעה|חמש|חמישה|שש|שישה|שבע|"
                 r"שבעה|שמונה|תשע|תשעה|עשר|עשרה|עשרים|שלושים|ארבעים|חמישים|שישים|שבעים|שמונים|"
                 r"תשעים|מאה|מאתיים|מאות|אלף|אלפיים|אלפים|חצי|רבע|שליש)")
-_SPELLED = re.compile(rf"(?<![א-ת])[ובלמהשכ]{{0,3}}{_NUMBER_WORD}(?:\s+(?:ו?{_NUMBER_WORD})){{0,6}}\s+"
+# A run that opens with a bare plural magnitude ("מאות אלפי נוסעים", "אלפים
+# שקלים", "במאות מיליוני שקלים") says "many", like "עשרות" or "אלפי": vague, not
+# a figure. After a count the plural is exact ("חמש מאות שקלים") and the run
+# opens on the count, so it is still read.
+_VAGUE_PLURAL = r"(?:מאות|אלפים)(?![א-ת])"
+_SPELLED = re.compile(rf"(?<![א-ת])[ובלמהשכ]{{0,3}}(?!{_VAGUE_PLURAL}){_NUMBER_WORD}(?:\s+(?:ו?{_NUMBER_WORD})){{0,6}}\s+"
                       r"(?:אחוז|אחוזים|נקודות\s+אחוז|נקודת\s+אחוז|נקודות|מיליון|מיליוני|מיליארד|מיליארדי|"
                       r"אלף|אלפי|שקל|שקלים|ש\"ח|₪)(?![א-ת])")
 # More spelled quantities, each one precise enough not to catch ordinary prose:
@@ -110,6 +126,11 @@ _MAGNITUDE = re.compile(r"(?<![א-ת])[ובלמהשכ]{0,3}(?:מיליון|מי�
 # A _COUNT match that is "אלף" alone before a noun: in prose a figure ("אלף
 # דירות"), in a label the thousand scale ("אלף טון", "אלף דונם"), like "מיליון".
 _THOUSAND_SCALE = re.compile(r"[ובלמכש]{0,3}אלף\s+[א-ת]+")
+# A per-N rate base in words ("לכל מאה אלף תושבים", "לכל מיליון נפש"): the
+# convention a rate is quoted on, not a measured figure (the rate itself is a
+# token), like the digit form "לכל 1,000 תושבים" in a chart unit.
+_RATE_BASE = re.compile(r"(?<![א-ת])ו?לכל\s+(?:מאה\s+אלף|עשרת\s+אלפים|עשרה\s+אלף|מאה|אלף|מיליון)"
+                        r"(?=\s+[א-ת])(?!\s+(?:אלף|אלפי|מיליון|מיליוני|מיליארד|מיליארדי)(?![א-ת]))")
 _TOKEN_MARK = "\ue000"   # a fact token's place: a magnitude right after it is its scale
 
 
@@ -119,6 +140,7 @@ def spelled_numbers(text: str, *, scale_ok: bool = False) -> list[str]:
     title, a series name, the stat block's label: "מיליון ש\"ח", "אלף טון")."""
     t = unicodedata.normalize("NFKC", text)
     t = LINK.sub(lambda m: f" {m[1]} ", TOKEN.sub(f" {_TOKEN_MARK} ", t))
+    t = _RATE_BASE.sub(lambda m: " " * len(m[0]), t)
     spans = [m.span() for m in _SPELLED.finditer(t)]
     spans += [m.span() for m in _TIMES.finditer(t)] + [m.span() for m in _FRACTION.finditer(t)]
     for rx in (_COUNT,) if scale_ok else (_COUNT, _MAGNITUDE):
@@ -346,6 +368,7 @@ def stray_numbers(text: str) -> list[str]:
     digits too."""
     t = TOKEN.sub(" ", unicodedata.normalize("NFKC", text))
     t = LINK.sub(lambda m: f" {m[1]} ", t)
+    t = _NAMED_NUMBER.sub(lambda m: f"{m[1]} ", t)
     t = _DATE_DMY.sub(" ", t)
     t = _DAY_OF_MONTH.sub(" ", t)
     t = _YEAR.sub(lambda m: " " if _YEAR_LEAD.search(t[max(0, m.start() - 24):m.start()]) else m[0], t)
