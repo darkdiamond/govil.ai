@@ -102,12 +102,6 @@ This repo is public: describe a security gap by what to change, never by how to 
   `REFRESH_TRANSIENT_STRIKES` runs, opens a `schema_changed` issue that re-authoring with
   `by_schema` can't clear. Fix: let a recipe exclude resource ids from `by_schema` matching,
   or ignore an unanswered resource whose CKAN name/format can't be a match. (2026-11-02)
-- **`sandbox_failed` never escalates.** It opens no issue and keeps no strike count, so a spawn
-  abort that turns deterministic (an image that loses `GRPC_ENABLE_FORK_SUPPORT=0`) or a no-network
-  filter that can never install (`_NetguardFailed`, since #458) freezes every page with only log
-  lines. Fix: raise `_SpawnFlake` and `_NetguardFailed` as a `refresh.StrikeError`
-  (`strike="sandbox_failed"`, an `escalate_to` reason added to `AUTHORING_REASONS` and
-  `notify.REASON_TEXT`); the `transient_strikes` counter does the rest. (2026-10-31)
 - **Top-100 legacy map pages that the snapshot path can't serve.** חלקות (dff8a168, 667MB SHP)
   is a national layer far over the 100MB download cap; it would need a pre-aggregation step
   (the גושים/תצ"ר recipes reduce each polygon to a centroid in compute, but the file must still
@@ -228,12 +222,6 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
   `failed_version_key` moves) and escalate after `REFRESH_TRANSIENT_STRIKES` runs
   (`schema_changed` or `too_large` for a fetch, `recipe_failed` for an error). (2026-11-11)
 
-- **A code bug that fails every source can end the run green.** `run_refresh` turns an
-  exception from `needs_refresh` or `refresh_one`'s set-up into that source's `FAILED`/`error`
-  outcome, so a bug that hits every source ends the run `ok`/`idle` (exit 0) instead of
-  `refresh_failed`. Fix: end the run `refresh_failed` when every attempted source failed with
-  `error` (or above a share of them). (2026-11-11)
-
 - **A GCS-only outage can hide behind `unchanged` outcomes.** `_count_staging` resets the
   `staging_down` streak on any `refreshed` or `unchanged` outcome, and an `unchanged` one writes
   Firestore but uploads nothing. On a day of mostly no-op bumps, upload failures between them
@@ -276,21 +264,6 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
   parses it as JS. No template has either today. Fix: limit `_SCRIPT_DATA_TYPE` to JSON types,
   and walk strings with the esprima tokenizer (or escape only U+2028/U+2029). (2026-11-11)
 
-- **The refresh ignores a provider's failed healthcheck.** The sync skips an unhealthy provider,
-  but `fetch_fns`/`preview` never ask `healthy()`, so a provider source with a pending refresh is
-  fetched during the outage, records `preview_unavailable` strikes, and after
-  `REFRESH_TRANSIENT_STRIKES` runs over at least `REFRESH_STRIKE_MIN_HOURS` (3 days in prod)
-  opens a `schema_changed` issue and locks until
-  the data version moves (weeks for the monthly CBS pages). Fix: when `healthy()` is false, have
-  `fetch_fns` raise a dedicated transient error that `refresh_one` records as skipped with no
-  strike. (2026-11-11)
-
-- **Recipe error tails go verbatim into public GitHub issues.** A failing compute's last 1,500
-  characters of stderr go into the `needs-authoring` issue, and pandas/Python errors quote the
-  failing cell value, which can be personal data from a registry. Fix: keep the full stderr in
-  the `refresh_outcome` log line only, and put just the exception type and the recipe's own frame
-  lines in the issue. (2026-11-11)
-
 - **Status strings are still written as literals outside `states.py`.** `RecipeError`'s default
   reasons and call sites in `recipe.py`, `author.py` and `refresh.py` use `"recipe_failed"`,
   `"schema_changed"`, `"geometry_stale"`, `"preview_unavailable"` and friends as plain strings;
@@ -306,14 +279,11 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
   the publisher `roles/datastore.viewer`, and optionally condition the bucket grant to exclude
   `news/`. (2026-11-11)
 
-- **The sandbox fails open without its user, and its straggler reaper is narrow.** With no
-  `sandbox` user in the image and `SANDBOX_USER` unset, `_resolve_sandbox_identity` warns and runs
-  recipe code as root. `_reap_stragglers` kills only processes whose environment still holds the
-  session's `HOME`, every compute shares one uid, and `SESSIONS_ROOT` is created world-listable.
-  Fix: fail closed inside the job (`CLOUD_RUN_JOB` set) when the default user is missing; after
-  each compute kill every process with the sandbox uid; set a low `RLIMIT_NPROC`; create
-  `SESSIONS_ROOT` mode 0711. Local authoring without the user keeps today's behaviour.
-  (2026-11-11)
+- **The sandbox's straggler reaper is narrow.** `_reap_stragglers` kills only processes whose
+  environment still holds the session's `HOME`, and every compute shares one uid. (Failing
+  closed inside the job without the `sandbox` user and the 0711 `SESSIONS_ROOT` are done.)
+  Fix: after each compute kill every process with the sandbox uid, and set a low
+  `RLIMIT_NPROC`. Local authoring keeps today's behaviour. (2026-11-11)
 
 - **The local permission allowlist is broad for an unattended routine.** The gitignored
   `.claude/settings.local.json`, copied into every worktree by `.worktreeinclude`, pre-approves
@@ -329,16 +299,6 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
   markdown tables raw. They come from official feeds, not CKAN, but a multi-line Excel header
   cell breaks the table row or starts a line with `#`. Fix: collapse whitespace in every
   provider cell, or fence each provider section as a whole in `_brief`. (2026-11-11)
-
-- **Providers read bodies through httpx's private `Response._content`.** The capped read in
-  `services/providers/base.py` assigns `r._content`; an httpx upgrade that renames it breaks
-  every provider read (the provider tests would catch it at once). Fix: return the bytes
-  alongside the response instead of writing the private field. (2026-11-11)
-
-- **The providers' per-run download cache is never cleared.** `SourceProvider._cache` keeps
-  every provider dataset's normalized CSV in memory for the whole job run; nothing calls
-  `clear_cache()`. Fix: clear each enabled provider's cache after `run_refresh`, or drop a
-  source's entries once its refresh is done. (2026-11-11)
 
 - **The datastore page walk has no per-page retry.** `fetch_resource_records_to_file`
   (`ckan_export.py`) calls `_fetch_page` once per page, so one transient error (a timeout, a reset,
@@ -358,14 +318,6 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
   resource name, so in `full` mode a bump that only renamed that resource (other inputs unchanged)
   skips until the 14-day max age forces a render. Rare, and bounded like check A's other blind
   spots. Fix: add the resolved resource's name for snapshot inputs too. (2026-11-11)
-
-- **A provider lookup in `refresh_one` sits outside its `try`.** `provider_for_key` runs before
-  the guarded block, so if it ever raised, the batch guard would record a bare `error` instead of
-  a provider outcome; settings errors no longer reach it, so this is defence in depth. Also, a
-  provider dropped for bad settings shows up downstream exactly like a disabled one
-  (`provider_disabled:<key>`), with one ERROR log line as the only signal. Fix: move the lookup
-  inside the `try`, and give a provider dropped for bad settings its own skip reason.
-  (2026-11-11)
 
 - **check.py's SCRIPT-URL rule still fires on data in attribute values.** The security rules now
   skip string literals in code, but attribute values stay scanned, so a template that puts a data
@@ -392,22 +344,10 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
   `_PREPARE_WALL_S` (not `REFRESH_WALL_BUDGET_S`) and applies no `REFRESH_TOTAL_BYTES` budget
   across inputs, so a recipe can pass authoring and fail `too_large` in the job. Fix: decide
   which differences are meant, and take the rest from `refresh.resolved_limits`. (2026-11-11)
-- **A typo in `SCAN_LIMIT`, `AUTHORING_NOTIFY_CAP`, `MAX_AGE_DAYS` or `MIN_MODIFIED_FLOOR`
-  crashes the run.** `PipelineSettings.from_env` (`pipeline.py`) parses them with bare `int()` /
-  `fromisoformat`, while `RECONCILE_WEEKDAY` warns and uses its default. Fix: pick one behaviour
-  (a loud failure is defensible for a floor date) and use `shared.env.env_int` where a default
-  is safe. (2026-11-11)
-- **`refresh_one`'s crash branch omits `elapsed_s`.** The generic `except Exception` outcomes
-  (`STAGE_FAILED` and `ERROR`) don't set it; every other outcome does, so the `refresh_outcome`
-  log line lacks the duration exactly for the runs worth timing. (2026-11-11)
 - **The Hebrew maqaf glues words in slugs.** `services/shared/slug.py` strips U+0591-U+05C7 as
   niktud before the maqaf (U+05BE) rule can split on it, so "תל־אביב" becomes `תלאביב`. A fix
   changes `page_slug` for every title with a maqaf: count them in the manifest first and rely
   on the slug-redirect map. (2026-11-11)
-- **`map_backfill open` comments again on every re-run.** An issue it opened is found on the
-  next run, classified `comment`, and gets the same text posted again
-  (`services/page_builder/map_backfill.py`). Fix: skip when the issue already holds the map
-  details. (2026-11-11)
 - **The live `govdata-publisher-image` trigger still watches the old requirements file.**
   `infra/Dockerfile.publisher` installs `requirements-publish.txt` since 2026-11-11 and
   `infra/bootstrap.sh` prints the matching `--included-files`, but the trigger that exists in
@@ -421,12 +361,6 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
   fetched on any tick until it renders or settles. No-op bumps are bounded by
   `REFRESH_REPROBE_MIN_HOURS`; a bump that keeps failing transiently retries hourly. Fix: have
   `run_refresh` skip a provider source outside its sync hours unless forced. (2026-11-12)
-
-- **The run lease and the news cursor transactions have run only against fakes.**
-  `services/shared/lease.py` (`job_state/run`, `news_state/lock`) and
-  `FirestoreArticles.advance_cursor` use `firestore.transactional`, tested through fake
-  transactions because the dev machine had no emulator. Run `services/shared/tests/test_lease.py`
-  (and a cursor compare-and-set) once against the Firestore emulator. (2026-11-12)
 
 ## CBS reports (cbs_releases provider)
 
@@ -459,11 +393,6 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
   `cbs-dwelling-transactions` from `t3a`/`t3b`. Swap the 23 copies of the "latest release" sort
   (`RELEASE_DATE`, then `RELEASE_NO` as a string, so "99/2026" beats "100/2026") for
   `cbs.latest_release`. (2026-11-09)
-- **An honestly sized oversized CBS file fails as a preview, not as `too_large`.** The table
-  listing's pre-check (`f["Length"] > max_bytes` in `cbs.py`) raises a plain `ProviderError`,
-  which `preview` turns into None, so the refresh records `preview_unavailable` and later
-  `schema_changed`; a file whose listing understates its size gets `too_large` from the capped
-  read. Fix: raise `ProviderTooLarge` from the pre-check too. (2026-11-11)
 
 ## Shared recipe code (govlib, gov.j2, page libs)
 
@@ -672,13 +601,10 @@ family found in the corpus survey of 2026-11-01, with the behaviour it should co
   `min(TIMEOUT, remaining)`, or a watchdog that closes the connection at the deadline.
   (2026-11-11)
 
-- **A scripted redeploy resets runtime toggles.** `infra/news-job.deploy.sh` defaults
-  `NEWS_PUBLISH` to `live` and replaces the whole env set, so a kill switch thrown with
-  `--update-env-vars NEWS_PUBLISH=off` turns back on at the next code deploy unless the operator
-  exports `off`. `infra/builder-job.deploy.sh` likewise drops a `CKAN_USER_AGENT` override set on
-  the live job. Fix: have both scripts keep the live job's value of these variables unless one is
-  exported (read it with `gcloud run jobs describe`), or move the news kill switch to a Firestore
-  flag a deploy can't touch. (2026-11-11)
+- **The news kill switch lives in the job's env.** The deploy scripts now keep a live
+  `NEWS_PUBLISH` (and the builder's `CKAN_USER_AGENT`) unless one is exported, but
+  `gcloud run jobs deploy` from anywhere else still resets it. Fix: move the kill switch to a
+  Firestore flag (the `news` database) that a deploy can't touch. (2026-11-11)
 
 - **The `news` database's security rules aren't in the repo.** `firebase.json` deploys
   `firestore.rules` (deny all) to `(default)` only; the `news` database, created by

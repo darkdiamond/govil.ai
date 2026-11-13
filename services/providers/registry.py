@@ -26,12 +26,16 @@ PROVIDER_CLASSES: dict[str, type[SourceProvider]] = {
 log = logging.getLogger("providers")
 
 _enabled: dict[str, SourceProvider] | None = None
+# Enabled providers `enabled_providers()` left out for invalid settings.
+_invalid: set[str] = set()
 
 
-def build_providers(environ: Mapping[str, str] = os.environ) -> dict[str, SourceProvider]:
+def build_providers(environ: Mapping[str, str] = os.environ, *,
+                    invalid: set[str] | None = None) -> dict[str, SourceProvider]:
     """The enabled providers. A provider's other settings are read only once
     its `ENABLED` var says it is on, and one whose settings don't validate is
-    logged and left out, so a bad value can't cost the other providers."""
+    logged and left out (its key added to `invalid`), so a bad value can't
+    cost the other providers."""
     out = {}
     for key, cls in PROVIDER_CLASSES.items():
         enabled_var = f"PROVIDER_{key.upper()}_ENABLED"
@@ -46,14 +50,24 @@ def build_providers(environ: Mapping[str, str] = os.environ) -> dict[str, Source
         except ValidationError as e:
             log.error("provider %s left off: invalid PROVIDER_%s_* setting: %s",
                       key, key.upper(), e)
+            if invalid is not None:
+                invalid.add(key)
     return out
 
 
 def enabled_providers() -> dict[str, SourceProvider]:
     global _enabled
     if _enabled is None:
-        _enabled = build_providers()
+        _invalid.clear()
+        _enabled = build_providers(invalid=_invalid)
     return _enabled
+
+
+def provider_invalid(key: str | None) -> bool:
+    """Whether this run's providers left `key` out for invalid settings
+    (enabled, but a `PROVIDER_<KEY>_*` value didn't validate)."""
+    enabled_providers()
+    return bool(key) and key in _invalid
 
 
 def provider_for_key(key: str | None,

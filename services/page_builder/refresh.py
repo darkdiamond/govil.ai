@@ -30,13 +30,16 @@ import re
 import shutil
 import tempfile
 import time
+import typing
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from urllib import error as urllib_error
 
-from services.providers import provider_for_key
+from pydantic import BaseModel
+
+from services.providers import ProviderUnavailable, provider_for_key, provider_invalid
 from services.shared import model_history
 from services.shared.env import env_float as _env_float
 from services.shared.env import env_int as _env_int
@@ -53,6 +56,7 @@ from services.shared.states import (
     OutcomeStatus,
     RefreshState,
     RefreshStatus,
+    SkipReason,
     UnchangedReason,
 )
 
@@ -66,10 +70,12 @@ from .local_sandbox import LocalSandbox, OutputTooLarge
 from .page_gate import CHECK_SCRIPT_PATH, run_host_check
 from .recipe import (
     RECIPE_FILES,
+    PageModel,
     PreviewUnavailable,
     Recipe,
     RecipeError,
     RecipeLimits,
+    RecipeManifest,
     feature_table,
     kpi_format_findings,
     render_template,
@@ -179,7 +185,7 @@ _network_allow_warned = False
 
 # Failure reasons a human must act on → open an authoring issue. Anything
 # else (`fetch_failed`, `sandbox_failed`) is transient and simply retried
-# next run.
+# next run, until a strike count escalates it to one of these.
 # Staging (GCS upload / Firestore mark) failed after a good render. After
 # this many in a row the batch stops: the store is down, and every further
 # source would only spend a full export to fail the same way.
@@ -187,7 +193,7 @@ STAGE_FAILED = FailReason.STAGE_FAILED
 MAX_CONSECUTIVE_STAGE_FAILURES = 3
 AUTHORING_REASONS = frozenset({
     FailReason.RECIPE_FAILED, FailReason.SCHEMA_CHANGED, FailReason.TOO_LARGE,
-    FailReason.GEOMETRY_STALE, FailReason.DOWNLOAD_BLOCKED,
+    FailReason.GEOMETRY_STALE, FailReason.DOWNLOAD_BLOCKED, FailReason.SANDBOX_BROKEN,
 })
 
 
@@ -950,25 +956,34 @@ def _network_guard() -> str:
     return netguard.child_prologue()
 
 
-class _NetguardFailed(RecipeError):
+_SANDBOX_STRIKE = "sandbox_failed"
+
+
+class _NetguardFailed(StrikeError):
     """The compute child could not install its no-network filter. A platform
-    problem, not the recipe's: transient (`sandbox_failed`), no issue, no lock,
-    and no recipe code ran."""
+    problem, not the recipe's, and no recipe code ran: transient
+    (`sandbox_failed`) until it repeats REFRESH_TRANSIENT_STRIKES runs (a
+    filter that can never install), then `sandbox_broken` (issue + lock, which
+    a builder redeploy lifts: the lock key holds the builder's code hash)."""
 
     def __init__(self, message: str):
-        super().__init__(message, reason=FailReason.SANDBOX_FAILED)
+        super().__init__(message, reason=FailReason.SANDBOX_FAILED,
+                         strike=_SANDBOX_STRIKE, escalate_to=FailReason.SANDBOX_BROKEN)
 
 
-class _SpawnFlake(RecipeError):
+class _SpawnFlake(StrikeError):
     """compute() died to the known fork/gRPC abort, not to recipe code.
 
-    Not an authoring reason: as `recipe_failed` it would open an issue and
-    lock the source out (`needs_refresh` skips a failed version) until the
-    data moved, though the same recipe renders fine on the next spawn.
+    Not `recipe_failed`: that would open an issue and lock the source out
+    (`needs_refresh` skips a failed version) until the data moved, though the
+    same recipe renders fine on the next spawn. A flake that turned
+    deterministic (an image that lost GRPC_ENABLE_FORK_SUPPORT=0) escalates
+    to `sandbox_broken` like `_NetguardFailed`.
     """
 
     def __init__(self, message: str):
-        super().__init__(message, reason=FailReason.SANDBOX_FAILED)
+        super().__init__(message, reason=FailReason.SANDBOX_FAILED,
+                         strike=_SANDBOX_STRIKE, escalate_to=FailReason.SANDBOX_BROKEN)
 
 
 def _is_spawn_flake(error_value: str, stderr: str) -> bool:
@@ -1426,6 +1441,28 @@ def _count_strikes(
     return e, strikes, transient, since_out
 
 
+def _provider_fetch_fns(src, providers, fetch_kwargs: dict) -> str | None:
+    """Point a provider source's fetches at its provider (`fetch_kwargs` gets
+    its `preview_fn`/`fetch_fn`), or return the skip reason when it can't
+    fetch this run: off, dropped for invalid settings, or unhealthy. A skip
+    writes nothing and counts no strike: an outage must not escalate."""
+    key = src.provider
+    p = provider_for_key(key, providers)
+    if p is None:
+        reason = (SkipReason.PROVIDER_INVALID if providers is None and provider_invalid(key)
+                  else SkipReason.PROVIDER_DISABLED)
+        log.info("refresh %s: provider %s skipped (%s)", src.id, key, reason)
+        return f"{reason}:{key}"
+    try:
+        preview_fn, fetch_fn = p.fetch_fns(fetchable_resources(src.resources))
+    except ProviderUnavailable as e:
+        log.warning("refresh %s: %s — skipped, last-good page kept", src.id, e)
+        return f"{SkipReason.PROVIDER_UNHEALTHY}:{key}"
+    fetch_kwargs.setdefault("preview_fn", preview_fn)
+    fetch_kwargs.setdefault("fetch_fn", fetch_fn)
+    return None
+
+
 def refresh_one(
     src,
     recipe: Recipe,
@@ -1449,18 +1486,6 @@ def refresh_one(
     started = time.monotonic()
     rv = recipe.manifest.recipe_version
     resources = src.resources
-    provider_key = src.provider
-    if provider_key:
-        # A non-CKAN source: its provider fetches (services/providers), CKAN
-        # is never called. Disabled provider → leave the last-good page.
-        p = provider_for_key(provider_key, providers)
-        if p is None:
-            log.info("refresh %s: provider %s is disabled — skipped", src.id, provider_key)
-            return RefreshOutcome(src.id, OutcomeStatus.SKIPPED, trigger, f"provider_disabled:{provider_key}")
-        resources = fetchable_resources(src.resources)
-        preview_fn, fetch_fn = p.fetch_fns(resources)
-        fetch_kwargs.setdefault("preview_fn", preview_fn)
-        fetch_kwargs.setdefault("fetch_fn", fetch_fn)
     mode = precheck_mode()
     state = previous_state if previous_state is not None else RefreshState()
     may_skip = mode != "off" and _precheck_may_skip(trigger, state)
@@ -1485,8 +1510,16 @@ def refresh_one(
                 precheck={**pc, "skipped": UnchangedReason.RECENTLY_PROBED},
             )
     hashes: dict[str, str | None] = {}  # stored on success; names match mark_refreshed kwargs
+    probe = None
     try:
-        probe = None
+        if src.provider:
+            # A non-CKAN source: its provider fetches (services/providers),
+            # CKAN is never called. Off or unhealthy → the last-good page stays.
+            skipped = _provider_fetch_fns(src, providers, fetch_kwargs)
+            if skipped is not None:
+                return RefreshOutcome(src.id, OutcomeStatus.SKIPPED, trigger, skipped,
+                                      elapsed_s=round(time.monotonic() - started, 2))
+            resources = fetchable_resources(src.resources)
         after_fetch = None
         # Up front in every mode (fetch_inputs reuses it): a probe that
         # answered breaks a run of `preview_unavailable` strikes.
@@ -1589,8 +1622,11 @@ def refresh_one(
             return RefreshOutcome(
                 src.id, OutcomeStatus.FAILED, trigger, STAGE_FAILED,
                 _clip(f"{type(e).__name__}: {e}; {type(me).__name__}: {me}"),
+                round(time.monotonic() - started, 2),
             )
-        return RefreshOutcome(src.id, OutcomeStatus.FAILED, trigger, FailReason.ERROR, _clip(str(e)))
+        return RefreshOutcome(src.id, OutcomeStatus.FAILED, trigger, FailReason.ERROR,
+                              _clip(f"{type(e).__name__}: {e}"),
+                              round(time.monotonic() - started, 2))
 
     snapshot = {
         "rows": {k: sum(p.rows for p in v) for k, v in inputs.items()},
@@ -1778,13 +1814,168 @@ def snapshot_diff(before: dict | None, after: dict) -> dict:
     }
 
 
+_WITHHELD = ("(details withheld from this public issue: they can quote data. The full "
+             "error is in the job's refresh_outcome log line and the source doc's "
+             "refresh_error.)")
+_COMPUTE_FAILED = re.compile(r"\Acompute\(\) failed \(([^)\n]*)\)")
+_RECIPE_FRAME = re.compile(r'^\s*File "[^"\n]*/recipe/compute\.py", line (\d+), in (\S+)',
+                           re.MULTILINE)
+_EXCEPTION_LINE = re.compile(
+    r"^([A-Za-z_][\w.]*(?:Error|Exception|Warning|Exit|Iteration|Interrupt))(?::|$)",
+    re.MULTILINE)
+_EXCEPTION_NAME = re.compile(r"\b([A-Z][A-Za-z0-9_]*(?:Error|Exception))\b")
+_VALIDATION = re.compile(r"(\d+) validation errors? for ([A-Za-z_]\w*)\n")
+_PYDANTIC_TYPE = re.compile(r"\[type=([a-z_]+)")
+_INDEX_LOC = re.compile(r"[0-9]{1,6}")
+
+
+def _model_field_names(*models: type[BaseModel]) -> frozenset[str]:
+    """Every field name (and alias) declared on these pydantic models and the
+    models nested in their annotations: the only location segments a public
+    issue may show. A dict key in a location (`kpis.<key>`) is data's or the
+    recipe's, never one of these, so it is withheld."""
+    names: set[str] = set()
+    seen: set[type] = set()
+
+    def walk(tp) -> None:
+        if isinstance(tp, type) and issubclass(tp, BaseModel):
+            if tp in seen:
+                return
+            seen.add(tp)
+            for name, f in tp.model_fields.items():
+                names.add(name)
+                if f.alias:
+                    names.add(f.alias)
+                walk(f.annotation)
+            return
+        for arg in typing.get_args(tp):
+            walk(arg)
+
+    for m in models:
+        walk(m)
+    return frozenset(names)
+
+
+# The page model compute() returns (AgentData, SeoMeta, Kpi, Insight inside it)
+# and recipe.json's manifest: the models whose errors reach an issue.
+_SAFE_LOC_NAMES = _model_field_names(PageModel, RecipeManifest)
+# The pipeline's own lead-ins before a ": <text that may quote data>"
+# (recipe.py, refresh.run_compute, page_gate).
+_KNOWN_HEAD = re.compile(
+    r"template render failed|compute\(\) output is not a valid page model"
+    r"|compute\(\) wrote no model|compute\(\) wrote an unreadable model\.json"
+    r"|duplicate insight ids|host self-check failed \(exit -?\d+\)")
+# Whole recipe_failed messages that hold only counts and caps.
+_RECIPE_SHAPES = re.compile(
+    r"only \d+ insight\(s\) survived \(min_insights=\d+\) — the data no longer fits the rules"
+    r"|compute\(\) model\.json is a \w+, not an object"
+    r"|host self-check timed out after \d+s \([\d,]+ bytes of content\)")
+# The recipe's own input name (recipe.json: public) and an escalation's suffix.
+_INPUT_PREFIX = re.compile(r"""\Ainput (?:'[^'\n]{0,80}'|"[^"\n]{0,80}"): """)
+_RUNS_SUFFIX = re.compile(r" — \d+ runs in a row\Z")
+_ID = r"[A-Za-z0-9_-]{1,64}"
+_COLS = r"\[[^\]\n]{0,2000}\]"  # column names: the schema, not cells
+# Every schema_changed message the pipeline writes (recipe.resolve_inputs,
+# refresh._fetch_map / _project_csv / feature_table, the preview strike).
+_SCHEMA_SHAPES = re.compile("|".join([
+    rf"resource {_ID} lost column\(s\) {_COLS}",
+    rf"resource {_ID} is no longer a datastore-active resource of this dataset",
+    rf"no resource has columns {_COLS}",
+    rf"no preview for resource\(s\)? (?:{_COLS}|{_ID})",
+    rf"map file {_ID} is gone from the dataset",
+    rf"map file {_ID}: lacks column\(s\) {_COLS}",
+    rf"map file {_ID}: has no features",
+    rf"map file {_ID}: the file is gone \(HTTP \d{{3}}\)",
+    (rf"map file {_ID}: (?:not a GeoJSON FeatureCollection|bad feature \(not an object\)"
+     r"|bad feature properties)"),
+    rf"[\w.-]{{1,120}}: export lacks column\(s\) {_COLS}",
+]))
+# too_large / geometry_stale / download_blocked messages are sizes, caps, ids,
+# hashes and HTTP statuses: one line with no quote that could open a value.
+_METADATA_ONLY = re.compile(r"[\w .,:;()/<>=+°%#&?~`\[\]–—-]{1,500}")
+_METADATA_REASONS = frozenset({
+    FailReason.TOO_LARGE, FailReason.GEOMETRY_STALE, FailReason.DOWNLOAD_BLOCKED,
+})
+
+
+def _compute_summary(m: re.Match, detail: str) -> str:
+    exc = _EXCEPTION_LINE.findall(detail[m.end():])
+    frames = [f'  File "recipe/compute.py", line {ln}, in {fn}'
+              for ln, fn in _RECIPE_FRAME.findall(detail)]
+    return "\n".join([
+        f"compute() failed ({m.group(1)}): {exc[-1] if exc else 'no exception type found'}",
+        *frames, _WITHHELD,
+    ])
+
+
+def _head(text: str) -> str:
+    """The pipeline's own lead-in ("template render failed", "compute() output
+    is not a valid page model"), or "" when it isn't a known one."""
+    head = text.split(": ", 1)[0]
+    return head if head != text and _KNOWN_HEAD.fullmatch(head) else ""
+
+
+def _validation_summary(m: re.Match, detail: str) -> str:
+    """A pydantic error: field locations and error types, never `input_value`.
+    A location keeps only declared field names and list indices (`…` else)."""
+    errors, loc = [], None
+    for line in detail[m.end():].splitlines():
+        if line and not line[0].isspace():
+            loc = ".".join(seg if seg in _SAFE_LOC_NAMES or _INDEX_LOC.fullmatch(seg) else "…"
+                           for seg in line.split("."))
+        elif loc is not None and (t := _PYDANTIC_TYPE.search(line)):
+            errors.append(f"{loc} ({t.group(1)})")
+            loc = None
+    head = _head(detail[:m.start()])
+    lead = f"{head}: " if head else ""
+    return (f"{lead}ValidationError: {m.group(1)} validation error(s) for {m.group(2)}: "
+            f"{'; '.join(errors[:20]) or 'no field locations found'}\n{_WITHHELD}")
+
+
+def public_detail(detail: str, reason: str | None = None) -> str:
+    """The part of a refresh error that may go into a public GitHub issue.
+
+    Deny by default: errors can quote data cells (pandas/Python exceptions,
+    pydantic's `input_value`, template errors, check.py findings), and a cell
+    can be personal data from a registry. What passes through:
+      - a compute failure: exit status, exception type, compute.py's frames;
+      - a pydantic error: field locations and error types;
+      - a `schema_changed` message of a known shape (input, resource ids,
+        column names), a one-line, quote-free `too_large` /
+        `geometry_stale` / `download_blocked` message (sizes, caps, statuses),
+        or a counts-only recipe message (min_insights, check.py timeout);
+      - anything else: its known lead-in and exception type only.
+    The full text stays in the `refresh_outcome` log line and the source doc's
+    `refresh_error`."""
+    detail = detail or ""
+    if not detail:
+        return ""
+    if m := _COMPUTE_FAILED.match(detail):
+        return _compute_summary(m, detail)
+    if m := _VALIDATION.search(detail):
+        return _validation_summary(m, detail)
+    core = _RUNS_SUFFIX.sub("", _INPUT_PREFIX.sub("", detail, count=1))
+    if reason == FailReason.SCHEMA_CHANGED and _SCHEMA_SHAPES.fullmatch(core):
+        return detail
+    if reason in _METADATA_REASONS and _METADATA_ONLY.fullmatch(core):
+        return detail
+    if _RECIPE_SHAPES.fullmatch(detail):
+        return detail
+    head = _head(detail)
+    exc = _EXCEPTION_NAME.search(detail[len(head):])
+    parts = [p for p in (head, exc.group(1) if exc else "") if p]
+    lead = ": ".join(parts) if parts else f"{reason or 'refresh'} failed"
+    return f"{lead}\n{_WITHHELD}"
+
+
 def queue_authoring(store, src, reason: str, *, detail: str = "") -> int | None:
     """Flag a dataset for local authoring and open its issue (once).
 
     A recorded issue is reused while it is open or was closed as not
     planned. One closed as completed means a recipe PR landed and this is a
     new need (e.g. the recipe later failed), so a fresh issue is opened, as
-    when the recorded issue was deleted."""
+    when the recorded issue was deleted. `detail` goes through
+    `public_detail` first: the issue is public."""
     from . import notify as _notify
 
     state = RefreshState.from_dict(store.get_refresh_state(src.id))  # fresh: guards duplicate issues
@@ -1800,7 +1991,7 @@ def queue_authoring(store, src, reason: str, *, detail: str = "") -> int | None:
         title=src.title or src.id,
         org=(src.organization or {}).get("title", "") or "",
         reason=reason,
-        detail=detail,
+        detail=public_detail(detail, reason),
         source_url=getattr(src, "source_url", None),
     )
     if number is not None:
@@ -1837,6 +2028,19 @@ def _spends_cap(o: RefreshOutcome) -> bool:
     )
 
 
+def all_errored(outcomes: list[RefreshOutcome]) -> bool:
+    """Every source this run attempted (≥1) failed with a bare `error`: a code
+    bug that hits every source, not a data or recipe verdict, so the run must
+    end red (`refresh_failed`). Skipped sources (up to date, over the cap,
+    provider off, staging down) were never attempted and don't count; a
+    single source that rendered, came out unchanged or failed any other way
+    keeps the run green."""
+    attempted = [o for o in outcomes if o.status != OutcomeStatus.SKIPPED]
+    return bool(attempted) and all(
+        o.status == OutcomeStatus.FAILED and o.reason == FailReason.ERROR for o in attempted
+    )
+
+
 def run_refresh(
     store,
     repo,
@@ -1855,7 +2059,11 @@ def run_refresh(
     transient fetch failures once (see `_DEFAULT_RETRY_CAP`)."""
     cap = cap if cap is not None else _env_int("REFRESH_CAP", 200)
     work_root = work_root or Path(os.environ.get("SESSIONS_ROOT", "/tmp/sessions"))
-    work_root.mkdir(parents=True, exist_ok=True)
+    if not work_root.exists():
+        work_root.mkdir(parents=True)
+        # Traversable (the sandbox user reaches its own 0700 workdir) but not
+        # listable: one compute can't see its siblings' workdir names.
+        work_root.chmod(0o711)
     scratch = Path(tempfile.mkdtemp(prefix="recipes-", dir=work_root))
     ids = repo.list_ids()
     if only_ids is not None:
@@ -2030,5 +2238,6 @@ def run_refresh(
         "unchanged": unchanged,
         "failed": failed,
         "staging_down": staging_down,
+        "all_errored": all_errored(outcomes),
         "outcomes": [o.__dict__ for o in outcomes],
     }

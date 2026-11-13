@@ -43,10 +43,17 @@ log = logging.getLogger("providers")
 
 SOURCE_CONFIG_FILENAME = "source.json"
 PREVIEW_SAMPLE_ROWS = 5
+_WIRE_HEADERS = frozenset({"content-encoding", "content-length", "transfer-encoding"})
 
 
 class ProviderError(Exception):
     """A provider couldn't produce what was asked (config, network, data)."""
+
+
+class ProviderUnavailable(ProviderError):
+    """The provider's healthcheck failed this run: the source is down, so
+    nothing is fetched from it. Raised by `fetch_fns`; the refresh records the
+    source as skipped (no state write, no strike), as the sync does."""
 
 
 class ProviderTooLarge(FetchLimitExceeded, ProviderError):
@@ -347,7 +354,12 @@ class SourceProvider(abc.ABC):
 
     def fetch_fns(self, resources: list[dict]) -> tuple[Callable, Callable]:
         """`(preview_fn, fetch_fn)` with the signatures `refresh.fetch_inputs`
-        takes, bound to a source doc's resources (resource id → params)."""
+        takes, bound to a source doc's resources (resource id → params).
+        Raises ProviderUnavailable when the provider's healthcheck failed: a
+        fetch during an outage would only count strikes toward a false
+        `schema_changed` issue."""
+        if not self.healthy():
+            raise ProviderUnavailable(f"{self.key}: healthcheck failed this run")
         by_id = {r["id"]: r for r in resources}
 
         def preview_fn(rid: str) -> dict | None:
@@ -450,7 +462,9 @@ class SourceProvider(abc.ABC):
     def _send(self, url: str, *, max_bytes: int, **kw) -> httpx.Response:
         """One GET on the shared client (the seam tests replace). The body is
         read in chunks and refused once it passes `max_bytes`, whatever the
-        server says its length is."""
+        server says its length is. Returns a fresh, already-read Response
+        holding the decoded body, so .content/.text/.json() work after the
+        stream is closed (public httpx API only)."""
         with self._lock:
             if self._client is None:
                 self._client = httpx.Client(
@@ -465,7 +479,9 @@ class SourceProvider(abc.ABC):
                     raise ProviderTooLarge(
                         f"GET {httpx.URL(url).host}: body over {max_bytes:,} bytes")
                 chunks.append(chunk)
-            # What Response.read() stores, so .content/.text/.json() work
-            # after the stream is closed.
-            r._content = b"".join(chunks)
-        return r
+        # iter_bytes() already undid any Content-Encoding: drop the headers
+        # that describe the wire form, or the new Response would decode again.
+        headers = [(k, v) for k, v in r.headers.multi_items()
+                   if k.lower() not in _WIRE_HEADERS]
+        return httpx.Response(r.status_code, headers=headers, content=b"".join(chunks),
+                              request=r.request)

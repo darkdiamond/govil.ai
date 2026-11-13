@@ -82,7 +82,7 @@ class DatasetTables:
             fetchable_resources,
             probe_inputs,
         )
-        from services.providers import provider_for_key
+        from services.providers import ProviderUnavailable, provider_for_key
 
         if self._store is None or self._repo is None:
             raise DataUnavailable("no data access configured for this run")
@@ -96,7 +96,10 @@ class DatasetTables:
             if p is None:
                 raise DataUnavailable(f"provider {src.provider} is disabled")
             resources = fetchable_resources(src.resources)
-            kw["preview_fn"], kw["fetch_fn"] = p.fetch_fns(resources)
+            try:
+                kw["preview_fn"], kw["fetch_fn"] = p.fetch_fns(resources)
+            except ProviderUnavailable as e:
+                raise DataUnavailable(str(e)) from e
         try:
             probe = (probe_inputs(recipe, resources, kw["preview_fn"]) if "preview_fn" in kw
                      else probe_inputs(recipe, resources))

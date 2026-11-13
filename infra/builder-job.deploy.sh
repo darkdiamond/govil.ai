@@ -101,12 +101,20 @@ PROVIDER_CBS_INDEX_SYNC_HOURS=${PROVIDER_CBS_INDEX_SYNC_HOURS-6,14,19,21}
 RECIPES_FETCH=${RECIPES_FETCH:-tarball}
 
 cd "$(dirname "$0")/.."
+# CKAN_USER_AGENT (services/shared/ckan.py; code default
+# `Mozilla/5.0 (compatible; govdata-builder/1.0)`) is a runtime override for a
+# WAF change, set with `gcloud run jobs update --update-env-vars`. A redeploy
+# keeps the live job's value unless one is exported (`CKAN_USER_AGENT=` drops it).
+# shellcheck source=infra/job-env.sh
+source infra/job-env.sh
+load_live_job_env "$JOB" "$REGION" "$PROJECT"
+CKAN_USER_AGENT=$(keep_live_value CKAN_USER_AGENT "")
 
 BUILDER_SA="govdata-builder@${PROJECT}.iam.gserviceaccount.com"
 SCHEDULER_SA="govdata-scheduler@${PROJECT}.iam.gserviceaccount.com"
 
-# Hour lists hold commas, so the pairs are joined with ';' and passed with
-# gcloud's alternate-delimiter syntax (`^;^K=V;K=V`; see `gcloud topic escaping`).
+# Hour lists hold commas (and a User-Agent holds ';'), so the pairs are joined
+# with gcloud's alternate-delimiter syntax (`^;^K=V;K=V`; join_env_pairs).
 ENV_PAIRS=(
   "FIRESTORE_PROJECT_ID=${PROJECT}"
   "GOOGLE_CLOUD_PROJECT=${PROJECT}"
@@ -138,7 +146,10 @@ ENV_PAIRS=(
   "PROVIDER_BOI_SDMX_SYNC_HOURS=${PROVIDER_BOI_SDMX_SYNC_HOURS}"
   "PROVIDER_CBS_INDEX_SYNC_HOURS=${PROVIDER_CBS_INDEX_SYNC_HOURS}"
 )
-ENV_VARS="^;^$(IFS=';'; echo "${ENV_PAIRS[*]}")"
+if [ -n "$CKAN_USER_AGENT" ]; then
+  ENV_PAIRS+=("CKAN_USER_AGENT=${CKAN_USER_AGENT}")
+fi
+ENV_VARS=$(join_env_pairs "${ENV_PAIRS[@]}")
 SECRETS="GITHUB_DISPATCH_TOKEN=github-dispatch-token:latest"
 # Same as the image CMD; explicit so a manual `--args` override (dry run)
 # composes predictably.

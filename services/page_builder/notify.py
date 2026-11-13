@@ -33,6 +33,8 @@ REASON_TEXT: dict[AuthoringReason, str] = {
                       "(הריצה מורידה אותו בעצמה); אחרת להוריד אותו שוב בדפדפן ולהריץ `author snapshot`",
     AuthoringReason.DOWNLOAD_BLOCKED: "הורדת קובץ המפה נחסמה כמה ריצות ברצף (403 או דף HTML) — "
                         "לבדוק את CKAN_USER_AGENT או לעבור לקלט `snapshot`",
+    AuthoringReason.SANDBOX_BROKEN: "סביבת ההרצה של compute נכשלה כמה ריצות ברצף (לא המתכון) — "
+                      "לבדוק את אימג' הבילדר (GRPC_ENABLE_FORK_SUPPORT, מסנן הרשת) ולפרוס מחדש",
     AuthoringReason.GSC_TRAFFIC: "עמוד ישן בלי מתכון שמקבל תנועה מחיפוש — הנתונים לא השתנו, ולכן הריצה היומית לא תפתח עליו בקשה",
     AuthoringReason.MAP_AVAILABLE: "למאגר יש קובץ מפה שהריצה יכולה להוריד — יש להוסיף למתכון קלט `map: true`",
 }

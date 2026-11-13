@@ -71,6 +71,18 @@ RUN_LEASE_TTL_DEFAULT_S = 900.0
 RECONCILE_MAX_ATTEMPTS_DEFAULT = 2
 
 
+def _env_int_warn(name: str, default: int) -> int:
+    """`env_int`, with a warning when a set value isn't an integer (a typo
+    then costs the knob, not the run)."""
+    raw = os.environ.get(name, "").strip()
+    if raw:
+        try:
+            int(raw)
+        except ValueError:
+            log.warning("invalid %s=%r — using the default, %d", name, raw, default)
+    return env_int(name, default)
+
+
 def _run_status(*, refresh_broken: bool, scan_failed: bool, authoring_broken: bool,
                 reconcile_failed: bool, refreshed: bool,
                 publish_failed: bool = False, published: bool = False) -> RunStatus:
@@ -245,19 +257,20 @@ class PipelineSettings:
 
     @classmethod
     def from_env(cls, *, require_staging_bucket: bool) -> PipelineSettings:
-        """Malformed SCAN_LIMIT / AUTHORING_NOTIFY_CAP / MIN_MODIFIED_FLOOR /
-        MAX_AGE_DAYS raise (the run fails); a malformed RECONCILE_WEEKDAY warns
-        and falls back to Sunday. `require_staging_bucket` (a real run) raises
+        """A malformed SCAN_LIMIT / AUTHORING_NOTIFY_CAP / MAX_AGE_DAYS /
+        RECONCILE_WEEKDAY warns and uses its default; a malformed
+        MIN_MODIFIED_FLOOR raises (the run fails: a wrong floor silently
+        widens or narrows the authoring queue). `require_staging_bucket` (a real run) raises
         when GCS_STAGING_BUCKET is unset, before the reconcile knobs are read."""
         # SCAN_LIMIT bounds how many CKAN datasets (sorted metadata_modified
         # desc) each scan ingests into Firestore. The authoring queue can
         # only see what's been scanned, so this must cover the eligible window:
         # 2026 (~433) + 2025 (~92) → 800 with headroom. Raise it in lockstep
         # when MIN_MODIFIED_FLOOR drops to admit an older year.
-        scan_limit = int(os.environ.get("SCAN_LIMIT", "800"))
+        scan_limit = _env_int_warn("SCAN_LIMIT", 800)
         # New issues opened per run — a fuse against a scan anomaly flooding the
         # tracker. Already-notified sources don't count (the selector skips them).
-        notify_cap = int(os.environ.get("AUTHORING_NOTIFY_CAP", "100"))
+        notify_cap = _env_int_warn("AUTHORING_NOTIFY_CAP", 100)
         # Selection date gates, env-overridable so widening coverage one year
         # at a time is a `gcloud run` env change, not a redeploy. Unset →
         # selector.DEFAULT_* (floor 2026-01-01, rolling window 365d).
@@ -268,9 +281,9 @@ class PipelineSettings:
             if floor_dt.tzinfo is None:
                 floor_dt = floor_dt.replace(tzinfo=UTC)
             selector_gates["min_modified_floor"] = floor_dt
-        max_age_env = os.environ.get("MAX_AGE_DAYS", "").strip()
-        if max_age_env:
-            selector_gates["max_age_days"] = int(max_age_env)
+        if os.environ.get("MAX_AGE_DAYS", "").strip():
+            selector_gates["max_age_days"] = _env_int_warn(
+                "MAX_AGE_DAYS", selector.DEFAULT_MAX_AGE_DAYS)
         staging_bucket = os.environ.get("GCS_STAGING_BUCKET", "")
         project_id = (
             os.environ.get("FIREBASE_PROJECT")
@@ -296,12 +309,7 @@ class PipelineSettings:
         reconcile_enabled = os.environ.get("RECONCILE_ENABLED", "false").lower() in (
             "true", "1", "yes",
         )
-        try:
-            reconcile_weekday = int(os.environ.get("RECONCILE_WEEKDAY", "6"))
-        except ValueError:
-            log.warning("invalid RECONCILE_WEEKDAY=%r — defaulting to 6 (Sunday)",
-                        os.environ.get("RECONCILE_WEEKDAY"))
-            reconcile_weekday = 6
+        reconcile_weekday = _env_int_warn("RECONCILE_WEEKDAY", 6)
         reconcile_max_attempts = env_int("RECONCILE_MAX_ATTEMPTS",
                                          RECONCILE_MAX_ATTEMPTS_DEFAULT)
         return cls(
@@ -320,6 +328,19 @@ class PipelineSettings:
             reconcile_weekday=reconcile_weekday,
             reconcile_max_attempts=reconcile_max_attempts,
         )
+
+
+def _clear_provider_caches() -> None:
+    """Drop the providers' per-run downloads (every provider dataset's CSV,
+    held since the sync). Nothing after the refresh reads them; never fails
+    the run."""
+    try:
+        from services.providers import enabled_providers
+
+        for p in enabled_providers().values():
+            p.clear_cache()
+    except Exception:
+        log.warning("clearing the provider caches failed", exc_info=True)
 
 
 def _il_now() -> datetime:
@@ -574,9 +595,14 @@ async def _run_pipeline_body(
                 force=bool(override_id),
             )
             refresh_broken = bool(summary["refresh"].get("staging_down"))
+            if summary["refresh"].get("all_errored"):
+                log.error("recipe refresh: every attempted source failed with `error` — "
+                          "a code bug, not the data")
+                refresh_broken = True
         except Exception:
             log.exception("recipe refresh failed — continuing with the authoring queue")
             refresh_broken = True
+        _clear_provider_caches()
     refreshed_ids = list((summary["refresh"] or {}).get("refreshed") or [])
 
     # [5] authoring queue: one issue per source, idempotent. A failure here

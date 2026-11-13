@@ -221,6 +221,55 @@ def test_staging_down_fails_the_run_but_still_queues_and_publishes(harness, monk
     assert harness.queued and harness.published
 
 
+def test_a_refresh_where_every_attempted_source_errored_fails_the_run(harness, monkeypatch):
+    monkeypatch.setattr(
+        rf, "run_refresh",
+        lambda store, repo, **kw: {"refreshed": [], "failed": ["rec1"], "staging_down": False,
+                                   "all_errored": True, "outcomes": []},
+    )
+    s = _run()
+    assert s["status"] == "refresh_failed" and harness.queued
+
+
+def test_provider_caches_are_cleared_after_the_refresh(harness, monkeypatch):
+    from services import providers
+
+    order = []
+    monkeypatch.setattr(rf, "run_refresh", lambda store, repo, **kw: order.append("refresh")
+                        or {"refreshed": [], "failed": [], "outcomes": []})
+    p = SimpleNamespace(clear_cache=lambda: order.append("clear"))
+    monkeypatch.setattr(providers, "enabled_providers", lambda: {"boi_sdmx": p})
+    _run()
+    assert order == ["refresh", "clear"]
+
+    def boom():
+        raise RuntimeError("registry bug")
+
+    monkeypatch.setattr(providers, "enabled_providers", boom)
+    assert _run()["status"] == "idle"  # never costs the run
+
+
+def test_malformed_int_knobs_warn_and_use_their_defaults(monkeypatch, caplog):
+    monkeypatch.setenv("GCS_STAGING_BUCKET", "bkt")
+    monkeypatch.setenv("SCAN_LIMIT", "8OO")
+    monkeypatch.setenv("AUTHORING_NOTIFY_CAP", "30 ")
+    monkeypatch.setenv("MAX_AGE_DAYS", "1e5")
+    monkeypatch.setenv("RECONCILE_WEEKDAY", "sun")
+    monkeypatch.delenv("MIN_MODIFIED_FLOOR", raising=False)
+    with caplog.at_level("WARNING"):
+        st = pipeline.PipelineSettings.from_env(require_staging_bucket=True)
+    assert st.scan_limit == 800 and st.notify_cap == 30 and st.reconcile_weekday == 6
+    assert st.selector_gates == {"max_age_days": pipeline.selector.DEFAULT_MAX_AGE_DAYS}
+    assert all(k in caplog.text for k in ("SCAN_LIMIT", "MAX_AGE_DAYS", "RECONCILE_WEEKDAY"))
+    assert "AUTHORING_NOTIFY_CAP" not in caplog.text
+
+
+def test_a_malformed_floor_date_still_fails_loudly(monkeypatch):
+    monkeypatch.setenv("MIN_MODIFIED_FLOOR", "2025-13-01")
+    with pytest.raises(ValueError):
+        pipeline.PipelineSettings.from_env(require_staging_bucket=False)
+
+
 def test_refresh_crash_fails_the_run(harness, monkeypatch):
     def _boom(store, repo, **kw):
         raise RuntimeError("bug")

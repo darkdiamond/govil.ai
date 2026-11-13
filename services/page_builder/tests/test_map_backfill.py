@@ -167,3 +167,55 @@ def test_detail_lists_only_downloadable_files():
     c = _cand(_map({"LineString": 3}), _map({}, error="SnapshotError: x"))
     text = mb.detail_text(c)
     assert "LineString" in text and "SnapshotError" not in text
+
+
+def _gh(monkeypatch, body: str, comments: list[str]):
+    """Fake `gh`: `issue view` answers with `body` + `comments`; every call is recorded."""
+    calls = []
+
+    def run(cmd, **kw):
+        calls.append(cmd)
+        if cmd[:3] == ["gh", "issue", "view"]:
+            return SimpleNamespace(stdout=json.dumps(
+                {"body": body, "comments": [{"body": b} for b in comments]}))
+        return SimpleNamespace(stdout="")
+
+    monkeypatch.setattr(mb.subprocess, "run", run)
+    return calls
+
+
+def _commented(calls) -> list:
+    return [c for c in calls if c[:3] == ["gh", "issue", "comment"]]
+
+
+def test_comment_posts_once_then_a_rerun_finds_it(monkeypatch):
+    c = _cand(_map({"LineString": 3}))
+    c.kind, c.issue = "comment", 41
+    calls = _gh(monkeypatch, "an old recipe_failed issue", [])
+    done = mb.open_all(None, [c], max_new=0)
+    assert done["commented"] == [(DS, 41)] and len(_commented(calls)) == 1
+    posted = _commented(calls)[0]
+    posted_body = posted[posted.index("--body") + 1]
+
+    calls = _gh(monkeypatch, "an old recipe_failed issue", [posted_body])
+    done = mb.open_all(None, [c], max_new=0)
+    assert done["already"] == [(DS, 41)] and done["commented"] == []
+    assert _commented(calls) == []
+
+
+def test_an_issue_body_with_the_map_details_gets_no_comment(monkeypatch):
+    c = _cand(_map({"LineString": 3}))
+    c.kind, c.issue = "comment", 41
+    calls = _gh(monkeypatch, mb.detail_text(c).replace("`", "'"), [])
+    assert mb.open_all(None, [c], max_new=0)["already"] == [(DS, 41)]
+    assert _commented(calls) == []
+
+
+def test_a_new_map_file_is_still_announced(monkeypatch):
+    old, new = _map({"LineString": 3}), _map({"Polygon": 2})
+    new.resource_id = "dddddddd-0000-0000-0000-000000000004"
+    c = _cand(old, new)
+    c.kind, c.issue = "comment", 41
+    calls = _gh(monkeypatch, "", [f"earlier comment naming '{GEO}'"])
+    assert mb.open_all(None, [c], max_new=0)["commented"] == [(DS, 41)]
+    assert len(_commented(calls)) == 1

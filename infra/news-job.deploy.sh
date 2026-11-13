@@ -18,6 +18,9 @@
 #
 # Kill switch without a redeploy:
 #   gcloud run jobs update govdata-news-job --region=me-west1 --update-env-vars NEWS_PUBLISH=off
+# A redeploy keeps the live job's NEWS_PUBLISH unless one is exported
+# (`NEWS_PUBLISH=live ./infra/news-job.deploy.sh` turns it back on); a first
+# deploy defaults to live.
 #
 # --set-env-vars REPLACES the whole set: diff against the live job first.
 set -euo pipefail
@@ -34,7 +37,6 @@ TASK_TIMEOUT=${TASK_TIMEOUT:-3600s}
 # Friday 15:00 to Saturday 21:00. Empty = never quiet.
 QUIET_WINDOW=${QUIET_WINDOW-fri15-sat21}
 
-NEWS_PUBLISH=${NEWS_PUBLISH:-live}
 # :floor = cheapest endpoint first (AI Studio Flex, half price), then by price.
 NEWS_MODEL=${NEWS_MODEL:-google/gemini-4-hydrogen:floor}
 NEWS_REASONING_EFFORT=${NEWS_REASONING_EFFORT:-high}
@@ -70,6 +72,12 @@ PUBLISH_GITHUB_REPO=${PUBLISH_GITHUB_REPO:-darkdiamond/govil.ai}
 PUBLISH_BRANCH=${PUBLISH_BRANCH:-main}
 
 cd "$(dirname "$0")/.."
+# shellcheck source=infra/job-env.sh
+source infra/job-env.sh
+load_live_job_env "$JOB" "$REGION" "$PROJECT"
+NEWS_PUBLISH=$(keep_live_value NEWS_PUBLISH live)
+NEWS_PUBLISH=${NEWS_PUBLISH:-live}
+echo "==> NEWS_PUBLISH=${NEWS_PUBLISH}"
 
 NEWS_SA="govdata-news@${PROJECT}.iam.gserviceaccount.com"
 SCHEDULER_SA="govdata-scheduler@${PROJECT}.iam.gserviceaccount.com"
@@ -109,8 +117,8 @@ ENV_PAIRS=(
   "RECIPES_FETCH=tarball"
   "QUIET_WINDOW=${QUIET_WINDOW}"
 )
-# Joined with ';' (gcloud's `^;^` alternate delimiter) so a value may hold a comma.
-ENV_VARS="^;^$(IFS=';'; echo "${ENV_PAIRS[*]}")"
+# Joined with an alternate delimiter (gcloud's `^;^`) so a value may hold a comma.
+ENV_VARS=$(join_env_pairs "${ENV_PAIRS[@]}")
 # Its own dispatch PAT (Actions: write only), not the builder's token.
 SECRETS="OPENROUTER_API_KEY=openrouter-news-key:latest,GITHUB_DISPATCH_TOKEN=github-news-dispatch-token:latest"
 
