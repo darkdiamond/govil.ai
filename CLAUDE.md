@@ -473,7 +473,8 @@ catalog` lists chapters → subjects → codes.
    (user decision), so the guards are mechanical:
    - signals (deterministic, from the `models/` history the builder keeps) →
      editor picks ≤ `NEWS_MAX_PER_RUN` (3) stories or none → writer agent →
-     `gates.check` + critic (pass/revise/kill, 2 revisions) → image → store.
+     `gates.check` + critic (pass/revise/kill; 2 critic rounds, plus 3 rounds
+     for mechanical gate misses, counted apart, `writer.py`) → image → store.
    - **daily floor** (`NEWS_MIN_PER_DAY`, code default 0, prod 1): when event news
      leaves the Israel date short (this run's articles plus earlier runs'), the
      run writes explainers (`kind: feature`, shown as "ניתוח נתונים"): candidates are

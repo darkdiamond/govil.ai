@@ -11,7 +11,7 @@ from services.news import charts
 from services.news.ledger import Ledger
 from services.news.series import extract_series
 from services.news.tests.test_llm_pipeline import FakeLLM, _day, _draft
-from services.news.writer import MAX_TURNS
+from services.news.writer import GATE_REVISIONS, MAX_TURNS
 
 
 class LoopingLLM(FakeLLM):
@@ -50,7 +50,7 @@ def test_tools_not_offered_are_not_run(tmp_path):
 
 def test_malformed_draft_is_a_problem_not_a_crash(tmp_path):
     bad = _draft() | {"charts": ["c1"], "tags": [{"x": 1}], "blocks": ["just text"]}
-    out, _store, _ = _day(tmp_path, FakeLLM([bad] * 3))
+    out, _store, _ = _day(tmp_path, FakeLLM([bad] * (GATE_REVISIONS + 1)))
     assert out["rejected"][0]["reason"] == "gates"
     rej = json.loads(next((tmp_path / "_rejected").glob("*.json")).read_text(encoding="utf-8"))
     assert any("must be an object" in p for p in rej["problems"])

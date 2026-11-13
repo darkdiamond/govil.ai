@@ -2,9 +2,14 @@
 
 The writer is an agent loop over `tools.Toolbox` (prompts/writer.md + the
 style guide). Its submission goes through `gates.check` (deterministic) and
-`gates.critique` (copy chief). Either kind of problem sends it back ONCE,
-with the list; a second failure, a "kill", or running out of tool calls
-rejects the story. Nothing is ever published "anyway".
+`gates.critique` (copy chief). Either kind of problem sends it back with
+the list. The two have separate budgets: CRITIC_REVISIONS rounds for the
+copy chief's judgement, GATE_REVISIONS for mechanical misses (a bare year, a
+missing stat block, a banned phrase). A rewrite for the critic often slips
+one of those, and with one shared budget that slip killed a draft the critic
+was about to pass (2026-11-13: two of three explainers). Running out of
+either, a "kill", or running out of tool calls rejects the story. Nothing is
+ever published "anyway".
 """
 from __future__ import annotations
 
@@ -20,7 +25,8 @@ from .tools import SUBMIT_SPEC, TOOL_SPECS, Toolbox
 
 log = logging.getLogger(__name__)
 PROMPTS = Path(__file__).with_name("prompts")
-REVISIONS = 2
+CRITIC_REVISIONS = 2
+GATE_REVISIONS = 3
 MAX_TURNS = 45            # model calls per article, whatever they contain
 WEB_TOOLS = {"web_search", "fetch_url"}
 DATA_ONLY_KINDS = {ArticleKind.FEATURE, ArticleKind.DIGEST}
@@ -102,7 +108,7 @@ def write(llm, tb: Toolbox, brief: dict, *, catalog: dict, vocab: set[str], toda
                 {"role": "user", "content": json.dumps(user, ensure_ascii=False, default=str)}]
     calls = 0
     over = 0                  # calls refused in a turn that still offered tools
-    revisions = 0
+    critic_rounds = gate_rounds = 0
     critic = None
     nudged = False
     turns = 0
@@ -165,13 +171,25 @@ def write(llm, tb: Toolbox, brief: dict, *, catalog: dict, vocab: set[str], toda
             if critic["verdict"] == "kill":
                 return Outcome("rejected", core=core, reason="critic_kill", critic=critic, tool_calls=calls)
             problems = [f"copy chief: {x}" for x in critic["issues"] + critic["fixes"]]
-        if revisions >= REVISIONS:
-            return Outcome("rejected", core=core, reason="gates" if critic is None else "critic_revise",
-                           problems=problems, critic=critic, tool_calls=calls)
-        revisions += 1
-        messages.append({"role": "user", "content":
-                         "The article was not accepted. Fix every problem and submit again "
-                         "(you may use a few more tool calls):\n- " + "\n- ".join(problems)})
+        by_critic = critic is not None
+        log.info("news writer %s: %s round %d: %s", brief.get("signal_keys"),
+                 "critic" if by_critic else "gates", (critic_rounds if by_critic else gate_rounds) + 1,
+                 "; ".join(p[:160] for p in problems)[:1200])
+        if by_critic:
+            if critic_rounds >= CRITIC_REVISIONS:
+                return Outcome("rejected", core=core, reason="critic_revise",
+                               problems=problems, critic=critic, tool_calls=calls)
+            critic_rounds += 1
+        else:
+            if gate_rounds >= GATE_REVISIONS:
+                return Outcome("rejected", core=core, reason="gates",
+                               problems=problems, critic=critic, tool_calls=calls)
+            gate_rounds += 1
+        ask = ("The article was not accepted. Fix every problem and submit again "
+               "(you may use a few more tool calls):" if by_critic else
+               "The article failed the mechanical checks. Fix exactly these problems, keep "
+               "everything else as it is, and submit again:")
+        messages.append({"role": "user", "content": ask + "\n- " + "\n- ".join(problems)})
         max_tool_calls = calls + 6
         over = 0
         critic = None
