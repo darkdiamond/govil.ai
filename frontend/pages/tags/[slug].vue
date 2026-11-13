@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { hubPageError } from "~/utils/hub-page";
 import { buildDatasetLdSummary } from "~/composables/useDatasetLd";
 import { SITE_URL, tagPath } from "~/utils/paths";
 import { loadSearchIndex } from "~/utils/search-index";
@@ -52,20 +53,12 @@ const { data, error } = await useAsyncData(`tag-${slug.value}`, async () => {
 });
 
 // A failed fetch on client-side navigation (offline, 5xx) is not a 404.
-if (error.value) {
-  throw createError({
-    statusCode: 503,
-    statusMessage: "Tag unavailable",
-    fatal: true,
-  });
-}
-if (!data.value || data.value.entries.length === 0) {
-  throw createError({
-    statusCode: 404,
-    statusMessage: "Tag not found",
-    fatal: true,
-  });
-}
+const pageError = hubPageError(
+  error.value,
+  !!data.value && data.value.entries.length > 0,
+  "Tag"
+);
+if (pageError) throw createError({ ...pageError, fatal: true });
 
 const page = computed(() => data.value!);
 const tag = computed(() => page.value.tag);

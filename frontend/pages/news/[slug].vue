@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { hubPageError } from "~/utils/hub-page";
 import { SITE_URL, tagPath } from "~/utils/paths";
 import type { NewsArticle, NewsIndexEntry } from "~/types/news";
 import { buildDatasetLibTags } from "~/utils/dataset-libs";
@@ -30,20 +31,8 @@ const { data, error } = await useAsyncData(`news-${slug}`, async () => {
 });
 
 // A failed fetch on client-side navigation (offline, 5xx) is not a 404.
-if (error.value) {
-  throw createError({
-    statusCode: 503,
-    statusMessage: "Article unavailable",
-    fatal: true,
-  });
-}
-if (!data.value) {
-  throw createError({
-    statusCode: 404,
-    statusMessage: "Article not found",
-    fatal: true,
-  });
-}
+const pageError = hubPageError(error.value, !!data.value, "Article");
+if (pageError) throw createError({ ...pageError, fatal: true });
 
 const article = computed<NewsArticle>(() => data.value!.article);
 const more = computed<NewsIndexEntry[]>(() => data.value!.more ?? []);

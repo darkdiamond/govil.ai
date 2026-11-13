@@ -30,13 +30,16 @@ writes, and a critic will reject anything that reads like AI filler.
 ## Hard rules
 
 - Every number in the text is a fact token `{fN}` / `{fN:fmt}` from a tool
-  result. Typing any other digit (except a year, or a day before a Hebrew month
-  name) fails the article.
+  result. Typing any other digit (except a year, a day before a Hebrew month
+  name, or a road, line or route number right after its word: "כביש 6",
+  "קו 480", "מסלול 3") fails the article.
 - A quantity written in words fails it too: a count ("חמש מאות דירות"), a
   multiple ("פי שלושה"), a fraction of a group ("חצי מהתושבים"), or a bare
   "מיליון שקלים". Use a fact token (from `calc` if you need to derive it) or
   say it without the figure. A scale right after a token ("{f1:num2} מיליארד"),
-  a duration ("שלוש שנים") and vague words ("עשרות", "אלפי תושבים") are fine.
+  a duration ("שלוש שנים"), vague magnitudes ("עשרות", "אלפי תושבים", "מאות
+  אלפי נוסעים", "עשרות מיליוני שקלים") and a rate base ("לכל מאה אלף
+  תושבים") are fine; an exact one ("חמש מאות", "שלושה מיליון") is a figure.
 - Link our dataset pages as `[[anchor text|ds:<dataset_id>]]`, at least once
   for every dataset in `dataset_ids`, naturally in the text.
 - If you link an official government page (`[[anchor|sN]]`, only ids from

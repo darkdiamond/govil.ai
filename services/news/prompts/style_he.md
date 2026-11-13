@@ -46,8 +46,14 @@ will leave in 10 seconds unless the first sentence tells them something new.
 - Every number comes from a fact token: `{f12}` or `{f12:fmt}`. Never type a
   number yourself (years and dates like "בינואר 2025" / "ב-3 במרץ" are fine as text).
   Spelling it in words counts as typing it: "חמש מאות דירות", "פי שלושה", "חצי
-  מהתושבים" and a bare "מיליון שקלים" fail. Durations ("שלוש שנים") and vague
-  words ("עשרות", "אלפי") are fine.
+  מהתושבים" and a bare "מיליון שקלים" fail, and so do "חמש מאות" or "שלושה
+  מיליון" before any noun. Durations ("שלוש שנים"), vague magnitudes ("עשרות",
+  "אלפי", "מאות אלפי נוסעים", "עשרות מיליוני שקלים") and a rate base in words
+  ("לכל מאה אלף תושבים") are fine.
+- A number that is part of a name is fine as text: a road, a line or a route
+  ("כביש 6", "קו 480", "מסלול 3"), with the number right after the word. Any
+  other number in the same sentence still needs a token. A street address
+  number is not covered: leave it out.
 - Formats: `int` (1,234), `num1` (12.3), `num2` (1.23), `pct` (value already in
   percent → 12.3%), `spct` (signed percent change, +12.3% / −12.3%), `abs_pct`
   (12.3%, no sign, say the direction in words: "ירידה של {f3:abs_pct}"),

@@ -262,18 +262,6 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
   checker is required") although `package.json` lists it; the main checkout's install predates
   it. Fix: `npm ci` in the main checkout's `frontend/` (not in a worktree). (2026-11-10)
 
-- **Enter in the header search opens the first hit, though the footer says all results.**
-  `HeaderSearch.vue` highlights the first result whenever there is one, so Enter goes to that
-  dataset; the "/datasets/?q=" list opens only when nothing matched, while the footer reads
-  "הקשה על Enter תפתח את כל התוצאות". Fix: start the highlight at -1 (Enter opens the full list,
-  ArrowDown picks a hit), or change the footer text. A product choice. (2026-11-11)
-
-- **Header search shows "אין תוצאות" while the index loads or after it failed.** A failed load is
-  retried on the next open, but there is no loading or retry hint, and the hub pages' 503 path for
-  a failed index fetch has no automated test (it lives in an SFC). Fix: a loading state and a
-  "try again" line in `HeaderSearch.vue`, and move the hub's fetch-failure branch somewhere the
-  `node --test` suite can reach. (2026-11-11)
-
 ## Dependencies
 
 - **Pillow's lower bound admits releases with decoder advisories, and nothing pins what the
@@ -307,11 +295,6 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
   user-approved, see CLAUDE.md layer 5), get the user's approval for that client, and until then
   tell the writer in `prompts/writer.md` that gov.il fetches fail. (2026-11-11)
 
-- **The number gate refuses proper names that hold a digit.** `כביש 6` or `קו 480` in prose or a
-  chart label reads as a typed number and fails the draft, so the writer has to talk around it.
-  Fix: an allowlist of name patterns (road, line, route numbers) the number check skips, or a
-  writer-side way to mark a proper name. (2026-11-11)
-
 - **`fetch.py` bounds slow response headers only per read.** The fetch's total deadline is
   checked between operations, so a very slow response header or TLS handshake is bounded only
   by the per-read timeout, not by the 60s total. That needs a server on an allowlisted site, and
@@ -335,11 +318,6 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
   thresholds or clock times in words. Compare `admin list --rejected` for the two weeks after
   the deploy with the two before; if stories die on phrasing the writer can't tokenize,
   loosen that rule in `ledger.spelled_numbers`. (2026-11-11)
-- **"מאות אלפי" fails the number gate though the writer prompt allows vague magnitudes.**
-  `_SPELLED` (`services/news/ledger.py`) reads "מאות אלפי נוסעים" and "מאות מיליוני שקלים" as a
-  number word plus a unit, and "לכל מאה אלף תושבים" the same way, while the prompts say words
-  like "עשרות" and "אלפי" are fine. Fix: decide whether these are vague (a lookahead in
-  `_SPELLED`) or figures (say so in `prompts/writer.md` and `style_he.md`). (2026-11-11)
 - **The scanner no longer retries a 4xx, and data.gov.il's edge can turn an origin error into
   a 404 page.** A CKAN 409 was seen arriving as an HTTP 404 HTML page on 2026-11-11. If an
   origin 5xx is rewritten the same way, `package_search` fails on the first try and the scan
