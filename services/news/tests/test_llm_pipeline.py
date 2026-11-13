@@ -24,6 +24,7 @@ from services.news.llm import (
 from services.news.series import extract_series
 from services.news.signals import Signal
 from services.news.store import LocalArticles, join, split
+from services.news.writer import CRITIC_REVISIONS, GATE_REVISIONS
 
 FIX = Path(__file__).parent / "fixtures" / "models"
 
@@ -255,11 +256,40 @@ def test_gate_failure_gets_one_revision(tmp_path):
     assert out["published"] == ["mortgage-volume-september"]
 
 
-def test_twice_failing_draft_is_rejected_and_recorded(tmp_path):
-    out, _store, _ = _day(tmp_path, FakeLLM([_draft(typed_number=True)] * 3))
+def test_draft_failing_every_gate_round_is_rejected_and_recorded(tmp_path):
+    llm = FakeLLM([_draft(typed_number=True)] * (GATE_REVISIONS + 1))
+    out, _store, _ = _day(tmp_path, llm)
     assert out["published"] == [] and out["rejected"][0]["reason"] == "gates"
+    assert llm.drafts == []  # every gate round was used, and no more
     rej = json.loads(next((tmp_path / "_rejected").glob("*.json")).read_text(encoding="utf-8"))
     assert any("typed numbers" in p for p in rej["problems"])
+
+
+def test_gate_slip_after_critic_rounds_still_gets_fixed(tmp_path):
+    """2026-11-13: the critic's two rounds used the one shared budget, so a
+    rewrite that slipped a mechanical rule was rejected outright. Gate
+    misses now have their own rounds."""
+    drafts = [_draft(), _draft(), _draft(typed_number=True), _draft()]
+    llm = FakeLLM(drafts, critic=("revise", "revise", "pass"))
+    out, _store, _ = _day(tmp_path, llm)
+    assert out["published"] == ["mortgage-volume-september"], out
+    gate_ask = [m["content"] for m in llm.writer_msgs
+                if m["role"] == "user" and m["content"].startswith("The article failed the mechanical")]
+    assert len(gate_ask) == 1 and "typed numbers" in gate_ask[0]
+
+
+def test_gate_rounds_do_not_spend_the_critics_rounds(tmp_path):
+    drafts = [_draft(typed_number=True)] * GATE_REVISIONS + [_draft()] * (CRITIC_REVISIONS + 1)
+    llm = FakeLLM(drafts, critic=("revise",) * CRITIC_REVISIONS + ("pass",))
+    out, _store, _ = _day(tmp_path, llm)
+    assert out["published"] == ["mortgage-volume-september"], out
+
+
+def test_critic_rounds_are_still_capped(tmp_path):
+    llm = FakeLLM([_draft()] * (CRITIC_REVISIONS + 1), critic=("revise",) * (CRITIC_REVISIONS + 1))
+    out, _store, _ = _day(tmp_path, llm)
+    assert out["published"] == [] and out["rejected"][0]["reason"] == "critic_revise"
+    assert llm.drafts == [] and llm.critic == []
 
 
 def test_critic_kill_rejects(tmp_path):
