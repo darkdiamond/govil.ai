@@ -102,6 +102,13 @@ publishing what refreshed. All three exit non-zero, so the execution
 shows FAILED; an idle run (nothing re-rendered) is a success, and so are
 `skipped_quiet` and `skipped_overlap`.
 
+**Old images:** every deploy pushes an image to Artifact Registry. After the
+first job deploy on a fresh project (it creates `cloud-run-source-deploy`), run
+`./infra/artifact-cleanup.setup.sh` once: it deletes versions older than 14
+days but keeps the 5 newest per package and `latest`
+(`infra/artifact-cleanup.json`). A job rolled back to an older image isn't
+protected by it; redeploy after a rollback.
+
 ## 3. Cloud Scheduler — `infra/scheduler.setup.sh`
 
 Owns both ticks: `govdata-pipeline-daily` (builder, `0 6-21 * * *`) and

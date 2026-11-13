@@ -157,7 +157,8 @@ gcloud artifacts repositories add-iam-policy-binding "$AR_REPO" \
   --member="serviceAccount:$PUBLISHER_SA" \
   --role=roles/artifactregistry.writer --quiet >/dev/null
 # Old images are deleted after 14 days (the 5 newest per package and `latest` stay).
-"$(dirname "$0")/artifact-cleanup.setup.sh"
+PROJECT="$PROJECT" AR_LOCATION="$AR_LOCATION" AR_CLEANUP_REPOS="cloud-run-source-deploy $AR_REPO" \
+  infra/artifact-cleanup.setup.sh # cwd is the repo root (cd above)
 
 # ---- 7. Cloud Build triggers (publisher + publisher image) -----------------
 echo "==> Cloud Build trigger '$TRIGGER_ID' (publisher — cloudbuild-publish.yaml)"
