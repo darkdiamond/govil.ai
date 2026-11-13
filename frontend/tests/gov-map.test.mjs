@@ -362,3 +362,18 @@ test("GovMap.create fetches every page while its container stays connected", asy
   assert.equal(pending.length, 5, "stops at the dataset total");
   assert.deepEqual(ingested, [1000, 1000, 1000, 1000, 1000]);
 });
+
+test("GovMap.create keeps fetching on engines without Node.isConnected", async () => {
+  const { pending, ingested, container, settle } = createWithPagedFetch({
+    total: 3000,
+    pageSize: 1000,
+  });
+  // EdgeHTML 18 and older: the property is missing, not false.
+  delete container.isConnected;
+  for (let i = 0; i < 3; i++) {
+    assert.equal(pending.length, i + 1);
+    pending[i]();
+    await settle();
+  }
+  assert.deepEqual(ingested, [1000, 1000, 1000]);
+});

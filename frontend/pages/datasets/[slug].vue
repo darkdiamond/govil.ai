@@ -8,7 +8,7 @@ import {
 import { KIND_INFO } from "~/composables/useKindLabels";
 import { formatBytes, formatNumber } from "~/composables/useRelativeTime";
 import type { AgentData, DatasetMeta, ManifestEntry } from "~/types/manifest";
-import { datasetDate } from "~/utils/dataset-dates";
+import { datasetDate, laterIsraelDay } from "~/utils/dataset-dates";
 import { awaitDatasetLibs, executeBodyScripts } from "~/utils/body-scripts";
 import { buildDatasetLibTags, detectDatasetLibs } from "~/utils/dataset-libs";
 import { loadFullManifestServer } from "~/utils/search-index";
@@ -231,14 +231,11 @@ const termsHref = computed(() =>
 const sourceUpdatedSinceAnalysis = computed<boolean>(() => {
   // The icon points at the live explorer; without one it has nothing to offer.
   if (!hasExplorer.value) return false;
-  const live = entry.value.metadata_modified;
-  const snap = entry.value.analyzed_metadata_modified;
-  if (!live || !snap) return false;
-  const dayUTC = (iso: string) => {
-    const d = new Date(iso);
-    return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
-  };
-  return dayUTC(live) > dayUTC(snap);
+  // Israel calendar days, as the dates on the page are shown.
+  return laterIsraelDay(
+    entry.value.metadata_modified,
+    entry.value.analyzed_metadata_modified
+  );
 });
 
 function formatDateHe(iso?: string | null): string {

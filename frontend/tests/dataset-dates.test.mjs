@@ -28,7 +28,7 @@ const { outputFiles } = await build({
 });
 const mod = { exports: {} };
 new Function("module", "exports", outputFiles[0].text)(mod, mod.exports);
-const { datasetDate, cardDateLabel } = mod.exports;
+const { datasetDate, cardDateLabel, israelDay, laterIsraelDay } = mod.exports;
 
 function withClock(iso, fn) {
   const real = Date.now;
@@ -69,4 +69,31 @@ test("after mount the card shows the relative time", () => {
     withClock("2026-11-13T08:00:00Z", () => cardDateLabel(iso, true)),
     "עודכן לפני 3 ימים"
   );
+});
+
+test("israelDay is the Israel calendar day, not the UTC one", () => {
+  assert.equal(israelDay("2026-11-09T22:30:00Z"), "2026-11-10");
+  assert.equal(israelDay("2026-07-09T21:30:00Z"), "2026-07-10"); // IDT, +3
+  assert.equal(israelDay("2026-07-09T20:30:00Z"), "2026-07-09");
+  assert.equal(israelDay("bad"), "");
+  assert.equal(israelDay(null), "");
+});
+
+test("laterIsraelDay compares Israel days across UTC midnight", () => {
+  // Same Israel day (10 Nov), different UTC days: no icon.
+  assert.equal(
+    laterIsraelDay("2026-11-10T08:00:00Z", "2026-11-09T22:30:00Z"),
+    false
+  );
+  // Same UTC day (9 Nov), different Israel days: icon.
+  assert.equal(
+    laterIsraelDay("2026-11-09T22:30:00Z", "2026-11-09T08:00:00Z"),
+    true
+  );
+  assert.equal(
+    laterIsraelDay("2026-11-09T08:00:00Z", "2026-11-09T22:30:00Z"),
+    false
+  );
+  assert.equal(laterIsraelDay("2026-11-10T08:00:00Z", null), false);
+  assert.equal(laterIsraelDay(undefined, "2026-11-10T08:00:00Z"), false);
 });

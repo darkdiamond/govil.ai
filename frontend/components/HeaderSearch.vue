@@ -164,6 +164,10 @@ function submit() {
   }
 }
 
+// Bound on the whole dialog, so Escape and the arrows also work while focus is
+// on a result link (Tab) rather than in the input. The arrows move the
+// highlight (exposed as the input's aria-activedescendant) and bring focus
+// back to the input, where Enter opens the highlighted result.
 function onKeydown(e: KeyboardEvent) {
   if (e.key === "Escape") {
     e.preventDefault();
@@ -171,6 +175,8 @@ function onKeydown(e: KeyboardEvent) {
     return;
   }
   if (!results.value.length) return;
+  if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+  if (document.activeElement !== inputEl.value) inputEl.value?.focus();
   if (e.key === "ArrowDown") {
     e.preventDefault();
     highlight.value = (highlight.value + 1) % results.value.length;
@@ -229,6 +235,7 @@ onBeforeUnmount(() => {
       role="dialog"
       aria-label="חיפוש מאגרים"
       class="absolute top-full mt-2 end-0 w-[min(22rem,calc(100vw-2rem))] bg-white text-ink rounded-gov shadow-card border border-rule overflow-hidden z-50"
+      @keydown="onKeydown"
     >
       <label
         for="header-search-input"
@@ -241,9 +248,17 @@ onBeforeUnmount(() => {
           ref="inputEl"
           v-model="query"
           type="search"
+          role="combobox"
+          aria-autocomplete="list"
+          aria-controls="header-search-results"
+          :aria-expanded="results.length > 0"
+          :aria-activedescendant="
+            highlight >= 0 && results[highlight]
+              ? `header-search-option-${highlight}`
+              : undefined
+          "
           placeholder="חיפוש מאגר, נושא או משרד…"
           class="flex-1 bg-transparent border-0 text-sm placeholder:text-subtle"
-          @keydown="onKeydown"
           @keydown.enter.prevent="submit"
         />
       </label>
@@ -259,9 +274,18 @@ onBeforeUnmount(() => {
       </p>
       <ul
         v-if="results.length"
+        id="header-search-results"
+        role="listbox"
+        aria-label="תוצאות חיפוש"
         class="list-none m-0 p-0 max-h-80 overflow-y-auto"
       >
-        <li v-for="(r, i) in results" :key="r.id">
+        <li
+          v-for="(r, i) in results"
+          :id="`header-search-option-${i}`"
+          :key="r.id"
+          role="option"
+          :aria-selected="i === highlight"
+        >
           <a
             :href="datasetHref(r)"
             class="w-full text-start px-3 py-2 flex flex-col gap-0.5 no-underline hover:no-underline hover:bg-brand-50 focus:bg-brand-50 transition-colors"

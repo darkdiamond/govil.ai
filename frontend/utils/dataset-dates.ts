@@ -20,3 +20,29 @@ export function cardDateLabel(
   const date = datasetDate(iso);
   return date ? `עודכן ב-${date}` : "עודכן —";
 }
+
+// en-CA formats a date as YYYY-MM-DD, which sorts and compares as text.
+const IL_DAY = new Intl.DateTimeFormat("en-CA", {
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  timeZone: "Asia/Jerusalem",
+});
+
+/** The Israel calendar day of a timestamp as "YYYY-MM-DD", or "" if invalid. */
+export function israelDay(iso?: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? "" : IL_DAY.format(d);
+}
+
+/** True when `live` falls on a later Israel calendar day than `snap` (the
+ * "updated since the analysis" icon). Missing or invalid stamps are false. */
+export function laterIsraelDay(
+  live?: string | null,
+  snap?: string | null
+): boolean {
+  const a = israelDay(live);
+  const b = israelDay(snap);
+  return !!a && !!b && a > b;
+}
