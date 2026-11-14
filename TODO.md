@@ -8,6 +8,14 @@ This repo is public: describe a security gap by what to change, never by how to 
 
 ## Recipes and refresh
 
+- **An empty upstream re-upload opens a misleading `schema_changed` issue.** When a publisher
+  re-uploads a 0-byte CSV (datastore total 0, only `_id`), the refresh reports "lost column(s)"
+  and opens an issue (75989c99, #470). The authoring routine now blocks these as
+  `upstream_empty` and re-probes them, but each one still opens an issue and costs an authoring
+  subagent before it is recognized. Fix: a transient `upstream_empty` fail reason (page kept, no
+  issue) that escalates only after `REFRESH_TRANSIENT_STRIKES` runs in a row. Needs a builder
+  redeploy. (2026-11-14)
+
 - **Raster map layers have no input type.** 022552b2 (מפות מפלסים ומליחות באקוויפרים, a top
   no-recipe page by search clicks) ships only zips of yearly GeoTIFFs: coastal-aquifer water
   level 1954-2023 (70 files, 85MB) and chloride 1977-2020 (35 files, 38MB), 527×1250 float32
