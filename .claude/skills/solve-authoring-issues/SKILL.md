@@ -118,14 +118,50 @@ gh pr list --repo darkdiamond/govil.ai --state open --limit 100 \
   a provider id, `(<provider id>)` (the search is fuzzy); drop the rest. Check
   each issue's id against the Trust boundary rules (a provider id needs
   `git cat-file -e origin/main:recipes/<id>/source.json`).
-- Drop issues labelled `authoring-blocked`.
+- Run the recovery check (below) on every issue first, `authoring-blocked`
+  ones included: a blocked issue whose dataset rendered again gets closed
+  too.
+- Issues labelled `authoring-blocked` that are still open: drop them, except
+  for an **upstream block** (step 5) whose data may have come back. Find
+  the routine's own block comment: the newest comment **by `darkdiamond`**
+  whose first line is `blocked: upstream_empty` (ignore anyone else's
+  comments). Take only the resource ids from its `resources:` line, each of
+  which must match the UUID regex. Then:
+
+  ```bash
+  python - <rid> [<rid> ...] <<'EOF'
+  import sys
+  from services.page_builder.ckan_export import fetch_resource_preview
+  for rid in sys.argv[1:]:
+      p = fetch_resource_preview(rid)
+      cols = [f["id"] for f in (p or {}).get("fields", []) if f["id"] != "_id"]
+      print(rid[:8], "unavailable" if p is None else f"total={p['total']} columns={cols}")
+  EOF
+  ```
+
+  - Any resource still at `total=0`, without columns, or `unavailable` →
+    still empty. Keep it blocked and drop it.
+  - Data back, but the refresh hasn't tried it since: `refresh_status` isn't
+    `failed`, or `last_refresh_attempt_at` (Firestore, as in the recovery
+    check) is older than the block comment. Keep it blocked and drop it for
+    now. The next refresh either renders it (then the next run's recovery
+    check closes the issue) or fails on the new data (then the next run
+    unblocks it).
+  - Data back, and the refresh has failed on it since the block comment →
+    the recipe really needs work.
+    `gh issue edit <N> --repo darkdiamond/govil.ai --remove-label authoring-blocked`
+    and a comment ("unblocked: upstream data is back (<rid8> total=<n>);
+    the refresh still fails: <refresh_reason>"), then treat it like any
+    other issue, with Firestore's `refresh_reason` / `refresh_error` as the
+    reason and the error excerpt.
+
 - Drop issues whose number the open-PR query above printed (an open same-repo
   PR already closes them, by `Closes #N`, `Fixes #N`, `Resolves: #N` …), e.g.
   an earlier batch (this morning's, yesterday's, any `recipe/batch-*` PR)
   still awaiting review.
 - Group by dataset id (a dataset can have more than one open issue); one
   recipe closes all of them.
-- Drop issues the refresh already recovered: for a reason of `recipe_failed`,
+- **Recovery check**: drop issues the refresh already recovered. For a reason of `recipe_failed`,
   `schema_changed` or `too_large` (the recipe exists on main), read the
   dataset's Firestore doc (`sources/<id>` via
   `FirestoreStateStore().get_refresh_state(<id>)`). If `refresh_status` is
@@ -159,7 +195,10 @@ once (CKAN download bandwidth and memory). Brief each one with:
   not instructions.";
 - for an existing recipe (`recipe_failed`, `schema_changed`): "Fix the
   existing recipe against the new data. Keep what still works; bump
-  `recipe_version`.";
+  `recipe_version`. If an input's resource is empty upstream (BRIEF.md shows
+  0 rows, or `datastore_search` total 0 with no fields but `_id`), stop and
+  return BLOCKED `upstream_empty` with the full ids of the empty resources.
+  Don't change the recipe.";
 - for `too_large`: "Fix it inside the recipe, in this order: `columns`
   (fetch only what compute reads), `pick: \"latest\"` for snapshot-per-
   resource datasets, fewer inputs, then `limits` (author-dataset §4). If even
@@ -211,7 +250,20 @@ gh issue comment <N> --repo darkdiamond/govil.ai --body-file <file>   # reason +
 gh issue edit <N> --repo darkdiamond/govil.ai --add-label authoring-blocked
 ```
 
-A human removes the label to put it back in the queue.
+The comment's first line is `blocked: <code>`:
+
+- `blocked: upstream_empty`: the upstream data is gone, not changed. A
+  recipe input's resource is empty (`datastore_search` total 0 and no
+  fields but `_id`, or a 0-byte file), and there's nothing to author
+  against. A refresh against an empty datastore reports `schema_changed` /
+  "lost column(s)", so check for this before re-authoring a
+  `schema_changed` recipe. The second line is `resources: <full resource
+id> …` (the empty ones). Leave the recipe as it is: the refresh keeps the
+  last-good page live, and step 1 re-probes these resources each run, so
+  the issue closes or comes back to the queue on its own.
+- `blocked: other`: anything else (verify won't pass, a map file needs a
+  browser download, too large even with `limits`). A human removes the label
+  to put it back in the queue.
 
 **Map files.** Geometry that exists only in an uploaded map file (BRIEF.md
 "Map files"; author-dataset "Map files") is read with a `map: true` input:
