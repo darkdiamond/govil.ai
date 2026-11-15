@@ -557,7 +557,7 @@ def compute(frames):
             "temporal_coverage": f"{int(per_year.index.min())}/{asof.strftime('%Y-%m-%d')}",
             "spatial_coverage": "ישראל",
             "seo": {
-                "title": "איתור רופא לפי מספר רישיון | מאגר רופאים משרד הבריאות",
+                "title": "איתור רופא | מאגר הרופאים משרד הבריאות",
                 "description": (f"איתור רופא לפי שם, מספר רישיון או התמחות: {n(total)} רופאים בעלי "
                                 f"רישיון ממשרד הבריאות, מהם {n(n_specialists)} רופאים מומחים "
                                 f"ב-{n(n_fields)} תחומי התמחות."),
