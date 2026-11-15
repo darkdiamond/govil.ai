@@ -1,0 +1,14 @@
+{
+  "experts.district": "chart-districts, insight:national, insight:thin — multi-valued Arabic district names mapped to Hebrew; 'قطري' (national) shown as its own row",
+  "experts.employer": "chart-inst, insight:inst — institute names mapped from Arabic to their Hebrew names; an unmapped name is counted under 'מכונים אחרים', never printed",
+  "experts.expert": "kpi:experts — used only to drop nameless rows and shifted rows (an organisation name in the expert column), and to merge an expert listed several times into one; no individual is named on the page",
+  "experts.adress": "skip: street address — contact detail, kept off the page by policy",
+  "experts.authority": "chart-cities, insight:cities — multi-valued; Arabic city names mapped to Hebrew, spelling variants merged, unmapped names counted under 'אחר'",
+  "experts.phone": "skip: phone number — contact detail",
+  "experts.cell_phone": "skip: mobile phone number — contact detail",
+  "experts.profession": "chart-prof, chart-districts, chart-cities, chart-topics, chart-rates, chart-opinion, insight:prof, insight:rates, insight:op_prof — Arabic profession names mapped to Hebrew; two professions count under the first",
+  "experts.opinion": "kpi:experts — near-constant 'نعم'; the number marked as giving opinions is stated in the lede",
+  "experts.payment": "chart-rates, chart-opinion, kpi:rate, kpi:opinion, insight:rates, insight:opinion, insight:op_prof — Arabic free text parsed into an hourly/session rate and an opinion fee (rule stated on the chart)",
+  "experts.notes": "chart-topics, insight:topics — Arabic keyword tagging only; the free text itself (which carries private e-mails) never reaches the page",
+  "experts.languages": "chart-langs, kpi:arabic, insight:arabic, insight:langs — multi-valued Arabic language names mapped to Hebrew"
+}
