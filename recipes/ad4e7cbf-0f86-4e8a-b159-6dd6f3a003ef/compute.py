@@ -25,7 +25,8 @@ COHORT_WIDTH = 3          # years per appraiser cohort band
 LAG_RECENT_YEARS = 3      # full years used for the lag distribution
 LAG_BUCKETS = [(0, 30), (31, 90), (91, 180), (181, 365), (366, 730), (731, None)]
 LAG_OK_DAYS, LAG_WARN_DAYS = 90, 180
-LATEST_N = 5              # newest published decisions listed with their PDF
+LATEST_N = 10             # newest published decisions listed with their PDF
+LATEST_MOBILE = 5         # of those, shown on phones
 DOC_HOST = "https://free-justice.openapi.gov.il/"
 LRI, PDI = "\u2066", "\u2069"
 MONTHS_HE = ["ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני", "יולי",
@@ -64,11 +65,13 @@ def _parcel_part(s):
 
 
 def _latest(raw, k):
-    """The k newest published decisions, each with its decision PDF.
+    """The k newest published decisions with their PDFs, grouped by publication day.
 
     Sorted by publication date, then decision date, then link (unique per
     decision) so equal dates order deterministically. A link off the MoJ
-    document host is dropped, not rendered."""
+    document host is dropped, not rendered. Badges mark only what differs
+    from the common case (betterment levy, decisive appraiser, original
+    appraisal): almost every decision is that, so a label on each would be noise."""
     d = pd.DataFrame({
         "pub": pd.to_datetime(raw["publicity_date"].str.strip(), errors="coerce",
                               format="%d/%m/%Y %H:%M"),
@@ -79,29 +82,45 @@ def _latest(raw, k):
         "plot": raw["plot"].map(_parcel_part),
         "type": raw["appraisal_type"].str.strip(),
         "atype": raw["appraiser_type"].str.strip(),
+        "version": raw["appraisal_version"].str.strip(),
         "appraiser": raw["decisive_appraiser"].str.strip().map(_norm_name),
         "link": raw["link"].str.strip(),
     }).dropna(subset=["pub", "dec"])
     d = d.sort_values(["pub", "dec", "link"], ascending=False, kind="stable").head(k)
-    rows = []
-    for r in d.itertuples(index=False):
-        parcel = " · ".join(p for p in (f"גוש {r.block}" if r.block else "",
-                                        f"חלקה {r.plot}" if r.plot else "") if p)
-        rows.append({
-            "pub": r.pub.strftime("%d.%m.%Y"),
-            "dec": r.dec.strftime("%d.%m.%Y"),
-            "committee": r.committee or "לא צוין",
-            "parcel": parcel or "לא צוין",
-            "type": r.type or "לא צוין",
-            "atype": r.atype or "",
-            "appraiser": r.appraiser or "לא צוין",
+    groups = []
+    for i, r in enumerate(d.itertuples(index=False)):
+        parcel = ", ".join(p for p in (f"גוש {r.block}" if r.block else "",
+                                       f"חלקה {r.plot}" if r.plot else "") if p)
+        badges = [b for b in (
+            r.type if r.type and r.type != "היטל השבחה" else "",
+            r.atype if r.atype and r.atype != "שמאי מכריע" else "",
+            r.version if r.version and r.version not in ("שומה מקורית", "1") else "",
+        ) if b]
+        committee = r.committee or "ועדה לא צוינה"
+        item = {
+            "committee": committee,
+            "block": r.block,
+            "plot": r.plot,
+            "appraiser": r.appraiser or "",
+            "badges": badges,
+            # Phones show the first LATEST_MOBILE only; the rest is desktop-only.
+            "desktop_only": i >= LATEST_MOBILE,
             "link": r.link if r.link.startswith(DOC_HOST) and " " not in r.link else "",
-        })
+            "aria": f"הכרעה: {committee}" + (f", {parcel}" if parcel else "") + " (PDF)",
+        }
+        day = d_he(r.pub)
+        if not groups or groups[-1]["day"] != day:
+            groups.append({"day": day, "decisions": []})
+        groups[-1]["decisions"].append(item)
+    for g in groups:
+        c = len(g["decisions"])
+        g["count"] = "הכרעה אחת" if c == 1 else f"{n(c)} הכרעות"
+        g["desktop_only"] = all(x["desktop_only"] for x in g["decisions"])
     # Search example for the explorer: the newest row with a plain numeric
     # block and plot (the explorer ANDs every word, so all three must match).
     example = next((f"{r.committee} {r.block} {r.plot}" for r in d.itertuples(index=False)
                     if r.committee and r.block.isdigit() and r.plot.isdigit()), None)
-    return rows, example
+    return groups, example
 
 
 def _prepare(df):
@@ -472,8 +491,7 @@ def compute(frames):
     rec_lag_lf = med_lf if med_lf is not None else 0
     latest_rows, search_example = _latest(raw, LATEST_N)
     labels = {
-        "latest_note": (f"עודכן עד {d_he(ref_pub)}. כל {n(total)} ההכרעות, עם קישור לכל אחת: "
-                        f"בחיפוש בהמשך העמוד."),
+        "latest_more": f"חיפוש בכל {n(total)} ההכרעות לפי ועדה, גוש וחלקה",
         "search_how": "כתבו בחיפוש ועדה, גוש וחלקה, ולחצו ‚פתיחה' לקריאת ההכרעה (PDF).",
         "search_example": search_example or "",
         "lede": (f"הכרעות שמאי מכריע ושמאי מייעץ (שומות מכריעות) בסכסוכי שומה בין בעלי מקרקעין לוועדות "
