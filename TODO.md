@@ -69,6 +69,14 @@ This repo is public: describe a security gap by what to change, never by how to 
   and holds those queries at ~position 8.7. Fix: once GSC shows where df60d73b lands (~4 weeks
   after #368), drop "אזורי חיוג" from 59d2e891's title if df60d73b ranks at least as well.
   (2026-11-06)
+- **Check whether ad4e7cbf visitors now reach the decision PDFs (~2026-11-29, last 14 days).**
+  Before the explorer link columns (#489) and recipe v5, GA4 showed 0 clicks to
+  free-justice.openapi.gov.il and 34 full-CSV `file_download`s by 29 of ~171 users (90 days),
+  and GSC showed page CTR 2.93% at position 5.1 (2026-11-05..13), "החלטות שמאי מכריע" 0.5% at
+  6.4. Compare GA4 `click` events with `linkDomain` free-justice.openapi.gov.il (enhanced
+  measurement), full-CSV downloads, the engaged-session rate (64%), and GSC CTR for those
+  queries. If links get clicked, find other datasets with URL columns worth the same card.
+  (2026-11-15)
 - **Some registry pages have no lookup callout to `#data-explorer`.** 14f2521f (missions abroad),
   d08d4a17 (notaries) and 35c791ca (licensed garages) are lookup-intent pages whose searchers
   want one row, but the page doesn't point them at the explorer. Fix: add the callout the #124
