@@ -4,7 +4,10 @@ One row per published decision (~31.6k, appended daily). Decisive
 appraisers are public decision-makers and are named; the private parties
 (owners, developers) in `appraisal_header` are never quoted — the header is
 used only for an aggregate "is the party a corporation" heuristic. Block /
-plot numbers identify specific parcels and are not used.
+plot (gush / helka) are public land-registry identifiers, already shown in
+the explorer, and they are what visitors search by: the "latest decisions"
+card lists them with each decision's PDF (`link`, the MoJ document host
+only) so a visitor reaches the decision itself, not the whole CSV.
 
 "Now" is the latest decision / publication date in the data, never the wall
 clock. The latest decision year is partial unless it reaches late December;
@@ -22,6 +25,8 @@ COHORT_WIDTH = 3          # years per appraiser cohort band
 LAG_RECENT_YEARS = 3      # full years used for the lag distribution
 LAG_BUCKETS = [(0, 30), (31, 90), (91, 180), (181, 365), (366, 730), (731, None)]
 LAG_OK_DAYS, LAG_WARN_DAYS = 90, 180
+LATEST_N = 20             # newest published decisions listed with their PDF
+DOC_HOST = "https://free-justice.openapi.gov.il/"
 LRI, PDI = "\u2066", "\u2069"
 MONTHS_HE = ["ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני", "יולי",
              "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר"]
@@ -50,6 +55,53 @@ def _norm_name(s):
     s = re.sub(r"\(.*?\)", " ", s)
     s = re.sub(r"\s[–-]\s?\S+$", " ", s)
     return re.sub(r"\s+", " ", s).strip()
+
+
+def _parcel_part(s):
+    """'10236~10237' / '1731~ 1733' -> '10236, 10237'; blanks -> ''."""
+    s = re.sub(r"\s*~\s*", ", ", str(s).strip())
+    return re.sub(r"\s+", " ", s)
+
+
+def _latest(raw, k):
+    """The k newest published decisions, each with its decision PDF.
+
+    Sorted by publication date, then decision date, then link (unique per
+    decision) so equal dates order deterministically. A link off the MoJ
+    document host is dropped, not rendered."""
+    d = pd.DataFrame({
+        "pub": pd.to_datetime(raw["publicity_date"].str.strip(), errors="coerce",
+                              format="%d/%m/%Y %H:%M"),
+        "dec": pd.to_datetime(raw["decision_date"].str.strip(), errors="coerce",
+                              format="%d/%m/%Y %H:%M"),
+        "committee": raw["committee"].str.strip(),
+        "block": raw["block"].map(_parcel_part),
+        "plot": raw["plot"].map(_parcel_part),
+        "type": raw["appraisal_type"].str.strip(),
+        "atype": raw["appraiser_type"].str.strip(),
+        "appraiser": raw["decisive_appraiser"].str.strip().map(_norm_name),
+        "link": raw["link"].str.strip(),
+    }).dropna(subset=["pub", "dec"])
+    d = d.sort_values(["pub", "dec", "link"], ascending=False, kind="stable").head(k)
+    rows = []
+    for r in d.itertuples(index=False):
+        parcel = " · ".join(p for p in (f"גוש {r.block}" if r.block else "",
+                                        f"חלקה {r.plot}" if r.plot else "") if p)
+        rows.append({
+            "pub": r.pub.strftime("%d.%m.%Y"),
+            "dec": r.dec.strftime("%d.%m.%Y"),
+            "committee": r.committee or "לא צוין",
+            "parcel": parcel or "לא צוין",
+            "type": r.type or "לא צוין",
+            "atype": r.atype or "",
+            "appraiser": r.appraiser or "לא צוין",
+            "link": r.link if r.link.startswith(DOC_HOST) and " " not in r.link else "",
+        })
+    # Search example for the explorer: the newest row with a plain numeric
+    # block and plot (the explorer ANDs every word, so all three must match).
+    example = next((f"{r.committee} {r.block} {r.plot}" for r in d.itertuples(index=False)
+                    if r.committee and r.block.isdigit() and r.plot.isdigit()), None)
+    return rows, example
 
 
 def _prepare(df):
@@ -418,7 +470,13 @@ def compute(frames):
     lag_recent_med = int(rec.median()) if len(rec) else 0
     within90 = sum(r["share"] for r in lag_rows[:2])
     rec_lag_lf = med_lf if med_lf is not None else 0
+    latest_rows, search_example = _latest(raw, LATEST_N)
     labels = {
+        "latest_note": (f"{n(len(latest_rows))} ההכרעות האחרונות שפורסמו במאגר (עד {d_he(ref_pub)}), "
+                        f"עם קישור למסמך ההכרעה המלא. לכל {n(total)} ההכרעות: החיפוש בהמשך העמוד."),
+        "search_how": ("כתבו בחיפוש את שם הוועדה המקומית, מספר הגוש ומספר החלקה, "
+                       "ולחצו ‚פתיחה' בעמודת הקישור כדי לקרוא את ההכרעה המלאה (PDF)."),
+        "search_example": search_example or "",
         "lede": (f"הכרעות שמאי מכריע ושמאי מייעץ (שומות מכריעות) בסכסוכי שומה בין בעלי מקרקעין לוועדות "
                  f"התכנון המקומיות, בעיקר בהיטל השבחה. המאגר כולל {n(total)} הכרעות מ-{d_he(first_dec)} "
                  f"ועד {d_he(ref)}, ב-{n(comms.size)} ועדות מקומיות ובחתימת {n(apprs.size)} שמאים. "
@@ -489,6 +547,7 @@ def compute(frames):
         "corp_caption": "שיעור ההכרעות מול תאגיד ומספר ההכרעות שנבדקו, לפי שנה.",
     }
     tables = {
+        "latest": latest_rows,
         "type_names": type_names,
         "years": years_table,
         "season": [{"month": MONTHS_HE[m - 1], "avg": f"{season[m]:.1f}"} for m in range(1, 13)],
@@ -526,9 +585,9 @@ def compute(frames):
             "temporal_coverage": f"{first_dec.strftime('%Y-%m-%d')}/{ref.strftime('%Y-%m-%d')}",
             "spatial_coverage": "ישראל",
             "seo": {
-                "title": "שומות מכריעות: חיפוש הכרעות שמאי מכריע לפי גוש וחלקה",
-                "description": (f"חיפוש שומות מכריעות (שומה מכרעת) והכרעות שמאי מכריע לפי ועדה מקומית, גוש וחלקה "
-                                f"או שם השמאי: {n(total)} הכרעות מאז {min_year}, בעיקר בהיטל השבחה."),
+                "title": "שומות מכריעות: חיפוש החלטות שמאי מכריע לפי גוש וחלקה",
+                "description": (f"חיפוש שומות מכריעות (שומה מכרעת) והכרעות שמאי מכריע לפי ועדה, גוש וחלקה, "
+                                f"עם קישור ישיר לכל הכרעה (PDF): {n(total)} הכרעות מאז {min_year}."),
                 "name": "מאגר שומות מכריעות",
                 "alternate_names": ["הכרעות שמאי מכריע", "החלטות שמאי מכריע",
                                     "הכרעות שמאים מכריעים", "מאגר החלטות שמאי מכריע",
