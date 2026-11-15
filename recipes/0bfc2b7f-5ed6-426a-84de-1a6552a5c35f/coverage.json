@@ -1,0 +1,18 @@
+{
+  "main.MisparMitham": "table:big — compound number, used only as the sort tie-break; searchable in the explorer",
+  "main.Yeshuv": "chart-cities, chart-units, chart-permits, insight:leader, table:big — city name (display spelling per city code)",
+  "main.SemelYeshuv": "chart-cities, kpi:cities — city code, the grouping key for cities",
+  "main.ShemMitcham": "table:big, insight:largest — compound name",
+  "main.YachadKayam": "chart-units, chart-mult, kpi:kayam, kpi:mult, insight:mult, table:big — existing housing units",
+  "main.YachadTosafti": "skip: published 'additional units' disagrees with proposed minus existing in about 40% of rows (e.g. 6,500 vs 122), so the page derives the addition from YachadMutza minus YachadKayam instead",
+  "main.YachadMutza": "chart-status, chart-track, chart-valid, chart-units, chart-size, chart-mult, kpi:mutza, kpi:mult, insight:pipeline, insight:largest, insight:mult, table:big — proposed housing units",
+  "main.TaarichHachraza": "chart-decl, chart-order, insight:trend, insight:undeclared, insight:order — declaration date",
+  "main.MisparTochnit": "skip: plan number, an identifier; searchable in the explorer",
+  "main.KishurLatar": "skip: per-row link to the plan on mavat.iplan.gov.il; available per row in the explorer",
+  "main.SachHeterim": "chart-permits, kpi:heterim, insight:permits — units with building permits",
+  "main.KishurLaMapa": "skip: per-row govmap link; available per row in the explorer",
+  "main.Maslul": "chart-track, chart-decl, chart-order, insight:order, insight:undeclared, table:big — declaration track",
+  "main.ShnatMatanTokef": "chart-valid, chart-order, insight:order — plan validity year",
+  "main.Bebitzua": "kpi:exec, insight:permits — in-execution flag (equals the 'במימוש' status today)",
+  "main.Status": "chart-status, chart-cities, kpi:approved, insight:pipeline, table:big — planning status"
+}

@@ -1,0 +1,32 @@
+{
+  "contract_version": 1,
+  "dataset_id": "0bfc2b7f-5ed6-426a-84de-1a6552a5c35f",
+  "recipe_version": 1,
+  "authored_at": "2026-11-15T05:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-11-14T23:00:34.910807+00:00",
+    "rows": { "main": 992 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "f65a0daf-f737-49c5-9424-d378d52104f5",
+      "required_columns": [
+        "MisparMitham",
+        "Yeshuv",
+        "SemelYeshuv",
+        "ShemMitcham",
+        "YachadKayam",
+        "YachadMutza",
+        "TaarichHachraza",
+        "SachHeterim",
+        "Maslul",
+        "ShnatMatanTokef",
+        "Bebitzua",
+        "Status"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}
