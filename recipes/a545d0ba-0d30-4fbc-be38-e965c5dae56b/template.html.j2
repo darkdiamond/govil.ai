@@ -26,18 +26,18 @@
 {%- endmacro -%}
 <h1>{{ model.agent_data.seo.name }}</h1>
 
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline border-2 border-brand">
+  <img src="/icons/search.svg" alt="" class="w-6 h-6 shrink-0" />
+  <span>
+    <span class="block text-lg font-semibold text-ink-deep">בדיקת קבלן רשום: חיפוש לפי שם, מספר קבלן או ח.פ. ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל {{ model.kpis.contractors.display }} הקבלנים בפנקס, עם סיווג, היקף כספי מותר, ענף ויישוב לכל קבלן</span>
+  </span>
+</a>
+
 <section class="card p-5 mb-6">
   {{ head("תקציר", "info") }}
   <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
 </section>
-
-<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
-  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
-  <span>
-    <span class="block font-semibold text-ink-deep">בדיקת קבלן רשום בפנקס הקבלנים ←</span>
-    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות הפנקס: שם הקבלן, מספר קבלן, מספר ישות, יישוב או ענף</span>
-  </span>
-</a>
 
 <div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));">
   {{ kpi(model.kpis.contractors, "קבלנים רשומים") }}
