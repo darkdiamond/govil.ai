@@ -53,6 +53,16 @@ This repo is public: describe a security gap by what to change, never by how to 
   0b160f8a, a63133ab, e3f2eab4, e9b65317, 27b4b40e, b87ef422, dcd96625, 6397d78e, 83372c35;
   bump each `recipe_version`. Batch 4 pages each missed only ~4-7 clicks per 90 days, so
   compare batches 1-4's CTR in GSC (~2026-12-02) before spending on the long tail. (2026-11-06)
+- **פנקס הקבלנים (a545d0ba): measure the 2026-11-15 title change, then decide on a Q&A
+  block.** The head query "פנקס הקבלנים" is ~60% of the page's impressions and sat at 1.0% CTR,
+  position ~6, both before and after the 2026-11-04 title (navigational intent: people want the
+  official registry). The 2026-11-15 PR changed the title to "פנקס הקבלנים של משרד הבינוי
+  והשיכון: בדיקת קבלן רשום", put the lookup callout first and linked the page from bddf37d6,
+  c0beab05, 90b08091 and 005fe7c5. Fix: ~2026-12-01, compare 14 days before/after for that query
+  alone and for the rest. Then consider a short static Q&A (how to check a contractor, what
+  a classification such as ג5 allows, רשום vs מוכר) for queries at position 9-10 with no clicks
+  ("מאגר קבלנים מוכרים", "בדיקת סיווג קבלנים", "חיפוש קבלן רשום לפי שם"), and a link to the
+  official gov.il lookup once its URL is confirmed (gov.il's WAF blocked the check). (2026-11-15)
 - **59d2e891 and df60d73b compete for "אזורי חיוג".** Batch 3 gave df60d73b (numbering plan,
   which has the geographic codes) a title for "אזורי חיוג בארץ" / "קידומת טלפון ישראל", but
   59d2e891 (service numbers, no geographic codes) still has "קידומות ואזורי חיוג" in its title
