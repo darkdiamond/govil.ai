@@ -1,0 +1,309 @@
+{% import "gov.j2" as gov %}
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("info", "תקציר") }}
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+  <p class="m-0 mt-2 text-sm text-subtle">לכל מתחם מופיעים היישוב, שם המתחם, סטטוס התכנון, מסלול ההכרזה (מיסוי או רשויות), תאריך ההכרזה, מספר התוכנית ושנת מתן התוקף לה, יחידות הדיור הקיימות, המוצעות ואלה שקיבלו היתר, וקישורים לתוכנית במערכת מבא״ת ולמפה הממשלתית.</p>
+{%- if model.labels.bad_note %}
+  <p class="m-0 mt-2 text-sm text-subtle">{{ model.labels.bad_note }}</p>
+{%- endif %}
+</section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור מתחם התחדשות עירונית לפי יישוב, שם מתחם או מספר תוכנית ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר: יישוב, שם המתחם, מספר המתחם, מספר התוכנית, מסלול וסטטוס התכנון</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  {{ gov.kpi(model.kpis.total, "מתחמי התחדשות עירונית") }}
+  {{ gov.kpi(model.kpis.cities, "יישובים") }}
+  {{ gov.kpi(model.kpis.mutza, "יחידות דיור מוצעות") }}
+  {{ gov.kpi(model.kpis.kayam, "יחידות דיור קיימות") }}
+  {{ gov.kpi(model.kpis.approved, "מתחמים בתוכנית מאושרת") }}
+  {{ gov.kpi(model.kpis.heterim, "יחידות דיור שקיבלו היתר") }}
+  {{ gov.kpi(model.kpis.exec, "מתחמים בביצוע") }}
+{%- if model.kpis.mult %}
+  {{ gov.kpi(model.kpis.mult, "מכפיל ציפוף חציוני (מוצע חלקי קיים)") }}
+{%- endif %}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("chart-bar", "מתחמים לפי שלב התכנון") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.status_lede }}</p>
+  {{ gov.chart("chart-status", model.labels.status_aria, h="h-72 md:h-96") }}
+  {{ gov.table(model.labels.status_aria, ["סטטוס", "מתחמים", "שיעור", "יח״ד מוצעות", "שיעור מהיח״ד"], model.tables.status, ltr=(2, 4)) }}
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ gov.head("tag", "מסלול ההכרזה") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.track_lede }}</p>
+    {{ gov.chart("chart-track", model.labels.track_aria) }}
+    {{ gov.table(model.labels.track_aria, ["מסלול", "מתחמים", "שיעור", "יח״ד מוצעות"], model.tables.track, ltr=(2,)) }}
+  </section>
+{%- if model.flags.order %}
+  <section class="card p-5">
+    {{ gov.head("calendar", "מה קודם: ההכרזה או התוכנית?") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.order_lede }}</p>
+    {{ gov.chart("chart-order", model.labels.order_aria) }}
+    {{ gov.table(model.labels.order_aria, ["מסלול", "מתחמים", "תוכנית בתוקף לפני שנת ההכרזה", "באותה שנה", "הכרזה לפני מתן התוקף"], model.tables.order) }}
+  </section>
+{%- endif %}
+</div>
+
+{%- if model.flags.decl %}
+<section class="card p-5 mb-6">
+  {{ gov.head("trending-up", "הכרזות על מתחמים לפי שנה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.decl_lede }}</p>
+  {{ gov.chart("chart-decl", model.labels.decl_aria, h="h-72 md:h-96") }}
+  {{ gov.table(model.labels.decl_aria, model.tables.decl_cols, model.tables.decl) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.valid %}
+<section class="card p-5 mb-6">
+  {{ gov.head("calendar", "שנת מתן התוקף לתוכנית") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.valid_lede }}</p>
+  {{ gov.chart("chart-valid", model.labels.valid_aria, h="h-72 md:h-96") }}
+  {{ gov.table(model.labels.valid_aria, ["שנה", "מתחמים", "יח״ד מוצעות"], model.tables.valid) }}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("map-pin", "מתחמים לפי יישוב") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.cities_lede }}</p>
+  {{ gov.chart("chart-cities", model.labels.cities_aria, h="h-[560px] md:h-[600px]") }}
+  {{ gov.table(model.labels.cities_aria, ["יישוב", "מתחמים", "שיעור", "בתוכנית מאושרת", "שיעור מאושרים"], model.tables.cities, ltr=(2, 4)) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("building-2", "יחידות דיור קיימות ומוצעות לפי יישוב") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.units_lede }}</p>
+  {{ gov.chart("chart-units", model.labels.units_aria, h="h-80 md:h-[460px]") }}
+  {{ gov.table(model.labels.units_aria, ["יישוב", "יח״ד קיימות", "יח״ד מוצעות", "שיעור מכלל המוצעות", "מכפיל (מוצעות חלקי קיימות)"], model.tables.units, ltr=(3, 4)) }}
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ gov.head("chart-bar", "גודל המתחמים") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.size_lede }}</p>
+    {{ gov.chart("chart-size", model.labels.size_aria) }}
+    {{ gov.table(model.labels.size_aria, ["יח״ד מוצעות", "מתחמים", "שיעור"], model.tables.size, ltr=(2,)) }}
+  </section>
+{%- if model.flags.mult %}
+  <section class="card p-5">
+    {{ gov.head("trending-up", "מכפיל הציפוף") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.mult_lede }}</p>
+    {{ gov.chart("chart-mult", model.labels.mult_aria) }}
+    {{ gov.table(model.labels.mult_aria, ["מכפיל", "מתחמים", "שיעור"], model.tables.mult, ltr=(2,)) }}
+  </section>
+{%- endif %}
+</div>
+
+{%- if model.flags.permits %}
+<section class="card p-5 mb-6">
+  {{ gov.head("circle-check", "היתרי בנייה לפי יישוב") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.permits_lede }}</p>
+  {{ gov.chart("chart-permits", model.labels.permits_aria) }}
+  {{ gov.table(model.labels.permits_aria, ["יישוב", "יח״ד שקיבלו היתר", "מתחמים עם היתר"], model.tables.permits) }}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "המתחמים הגדולים ביותר") }}
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <caption class="sr-only">{{ model.labels.big_caption }}</caption>
+      <thead><tr><th scope="col" class="text-start">מתחם</th><th scope="col" class="text-start">יישוב</th><th scope="col" class="text-start">יח״ד קיימות</th><th scope="col" class="text-start">יח״ד מוצעות</th><th scope="col" class="text-start">סטטוס</th><th scope="col" class="text-start">מסלול</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.big %}
+        <tr><th scope="row" class="text-start font-normal">{{ r[0] }}</th><td>{{ r[1] }}</td><td>{{ r[2] }}</td><td>{{ r[3] }}</td><td>{{ r[4] }}</td><td>{{ r[5] }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<script>
+  (function () {
+    var d = {{ model.charts.status | tojson }};
+    var el = document.getElementById("chart-status");
+    var narrow = el.clientWidth < 520;
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+        formatter: function (ps) { var i = ps[0].dataIndex; return echarts.format.encodeHTML(d.labels[i]) + "<br>" + d.counts[i].toLocaleString("he-IL") + " מתחמים<br>" + d.units[i].toLocaleString("he-IL") + " יח״ד מוצעות"; } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: d.labels, axisLabel: narrow ? { interval: 0, rotate: 40, fontSize: 11 } : { interval: 0, width: 90, overflow: "break" } },
+      yAxis: [{ type: "value", name: "מתחמים" }, { type: "value", name: "יח״ד מוצעות", splitLine: { show: false } }],
+      series: [
+        { type: "bar", name: "מתחמים", data: d.counts.map(function (v, i) { return { value: v, itemStyle: { color: d.colors[i] } }; }) },
+        { type: "line", name: "יח״ד מוצעות", yAxisIndex: 1, data: d.units, itemStyle: { color: "#ffc107" }, lineStyle: { color: "#ffc107" } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.track | tojson }};
+    var c = echarts.init(document.getElementById("chart-track"));
+    c.setOption(window.GovEcharts.option({
+      color: ["#0068f5", "#0b3668", "#ffc107", "#c3cfe7", "#6c757d"],
+      tooltip: { trigger: "item", formatter: function (p) { return echarts.format.encodeHTML(p.name) + ": " + p.value.toLocaleString("he-IL") + " מתחמים (" + p.percent + "%)<br>" + d.units[p.dataIndex].toLocaleString("he-IL") + " יח״ד מוצעות"; } },
+      legend: { bottom: 0 },
+      series: [{ type: "pie", radius: ["42%", "72%"], center: ["50%", "45%"],
+        label: { position: "inside", formatter: "{d}%", color: "#fff", fontSize: 11, textBorderColor: "#0c3058", textBorderWidth: 2 },
+        labelLine: { show: false }, labelLayout: { hideOverlap: true },
+        data: d.names.map(function (n, i) { return { name: n, value: d.values[i] }; }) }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+{%- if model.flags.order %}
+<script>
+  (function () {
+    var d = {{ model.charts.order | tojson }};
+    var colors = ["#0b3668", "#6c9fd8", "#ffc107"];
+    var c = echarts.init(document.getElementById("chart-order"));
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v + "%"; } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 24, top: 16, bottom: 72, containLabel: true },
+      xAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", data: d.names },
+      series: d.series.map(function (s, i) { return { type: "bar", name: s.name, stack: "s", data: s.data, itemStyle: { color: colors[i % colors.length] } }; })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+
+{%- if model.flags.decl %}
+<script>
+  (function () {
+    var d = {{ model.charts.decl | tojson }};
+    var colors = ["#0068f5", "#0b3668", "#ffc107", "#c3cfe7", "#6c757d"];
+    var c = echarts.init(document.getElementById("chart-decl"));
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 32, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: d.labels, axisLabel: { rotate: 45 } },
+      yAxis: { type: "value", name: "מתחמים", minInterval: 1 },
+      series: d.series.map(function (s, i) { return { type: "bar", name: s.name, stack: "s", data: s.data, itemStyle: { color: colors[i % colors.length] } }; })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+
+{%- if model.flags.valid %}
+<script>
+  (function () {
+    var d = {{ model.charts.valid | tojson }};
+    var c = echarts.init(document.getElementById("chart-valid"));
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: d.labels, axisLabel: { rotate: 45 } },
+      yAxis: [{ type: "value", name: "מתחמים", minInterval: 1 }, { type: "value", name: "יח״ד מוצעות", splitLine: { show: false } }],
+      series: [
+        { type: "bar", name: "מתחמים", data: d.counts, itemStyle: { color: "#0068f5" } },
+        { type: "line", name: "יח״ד מוצעות", yAxisIndex: 1, data: d.units, itemStyle: { color: "#0b3668" } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+
+<script>
+  (function () {
+    var d = {{ model.charts.cities | tojson }};
+    var el = document.getElementById("chart-cities");
+    var narrow = el.clientWidth < 520;
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 24, top: 16, bottom: narrow ? 96 : 72, containLabel: true },
+      xAxis: { type: "value", minInterval: 1, splitNumber: narrow ? 3 : 5, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { interval: 0, width: 110, overflow: "truncate" } },
+      series: d.series.map(function (s, i) { return { type: "bar", name: s.name, stack: "s", data: s.data, itemStyle: { color: d.colors[i] } }; })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.units | tojson }};
+    var el = document.getElementById("chart-units");
+    var narrow = el.clientWidth < 520;
+    var compact = function (v) { return v >= 1000 ? (v / 1000).toLocaleString("he-IL") + "K" : String(v); };
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v.toLocaleString("he-IL") + " יח״ד"; } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 24, top: 16, bottom: 48, containLabel: true },
+      xAxis: { type: "value", splitNumber: narrow ? 3 : 5, axisLabel: { formatter: compact, hideOverlap: true } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { interval: 0, width: 110, overflow: "truncate" } },
+      series: [
+        { type: "bar", name: "יח״ד קיימות", stack: "u", data: d.kayam, itemStyle: { color: "#0b3668" } },
+        { type: "bar", name: "תוספת", stack: "u", data: d.added, itemStyle: { color: "#6c9fd8" } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var specs = [["chart-size", {{ model.charts.size | tojson }}, "#0068f5"]{% if model.flags.mult %}, ["chart-mult", {{ model.charts.mult | tojson }}, "#0b3668"]{% endif %}];
+    specs.forEach(function (s) {
+      var d = s[1];
+      var el = document.getElementById(s[0]);
+      if (!el) { return; }
+      var c = echarts.init(el);
+      c.setOption(window.GovEcharts.option({
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v.toLocaleString("he-IL") + " מתחמים"; } },
+        grid: { left: 16, right: 16, top: 32, bottom: 16, containLabel: true },
+        xAxis: { type: "category", data: d.labels, axisLabel: { interval: 0, rotate: 30 } },
+        yAxis: { type: "value", name: "מתחמים", minInterval: 1 },
+        series: [{ type: "bar", name: "מתחמים", data: d.values, itemStyle: { color: s[2] } }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    });
+  })();
+</script>
+
+{%- if model.flags.permits %}
+<script>
+  (function () {
+    var d = {{ model.charts.permits | tojson }};
+    var el = document.getElementById("chart-permits");
+    var narrow = el.clientWidth < 520;
+    var compact = function (v) { return v >= 1000 ? (v / 1000).toLocaleString("he-IL") + "K" : String(v); };
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v.toLocaleString("he-IL") + " יח״ד"; } },
+      grid: { left: 16, right: 24, top: 16, bottom: 16, containLabel: true },
+      xAxis: { type: "value", splitNumber: narrow ? 3 : 5, axisLabel: { formatter: compact, hideOverlap: true } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { interval: 0, width: 110, overflow: "truncate" } },
+      series: [{ type: "bar", name: "יח״ד שקיבלו היתר", data: d.values, itemStyle: { color: "#198754" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
