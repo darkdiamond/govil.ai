@@ -14,6 +14,8 @@ export interface Col {
   link?: boolean;
 }
 
+const GENERIC_LINK_ID = /^(?:links?|urls?|href)$/i;
+
 // Display label for a column: publisher's Data Dictionary label when
 // present, otherwise the raw field id prettified — underscores→spaces,
 // camelCase split (operator_nm → "operator nm", WinnersMeshapryDiur →
@@ -21,9 +23,10 @@ export interface Col {
 // always uses the raw id.
 export function colLabel(col: Col): string {
   if (col.label) return col.label;
-  // A Latin link-column id ("link", "url", "doc_url") says nothing to a
-  // Hebrew reader; a Hebrew id ("קישור לתוכנית") is kept.
-  if (col.link && !/[֐-׿]/.test(col.id)) return "קישור";
+  // A bare "link" / "url" id says nothing to a Hebrew reader. Any other id
+  // ("doc_url", "gis_url", "קישור לתוכנית") is kept: it tells two link
+  // columns apart, and it still fits if later pages hold text, not URLs.
+  if (col.link && GENERIC_LINK_ID.test(col.id.trim())) return "קישור";
   return col.id
     .replace(/_/g, " ")
     .replace(/([a-z\d])([A-Z])/g, "$1 $2")

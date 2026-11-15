@@ -218,6 +218,12 @@ test("linkColumnIds + withLinkCols: all-URL columns move first", () => {
     "קישור לתוכנית"
   );
   assert.equal(colLabel(col({ id: "url", link: true, label: "מסמך" })), "מסמך");
+  assert.equal(colLabel(col({ id: "URLs", link: true })), "קישור");
+  // Two link columns stay distinguishable.
+  assert.equal(colLabel(col({ id: "doc_url", link: true })), "doc url");
+  assert.equal(colLabel(col({ id: "gis_url", link: true })), "gis url");
+  // A generic id that is not a link column keeps its id.
+  assert.equal(colLabel(col({ id: "link" })), "link");
   assert.deepEqual(
     withLinkCols(cols, new Set()).map((c) => c.id),
     cols.map((c) => c.id)

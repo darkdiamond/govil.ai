@@ -652,6 +652,7 @@ onBeforeUnmount(() => {
                   :dir="col.numeric || col.date ? 'ltr' : 'auto'"
                   :class="{ 'text-end tabular-nums': col.numeric || col.date }"
                   :title="
+                    !(col.link && cellLink(row[col.id])) &&
                     cellText(row[col.id], col).length > 60
                       ? cellText(row[col.id], col)
                       : undefined
