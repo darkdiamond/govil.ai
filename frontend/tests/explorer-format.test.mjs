@@ -31,7 +31,8 @@ async function load(entry) {
 const { explorerCandidates, resourceId } = await load(
   "utils/explorer-candidates.ts"
 );
-const { colLabel, cellText } = await load("utils/explorer-format.ts");
+const { colLabel, cellText, cellLink, linkColumnIds, withLinkCols } =
+  await load("utils/explorer-format.ts");
 
 const DS = "a698417e-e51d-43cd-b82f-356d8cf9de0e";
 const R1 = "11111111-1111-4111-8111-111111111111";
@@ -163,4 +164,68 @@ test("cellText: blanks become a dash, dates lose a midnight time", () => {
     "2027-04-06"
   );
   assert.equal(cellText("שלום", col()), "שלום");
+});
+
+test("cellLink: only a whole http(s) URL becomes a link", () => {
+  const pdf =
+    "https://free-justice.openapi.gov.il/free/moj/portal/rest/searchpredefinedapi/v1/SearchPredefinedApi/Documents/DecisiveAppraiserDirect/667-2026-00002093";
+  assert.equal(cellLink(pdf), pdf);
+  assert.equal(cellLink(`  ${pdf} `), pdf);
+  assert.equal(
+    cellLink("https://e.data.gov.il/dataset/x/resource/y/download/f.csv"),
+    "https://data.gov.il/dataset/x/resource/y/download/f.csv"
+  );
+  assert.equal(cellLink("javascript:alert(1)"), "");
+  assert.equal(cellLink("data:text/html,<b>x</b>"), "");
+  assert.equal(cellLink("ראו https://example.org"), "");
+  assert.equal(cellLink("https://a.org/x https://b.org/y"), "");
+  assert.equal(cellLink("www.gov.il"), "");
+  assert.equal(cellLink(42), "");
+  assert.equal(cellLink(null), "");
+});
+
+test("linkColumnIds + withLinkCols: all-URL columns move first", () => {
+  const cols = [
+    col({ id: "name" }),
+    col({ id: "n", numeric: true }),
+    col({ id: "link" }),
+    col({ id: "mixed" }),
+    col({ id: "empty" }),
+  ];
+  const rows = [
+    {
+      name: "א",
+      n: 1,
+      link: "https://a.gov.il/1",
+      mixed: "https://a.gov.il",
+      empty: "",
+    },
+    { name: "ב", n: 2, link: null, mixed: "טקסט", empty: null },
+    { name: "ג", n: 3, link: "https://a.gov.il/3", mixed: "", empty: "" },
+  ];
+  const ids = linkColumnIds(rows, cols);
+  assert.deepEqual([...ids], ["link"]);
+  const out = withLinkCols(cols, ids);
+  assert.deepEqual(
+    out.map((c) => c.id),
+    ["link", "name", "n", "mixed", "empty"]
+  );
+  assert.equal(out[0].link, true);
+  assert.equal(out[1].link, false);
+  assert.equal(colLabel(out[0]), "קישור");
+  assert.equal(
+    colLabel(col({ id: "קישור_לתוכנית", link: true })),
+    "קישור לתוכנית"
+  );
+  assert.equal(colLabel(col({ id: "url", link: true, label: "מסמך" })), "מסמך");
+  assert.equal(colLabel(col({ id: "URLs", link: true })), "קישור");
+  // Two link columns stay distinguishable.
+  assert.equal(colLabel(col({ id: "doc_url", link: true })), "doc url");
+  assert.equal(colLabel(col({ id: "gis_url", link: true })), "gis url");
+  // A generic id that is not a link column keeps its id.
+  assert.equal(colLabel(col({ id: "link" })), "link");
+  assert.deepEqual(
+    withLinkCols(cols, new Set()).map((c) => c.id),
+    cols.map((c) => c.id)
+  );
 });

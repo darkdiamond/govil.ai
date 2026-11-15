@@ -15,7 +15,14 @@ import {
   type ExplorerFailure,
 } from "~/utils/explorer-probe";
 import { explorerCandidates } from "~/utils/explorer-candidates";
-import { cellText, colLabel, type Col } from "~/utils/explorer-format";
+import {
+  cellLink,
+  cellText,
+  colLabel,
+  linkColumnIds,
+  withLinkCols,
+  type Col,
+} from "~/utils/explorer-format";
 import { buildTsQuery } from "~/utils/explorer-query";
 import { publicResourceUrl } from "~/utils/resource-url";
 
@@ -96,6 +103,8 @@ interface Schema {
   cols: Col[];
   totalCols: number;
   baseTotal: number;
+  /** Link columns decided (from the first non-empty page). */
+  linksChecked: boolean;
 }
 const schemaCache = new Map<string, Schema>();
 const schema = ref<Schema | null>(null);
@@ -195,6 +204,7 @@ async function loadSchema(
       }),
       totalCols: all.length,
       baseTotal: res.total,
+      linksChecked: false,
     };
     schemaCache.set(rid, sch);
     return sch;
@@ -290,6 +300,16 @@ async function loadPage() {
       ctrl.signal
     );
     if (seq !== reqSeq) return;
+    if (!sch.linksChecked && res.records.length) {
+      // Once per resource: URL columns become link columns, moved first.
+      const linked: Schema = {
+        ...sch,
+        cols: withLinkCols(sch.cols, linkColumnIds(res.records, sch.cols)),
+        linksChecked: true,
+      };
+      schemaCache.set(rid, linked);
+      schema.value = linked;
+    }
     rows.value = res.records;
     total.value = res.total;
     loading.value = false;
@@ -632,12 +652,22 @@ onBeforeUnmount(() => {
                   :dir="col.numeric || col.date ? 'ltr' : 'auto'"
                   :class="{ 'text-end tabular-nums': col.numeric || col.date }"
                   :title="
+                    !(col.link && cellLink(row[col.id])) &&
                     cellText(row[col.id], col).length > 60
                       ? cellText(row[col.id], col)
                       : undefined
                   "
                 >
-                  {{ cellText(row[col.id], col) }}
+                  <a
+                    v-if="col.link && cellLink(row[col.id])"
+                    :href="cellLink(row[col.id])"
+                    target="_blank"
+                    rel="noopener nofollow"
+                    class="explorer-link"
+                    :title="cellLink(row[col.id])"
+                    >פתיחה ↗</a
+                  >
+                  <template v-else>{{ cellText(row[col.id], col) }}</template>
                 </td>
               </tr>
             </tbody>
@@ -809,6 +839,15 @@ onBeforeUnmount(() => {
 }
 .explorer-tbl tbody tr:hover td {
   background: #f1f7ff;
+}
+.explorer-link {
+  color: #0068f5;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.explorer-link:hover {
+  color: #0053c4;
 }
 .explorer-legend {
   margin-top: 0.75rem;
