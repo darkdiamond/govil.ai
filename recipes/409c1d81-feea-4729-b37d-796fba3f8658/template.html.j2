@@ -1,0 +1,231 @@
+{% import "gov.j2" as gov %}
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+{{ gov.lede(model.labels.lede) }}
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">{{ model.labels.lookup_title }}</span>
+    <span class="block text-sm text-subtle">{{ model.labels.lookup_sub }}</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  {{ gov.kpi(model.kpis.experts, model.labels.experts_kpi) }}
+  {{ gov.kpi(model.kpis.arabic, model.labels.arabic_kpi) }}
+  {%- if model.flags.rates %}
+  {{ gov.kpi(model.kpis.rate, model.labels.rate_kpi) }}
+  {%- endif %}
+  {%- if model.flags.opinion %}
+  {{ gov.kpi(model.kpis.opinion, model.labels.opinion_kpi) }}
+  {%- endif %}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ gov.head("tag", "מומחים לפי תחום") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.prof_note }}</p>
+    {{ gov.chart("chart-prof", model.labels.prof_aria) }}
+    {{ gov.table(model.labels.prof_caption, ["תחום", "מומחים", "שיעור"], model.tables.prof, ltr=(2,)) }}
+  </section>
+  <section class="card p-5">
+    {{ gov.head("list", "שפות עבודה") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.langs_note }}</p>
+    {{ gov.chart("chart-langs", model.labels.langs_aria) }}
+    {{ gov.table(model.labels.langs_caption, ["שפה", "מומחים"], model.tables.langs) }}
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "פריסה לפי מחוז") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.districts_note }}</p>
+  {{ gov.chart("chart-districts", model.labels.districts_aria) }}
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.districts_caption }}</caption>
+        <thead><tr><th scope="col">מחוז</th>{% for c in model.tables.prof_cols %}<th scope="col">{{ c }}</th>{% endfor %}<th scope="col">סה״כ</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.districts %}
+          <tr><th scope="row">{{ r.name }}</th>{% for v in r.vals %}<td>{{ v }}</td>{% endfor %}<td>{{ r.total }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+{% if model.flags.cities %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "היישובים המובילים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.cities_note }}</p>
+  {{ gov.chart("chart-cities", model.labels.cities_aria, h="h-80 md:h-[460px]") }}
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.cities_caption }}</caption>
+        <thead><tr><th scope="col">יישוב</th>{% for c in model.tables.prof_cols %}<th scope="col">{{ c }}</th>{% endfor %}<th scope="col">סה״כ</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.cities %}
+          <tr><th scope="row">{{ r.name }}</th>{% for v in r.vals %}<td>{{ v }}</td>{% endfor %}<td>{{ r.total }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+{% endif %}
+
+{% if model.flags.topics %}
+<section class="card p-5 mb-6">
+  {{ gov.head("tag", "תחומי עיסוק") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.topics_note }}</p>
+  {{ gov.chart("chart-topics", model.labels.topics_aria, h="h-80 md:h-[460px]") }}
+  {{ gov.table(model.labels.topics_caption, ["תחום עיסוק", "מומחים", "מתוך התיאורים המתויגים"], model.tables.topics, ltr=(2,)) }}
+</section>
+{% endif %}
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+{%- if model.flags.rates %}
+  <section class="card p-5">
+    {{ gov.head("database", "תעריף לשעה או לפגישה") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.rates_note }}</p>
+    {{ gov.chart("chart-rates", model.labels.rates_aria) }}
+    {{ gov.table(model.labels.rates_caption, ["תחום", "מומחים", "מינימום", "חציון", "מקסימום"], model.tables.rates) }}
+  </section>
+{%- endif %}
+{%- if model.flags.opinion %}
+  <section class="card p-5">
+    {{ gov.head("database", "מחיר חוות דעת") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.opinion_note }}</p>
+    {{ gov.chart("chart-opinion", model.labels.opinion_aria) }}
+    {{ gov.table(model.labels.opinion_caption, ["טווח מחיר", "מומחים"], model.tables.opinion) }}
+  </section>
+{%- endif %}
+</div>
+
+{% if model.flags.inst %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "מכונים ומרכזים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.inst_note }}</p>
+  {{ gov.chart("chart-inst", model.labels.inst_aria) }}
+  {{ gov.table(model.labels.inst_caption, ["מכון", "מומחים"], model.tables.inst) }}
+</section>
+{% endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("info", "על הרשימה") }}
+  <p class="m-0 text-sm text-subtle">כאשר מתנהל סכסוך משפחתי בתהליך הגירושין, בעת הצורך ולפי דרישת בית המשפט, מעמידות יחידות הסיוע רשימות מומחים למתן חוות דעת בתחומי העבודה הסוציאלית, הפסיכולוגיה, הפסיכיאטריה ורפואת הילדים, בעניינים כגון משמורת וזמני שהות, כשרות משפטית ואפוטרופסות. זהו הנוסח הערבי של הרשימה; שמות המומחים, הכתובות וההערות בטבלת הנתונים שבתחתית העמוד כתובים בערבית.</p>
+</section>
+
+<script>
+  (function () {
+    var d = {{ model.charts.prof | tojson }};
+    var c = echarts.init(document.getElementById("chart-prof"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: function (p) {
+        return echarts.format.encodeHTML(p.name) + ": " + p.value.toLocaleString("he-IL") + " (" + p.percent + "%)";
+      } },
+      legend: { bottom: 0 },
+      series: [{
+        type: "pie", radius: ["42%", "68%"], center: ["50%", "44%"],
+        label: { show: false },
+        data: d.names.map(function (nm, i) { return { name: nm, value: d.values[i], itemStyle: { color: d.colors[i] } }; })
+      }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    function stacked(id, cats, series, grid) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        legend: { bottom: 0 },
+        grid: grid,
+        xAxis: { type: "value", splitNumber: 4, minInterval: 1, axisLabel: { hideOverlap: true } },
+        yAxis: { type: "category", data: cats, inverse: true,
+                 axisLabel: { fontSize: 11, interval: 0, width: 130, overflow: "truncate" } },
+        series: series.map(function (s) {
+          return { type: "bar", stack: "t", name: s.name, data: s.data, itemStyle: { color: s.color } };
+        })
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    var g = { left: 16, right: 24, top: 16, bottom: 56, containLabel: true };
+    var dd = {{ model.charts.districts | tojson }};
+    stacked("chart-districts", dd.x, dd.series, g);
+{%- if model.flags.cities %}
+    var dc = {{ model.charts.cities | tojson }};
+    stacked("chart-cities", dc.names, dc.series, g);
+{%- endif %}
+{%- if model.flags.topics %}
+    var dt = {{ model.charts.topics | tojson }};
+    stacked("chart-topics", dt.names, dt.series, g);
+{%- endif %}
+{%- if model.flags.opinion %}
+    var dop = {{ model.charts.opinion | tojson }};
+    stacked("chart-opinion", dop.x, dop.series, g);
+{%- endif %}
+  })();
+</script>
+
+{% if model.flags.rates %}
+<script>
+  (function () {
+    var d = {{ model.charts.rates | tojson }};
+    var c = echarts.init(document.getElementById("chart-rates"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: function (p) {
+        if (p.seriesType === "boxplot") {
+          var v = p.value.slice(-5);
+          return echarts.format.encodeHTML(p.name) + "<br/>חציון: " + v[2].toLocaleString("he-IL") + " ₪<br/>מחצית אמצעית: " +
+            v[1].toLocaleString("he-IL") + " עד " + v[3].toLocaleString("he-IL") + " ₪";
+        }
+        return echarts.format.encodeHTML(d.names[p.value[0]]) + ": " + p.value[1].toLocaleString("he-IL") + " ₪";
+      } },
+      grid: { left: 16, right: 16, top: 32, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.names, axisLabel: { fontSize: 11, interval: 0 } },
+      yAxis: { type: "log", logBase: 10, name: "₪ (סולם לוגריתמי)", axisLabel: { formatter: function (v) { return v.toLocaleString("he-IL"); } } },
+      series: [
+        { type: "boxplot", name: "תעריף", data: d.boxes,
+          itemStyle: { color: "#f1f7ff", borderColor: "#0068f5", borderWidth: 2 } },
+        { type: "scatter", name: "חריג", data: d.outliers, symbolSize: 9, itemStyle: { color: "#0b3668" } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{% endif %}
+
+<script>
+  (function () {
+    function hbar(id, d, unit, color) {
+      var x = echarts.init(document.getElementById(id));
+      x.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
+        xAxis: { type: "value", splitNumber: 4, minInterval: 1, axisLabel: { hideOverlap: true } },
+        yAxis: { type: "category", data: d.names, inverse: true,
+                 axisLabel: { fontSize: 11, interval: 0, width: 140, overflow: "truncate" } },
+        series: [{ type: "bar", name: unit, data: d.values, itemStyle: { color: color } }]
+      }));
+      window.addEventListener("resize", function () { x.resize(); });
+    }
+    hbar("chart-langs", {{ model.charts.langs | tojson }}, "מומחים", "#0068f5");
+{%- if model.flags.inst %}
+    hbar("chart-inst", {{ model.charts.inst | tojson }}, "מומחים", "#0b3668");
+{%- endif %}
+  })();
+</script>
