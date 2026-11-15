@@ -25,7 +25,7 @@ COHORT_WIDTH = 3          # years per appraiser cohort band
 LAG_RECENT_YEARS = 3      # full years used for the lag distribution
 LAG_BUCKETS = [(0, 30), (31, 90), (91, 180), (181, 365), (366, 730), (731, None)]
 LAG_OK_DAYS, LAG_WARN_DAYS = 90, 180
-LATEST_N = 20             # newest published decisions listed with their PDF
+LATEST_N = 5              # newest published decisions listed with their PDF
 DOC_HOST = "https://free-justice.openapi.gov.il/"
 LRI, PDI = "\u2066", "\u2069"
 MONTHS_HE = ["ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני", "יולי",
@@ -472,10 +472,9 @@ def compute(frames):
     rec_lag_lf = med_lf if med_lf is not None else 0
     latest_rows, search_example = _latest(raw, LATEST_N)
     labels = {
-        "latest_note": (f"{n(len(latest_rows))} ההכרעות האחרונות שפורסמו במאגר (עד {d_he(ref_pub)}), "
-                        f"עם קישור למסמך ההכרעה המלא. לכל {n(total)} ההכרעות: החיפוש בהמשך העמוד."),
-        "search_how": ("כתבו בחיפוש את שם הוועדה המקומית, מספר הגוש ומספר החלקה, "
-                       "ולחצו ‚פתיחה' בעמודת הקישור כדי לקרוא את ההכרעה המלאה (PDF)."),
+        "latest_note": (f"עודכן עד {d_he(ref_pub)}. כל {n(total)} ההכרעות, עם קישור לכל אחת: "
+                        f"בחיפוש בהמשך העמוד."),
+        "search_how": "כתבו בחיפוש ועדה, גוש וחלקה, ולחצו ‚פתיחה' לקריאת ההכרעה (PDF).",
         "search_example": search_example or "",
         "lede": (f"הכרעות שמאי מכריע ושמאי מייעץ (שומות מכריעות) בסכסוכי שומה בין בעלי מקרקעין לוועדות "
                  f"התכנון המקומיות, בעיקר בהיטל השבחה. המאגר כולל {n(total)} הכרעות מ-{d_he(first_dec)} "

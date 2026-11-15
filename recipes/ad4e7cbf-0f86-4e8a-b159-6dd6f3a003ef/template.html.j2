@@ -17,29 +17,28 @@
 </a>
 
 <section class="card p-5 mb-6">
-  <div class="flex items-center gap-2 mb-3 text-brand">
+  <div class="flex items-center gap-2 mb-2 text-brand">
     <img src="/icons/list.svg" alt="" class="w-5 h-5" />
-    <h2 class="m-0 text-lg font-semibold text-ink-deep">ההכרעות האחרונות שפורסמו</h2>
+    <h2 class="m-0 text-base font-semibold text-ink-deep">ההכרעות האחרונות שפורסמו</h2>
   </div>
-  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.latest_note }}</p>
-  <div class="overflow-x-auto max-h-[30rem] overflow-y-auto">
-    <table class="w-full text-sm">
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm whitespace-nowrap">
       <caption class="sr-only">{{ model.labels.latest_note }}</caption>
-      <thead><tr><th scope="col">ההכרעה</th><th scope="col">פורסם</th><th scope="col">ועדה מקומית</th><th scope="col">גוש וחלקה</th><th scope="col">סוג שומה</th><th scope="col">שמאי</th></tr></thead>
+      <thead class="sr-only"><tr><th scope="col">ההכרעה</th><th scope="col">פורסם</th><th scope="col">ועדה מקומית</th><th scope="col">גוש וחלקה</th><th scope="col">שמאי</th></tr></thead>
       <tbody>
 {%- for r in model.tables.latest %}
         <tr>
-          <td class="whitespace-nowrap">{% if r.link %}<a href="{{ r.link }}" target="_blank" rel="noopener nofollow" class="font-semibold">PDF <img src="/icons/external-link.svg" alt="" class="inline w-3.5 h-3.5" /></a>{% else %}<span class="text-subtle">אין קישור</span>{% endif %}</td>
-          <td dir="ltr" class="text-end tabular-nums whitespace-nowrap">{{ r.pub }}</td>
-          <th scope="row" class="font-normal">{{ r.committee }}</th>
-          <td class="whitespace-nowrap">{{ r.parcel }}</td>
-          <td>{{ r.type }}{% if r.atype %}<span class="block text-xs text-subtle">{{ r.atype }} · מיום <bdi dir="ltr">{{ r.dec }}</bdi></span>{% endif %}</td>
-          <td>{{ r.appraiser }}</td>
+          <td class="py-1 pe-4">{% if r.link %}<a href="{{ r.link }}" target="_blank" rel="noopener nofollow" class="font-semibold">PDF <img src="/icons/external-link.svg" alt="" class="inline w-3.5 h-3.5" /></a>{% else %}<span class="text-subtle">אין קישור</span>{% endif %}</td>
+          <td dir="ltr" class="py-1 pe-4 text-end tabular-nums text-subtle">{{ r.pub }}</td>
+          <th scope="row" class="py-1 pe-4 font-semibold text-ink">{{ r.committee }}</th>
+          <td class="py-1 pe-4">{{ r.parcel }}</td>
+          <td class="py-1 pe-4 text-subtle">{{ r.appraiser }}</td>
         </tr>
 {%- endfor %}
       </tbody>
     </table>
   </div>
+  <p class="m-0 mt-2 text-xs text-subtle">{{ model.labels.latest_note }}</p>
 </section>
 
 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
