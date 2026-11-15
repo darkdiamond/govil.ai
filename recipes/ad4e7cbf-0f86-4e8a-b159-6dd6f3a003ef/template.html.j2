@@ -54,13 +54,13 @@
   </div>
   <div class="md:columns-2 md:gap-x-8">
 {%- for g in model.tables.latest %}
-  <div class="{{ 'pb-3' if not loop.last else '' }}{{ ' hidden md:block' if g.desktop_only else '' }}">
-    <h3 class="m-0 pb-1 flex items-baseline gap-2 border-b border-rule text-sm font-semibold text-ink-deep break-inside-avoid break-after-avoid">{{ g.day }} <span class="font-normal text-subtle">{{ g.count }}</span></h3>
+  <div class="{{ ('md:pb-3' if g.mobile_last else 'pb-3') if not loop.last else '' }}{{ ' hidden md:block' if g.desktop_only else '' }}">
+    <h3 class="m-0 pb-1 flex items-baseline gap-2 border-b border-rule text-sm font-semibold text-ink-deep break-inside-avoid break-after-avoid">{{ g.day }} <span class="font-normal text-subtle{{ ' hidden md:inline' if g.count_desktop_only else '' }}">{{ g.count }}</span></h3>
     <ul class="m-0 p-0 list-none text-sm">
 {%- for r in g.decisions %}
       <li class="border-b border-surface-alt break-inside-avoid{{ ' hidden md:block' if r.desktop_only else '' }}">
 {%- if r.link %}
-        <a href="{{ r.link }}" target="_blank" rel="noopener nofollow" aria-label="{{ r.aria }}" class="group flex items-center gap-3 py-2 no-underline hover:bg-surface">
+        <a href="{{ r.link }}" target="_blank" rel="noopener nofollow" class="group flex items-center gap-3 py-2 no-underline hover:bg-surface">
 {%- else %}
         <div class="flex items-center gap-3 py-2">
 {%- endif %}

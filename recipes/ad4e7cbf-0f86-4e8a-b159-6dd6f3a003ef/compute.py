@@ -72,25 +72,30 @@ def _latest(raw, k):
     document host is dropped, not rendered. Badges mark only what differs
     from the common case (betterment levy, decisive appraiser, original
     appraisal): almost every decision is that, so a label on each would be noise."""
-    d = pd.DataFrame({
+    # Only the sort keys are needed for every row; the rest is normalized for
+    # the k rows kept.
+    keys = pd.DataFrame({
         "pub": pd.to_datetime(raw["publicity_date"].str.strip(), errors="coerce",
                               format="%d/%m/%Y %H:%M"),
         "dec": pd.to_datetime(raw["decision_date"].str.strip(), errors="coerce",
                               format="%d/%m/%Y %H:%M"),
-        "committee": raw["committee"].str.strip(),
-        "block": raw["block"].map(_parcel_part),
-        "plot": raw["plot"].map(_parcel_part),
-        "type": raw["appraisal_type"].str.strip(),
-        "atype": raw["appraiser_type"].str.strip(),
-        "version": raw["appraisal_version"].str.strip(),
-        "appraiser": raw["decisive_appraiser"].str.strip().map(_norm_name),
         "link": raw["link"].str.strip(),
     }).dropna(subset=["pub", "dec"])
-    d = d.sort_values(["pub", "dec", "link"], ascending=False, kind="stable").head(k)
+    keys = keys.sort_values(["pub", "dec", "link"], ascending=False, kind="stable").head(k)
+    top = raw.loc[keys.index]
+    d = pd.DataFrame({
+        "pub": keys["pub"],
+        "link": keys["link"],
+        "committee": top["committee"].str.strip(),
+        "block": top["block"].map(_parcel_part),
+        "plot": top["plot"].map(_parcel_part),
+        "type": top["appraisal_type"].str.strip(),
+        "atype": top["appraiser_type"].str.strip(),
+        "version": top["appraisal_version"].str.strip(),
+        "appraiser": top["decisive_appraiser"].str.strip().map(_norm_name),
+    })
     groups = []
     for i, r in enumerate(d.itertuples(index=False)):
-        parcel = ", ".join(p for p in (f"גוש {r.block}" if r.block else "",
-                                       f"חלקה {r.plot}" if r.plot else "") if p)
         badges = [b for b in (
             r.type if r.type and r.type != "היטל השבחה" else "",
             r.atype if r.atype and r.atype != "שמאי מכריע" else "",
@@ -106,7 +111,6 @@ def _latest(raw, k):
             # Phones show the first LATEST_MOBILE only; the rest is desktop-only.
             "desktop_only": i >= LATEST_MOBILE,
             "link": r.link if r.link.startswith(DOC_HOST) and " " not in r.link else "",
-            "aria": f"הכרעה: {committee}" + (f", {parcel}" if parcel else "") + " (PDF)",
         }
         day = d_he(r.pub)
         if not groups or groups[-1]["day"] != day:
@@ -115,7 +119,14 @@ def _latest(raw, k):
     for g in groups:
         c = len(g["decisions"])
         g["count"] = "הכרעה אחת" if c == 1 else f"{n(c)} הכרעות"
-        g["desktop_only"] = all(x["desktop_only"] for x in g["decisions"])
+        hidden = sum(x["desktop_only"] for x in g["decisions"])
+        g["desktop_only"] = hidden == c
+        # Phones list only part of this day: its count would overstate the rows.
+        g["count_desktop_only"] = 0 < hidden < c
+    # The last group a phone shows takes no bottom gap (groups after it are hidden).
+    shown = [g for g in groups if not g["desktop_only"]]
+    for g in groups:
+        g["mobile_last"] = bool(shown) and g is shown[-1] and g is not groups[-1]
     # Search example for the explorer: the newest row with a plain numeric
     # block and plot (the explorer ANDs every word, so all three must match).
     example = next((f"{r.committee} {r.block} {r.plot}" for r in d.itertuples(index=False)
