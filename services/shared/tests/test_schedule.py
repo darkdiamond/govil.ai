@@ -3,7 +3,9 @@ Israel time (IDT = UTC+3 in summer, IST = UTC+2 in winter)."""
 from __future__ import annotations
 
 import logging
+import re
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 import pytest
 
@@ -87,3 +89,27 @@ def test_due_this_hour_malformed_is_due_with_a_warning(monkeypatch, caplog, bad)
     with caplog.at_level(logging.WARNING, logger="shared.schedule"):
         assert due_this_hour("X_HOURS", now=_il(WINTER_FRI, 3, 0, 2)) is True
     assert "X_HOURS" in caplog.text
+
+
+def _deploy_default(script: str) -> str:
+    """The `QUIET_WINDOW=${QUIET_WINDOW-<default>}` value a deploy script ships."""
+    text = (Path(__file__).resolve().parents[3] / "infra" / script).read_text()
+    m = re.search(r"^QUIET_WINDOW=\$\{QUIET_WINDOW-([^}]*)\}$", text, re.MULTILINE)
+    assert m, f"{script}: no QUIET_WINDOW default"
+    return m.group(1)
+
+
+@pytest.mark.parametrize("fri, sat, offset", [(WINTER_FRI, WINTER_SAT, 2),
+                                              (SUMMER_FRI, SUMMER_SAT, 3)])
+def test_prod_window_against_the_ticks(monkeypatch, fri, sat, offset):
+    """Both jobs ship the same window; Friday's last ticks are the 16:00 builder
+    and 16:25 news runs, Saturday's first is the 16:00 builder run."""
+    window = _deploy_default("builder-job.deploy.sh")
+    assert _deploy_default("news-job.deploy.sh") == window
+    monkeypatch.setenv("QUIET_WINDOW", window)
+    assert in_quiet_window(now=_il(fri, 16, 0, offset)) is False
+    assert in_quiet_window(now=_il(fri, 16, 25, offset)) is False
+    assert in_quiet_window(now=_il(fri, 17, 0, offset)) is True
+    assert in_quiet_window(now=_il(sat, 15, 25, offset)) is True
+    assert in_quiet_window(now=_il(sat, 16, 0, offset)) is False
+    assert in_quiet_window(now=_il(sat, 16, 25, offset)) is False

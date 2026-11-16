@@ -14,8 +14,8 @@ job (`infra/news-job.deploy.sh`) ticks at :25 each hour.
 One execution, one task (`--tasks=1 --parallelism=1 --max-retries=0`);
 recipes refresh sequentially inside it. A scheduled run takes the
 `job_state/run` Firestore lease first, so a tick that finds a run still
-going ends `skipped_overlap`; inside `QUIET_WINDOW` (Friday 15:00 to
-Saturday 21:00) it ends `skipped_quiet`. Both exit 0. `AUTHORING_NOTIFY_CAP`
+going ends `skipped_overlap`; inside `QUIET_WINDOW` (Friday 17:00 to
+Saturday 16:00) it ends `skipped_quiet`. Both exit 0. `AUTHORING_NOTIFY_CAP`
 (30) is the per-run fuse on new issues; the queue runs only in
 `AUTHORING_QUEUE_HOURS` (6, 11, 16).
 
