@@ -236,7 +236,8 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
 - **Measure the softer editor and the critic's memory.** From 2026-11-16 the editor treats
   each release's headline number as a story by default and has no "each story must be
   stronger" ratchet. From its second round the critic checks its previous review before
-  raising new points, and on the last round a "revise" scoring ≥4 everywhere passes. For two
-  weeks after the deploy, compare per day: briefs, published, rejected by reason, and how often
-  `final_round_pass` is set. Read every release story that runs; if routine-release copy
-  turns formulaic, tighten the editor's headline list. (2026-11-16)
+  raising new points, and on the last round a "revise" scoring ≥4 everywhere with no blocking
+  issue (style notes only) passes. For two weeks after the deploy, compare per day: briefs,
+  published, rejected by reason, and how many articles carry `critic_final_round`. Read every
+  release story that runs; if routine-release copy turns formulaic, tighten the editor's
+  headline list. (2026-11-16)

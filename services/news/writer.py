@@ -15,8 +15,8 @@ From its second round the copy chief sees its own previous review and checks
 that first, raising new issues only when substantive: reviewing every round
 from scratch produced fresh style notes each time, and most rejected drafts
 (2026-11-09..15) died on the last round that way. On that last round a
-"revise" whose scores all clear the bar (>= 4) passes (`gates.critique`
-`final`). A brief on a recurring release's new period tells the critic so
+"revise" whose scores all clear the bar (>= 4) and whose open notes are
+style only (`blocking: false`) passes (`gates.critique` `final`). A brief on a recurring release's new period tells the critic so
 (`RELEASE:`): the new figure is the news, however small the move.
 """
 from __future__ import annotations
@@ -94,9 +94,15 @@ def seed_facts(tb: Toolbox, brief: dict) -> list[dict]:
 def release_name(brief: dict, catalog: dict) -> str | None:
     """The release's name when the brief reports a new period of a recurring
     official release (a CBS or BoI monthly/quarterly series, `signals.is_release`,
-    unusual or not), else None."""
-    for sig in brief.get("signals") or []:
-        if is_release(sig):
+    unusual or not), else None. Only a news story's lead dataset counts: a
+    digest pools many datasets, and a CBS series linked into another
+    dataset's story doesn't make that story a release."""
+    if str(brief.get("kind") or ArticleKind.NEWS) != ArticleKind.NEWS:
+        return None
+    sigs = brief.get("signals") or []
+    lead = sigs[0].dataset_id if sigs else None
+    for sig in sigs:
+        if sig.dataset_id == lead and is_release(sig):
             return (catalog.get(sig.dataset_id) or {}).get("title") or sig.dataset_id
     return None
 

@@ -503,8 +503,8 @@ catalog` lists chapters → subjects → codes.
      `gates.check` + critic (pass/revise/kill; 2 critic rounds, plus 3 rounds
      for mechanical gate misses, counted apart, `writer.py`; from round 2 the critic
      sees its own previous review and raises new points only when substantive, and on
-     the last round a "revise" scoring ≥4 everywhere passes (`critic_final_round` on
-     the article); a CBS/BoI periodic release is marked `RELEASE:` for it) → image → store.
+     the last round a "revise" scoring ≥4 everywhere with only style notes open
+     (`blocking: false`) passes (`critic_final_round` on the article); a CBS/BoI periodic release is marked `RELEASE:` for it) → image → store.
    - **daily floor** (`NEWS_MIN_PER_DAY`, code default 0, prod 1): when event news
      leaves the Israel date short (this run's articles plus earlier runs'), the
      run writes explainers (`kind: feature`, shown as "ניתוח נתונים"): candidates are
