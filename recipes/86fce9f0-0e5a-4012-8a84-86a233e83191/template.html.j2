@@ -1,0 +1,246 @@
+{% import "gov.j2" as gov %}
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+{{ gov.lede(model.labels.lede) }}
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור תחנת רכבת קלה לפי שם או קו ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר: שם התחנה, הקו, סוג התחנה, הסטטוס, החברה המתכננת והמטרופולין</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+{%- for k in model.kpi_order %}
+  {{ gov.kpi(model.kpis[k], model.labels["kpi_" ~ k]) }}
+{%- endfor %}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+{%- if model.flags.map %}
+<section class="card p-5 mb-6">
+  {{ gov.head("map-pin", "מפת תחנות הרכבת הקלה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.map_note }}</p>
+{%- if model.charts.map.zoom %}
+  <div class="flex flex-wrap gap-2 mb-3" id="map-zoom">
+    <button type="button" class="rounded-gov-pill border border-rule px-3 py-1 text-sm text-ink bg-surface" data-zoom="-1">כל הארץ</button>
+{%- for z in model.charts.map.zoom %}
+    <button type="button" class="rounded-gov-pill border border-rule px-3 py-1 text-sm text-ink bg-surface" data-zoom="{{ loop.index0 }}">{{ z.name }}</button>
+{%- endfor %}
+  </div>
+{%- endif %}
+  <div id="map-stations" class="h-80 md:h-[460px]" role="region" aria-label="{{ model.labels.map_aria }}" data-fallback="explorer"></div>
+  <ul id="map-legend" class="flex flex-wrap gap-x-4 gap-y-2 mt-3 mb-0 ps-0 list-none text-sm text-subtle">
+{%- for t in model.charts.map.legend %}
+    <li class="flex items-center gap-2"><span class="map-dot" data-i="{{ loop.index0 }}" style="display:inline-block;width:12px;height:12px;border-radius:50%"></span>{{ t.name }} ({{ t.n }})</li>
+{%- endfor %}
+{%- if model.charts.map.under >= 0 %}
+    <li class="flex items-center gap-2"><span style="display:inline-block;width:12px;height:12px;border-radius:50%;border:3px solid #0c3058"></span>נקודה תת-קרקעית</li>
+{%- endif %}
+  </ul>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("building-2", "תחנות לפי מטרופולין וסטטוס") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.metro_lede }}</p>
+  {{ gov.chart("chart-metro", model.labels.metro_aria, h="h-64 md:h-80") }}
+  <div class="overflow-x-auto">
+  {{ gov.table(model.labels.metro_aria, ["מטרופולין"] + model.labels.status_cols + ["סך הכול"], model.tables.metro_status) }}
+  </div>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "מספר התחנות בכל מסלול") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.lines_lede }}</p>
+  {{ gov.chart("chart-lines", model.labels.lines_aria, h="h-80 md:h-[460px]") }}
+  <div class="overflow-x-auto">
+  {{ gov.table(model.labels.lines_aria, model.lines_cols, model.tables.lines) }}
+  </div>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("chart-bar", "תחנות עיליות, תת-קרקעיות ומוגבהות") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.type_lede }}</p>
+  {{ gov.chart("chart-type", model.labels.type_aria, h="h-64 md:h-80") }}
+  <div class="overflow-x-auto">
+  {{ gov.table(model.labels.type_aria, ["סוג תחנה"] + model.labels.metro_cols + ["מסומנות כקיימות", "סך הכול"], model.tables.type) }}
+  </div>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("map-pin", "תחנות מעבר: כמה קווים עוברים בכל תחנה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.xfer_lede }}</p>
+  {{ gov.chart("chart-xfer", model.labels.xfer_aria, h="h-64 md:h-80") }}
+  <div class="overflow-x-auto">
+  {{ gov.table(model.labels.xfer_aria, ["קווים בתחנה"] + model.labels.metro_cols + ["סך הכול"], model.tables.xfer) }}
+  </div>
+{%- if model.flags.top_xfer %}
+  <h3 class="mt-5 mb-2 text-base font-semibold text-ink-deep">תחנות המעבר הגדולות</h3>
+  <div class="overflow-x-auto">
+    <table id="table-top-xfer" class="w-full text-sm">
+      <caption class="text-sm text-subtle text-start mb-2">{{ model.labels.top_xfer_caption }}</caption>
+      <thead><tr><th scope="col">תחנה</th><th scope="col">מטרופולין</th><th scope="col">קווים</th><th scope="col">הקווים</th><th scope="col">סטטוס</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.top_xfer %}
+        <tr><th scope="row">{{ r[0] }}</th><td>{{ r[1] }}</td><td>{{ r[2] }}</td><td>{{ r[3] }}</td><td>{{ r[4] }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </div>
+{%- endif %}
+</section>
+
+{%- if model.flags.spacing %}
+<section class="card p-5 mb-6">
+  {{ gov.head("trending-up", "המרווח בין התחנות בכל מסלול") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.spacing_lede }}</p>
+  {{ gov.chart("chart-spacing", model.labels.spacing_aria, h="h-80 md:h-[460px]") }}
+  <div class="overflow-x-auto">
+  {{ gov.table(model.labels.spacing_aria, ["מסלול", "תחנות שנמדדו", "מרווח חציוני (מ׳)"], model.tables.spacing) }}
+  </div>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("calendar", "החברות המתכננות ומועד העדכון") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.metro_table_lede }}</p>
+  <div class="overflow-x-auto">
+    <table id="table-metro" class="w-full text-sm">
+      <caption class="sr-only">סיכום לפי מטרופולין</caption>
+      <thead><tr><th scope="col">מטרופולין</th><th scope="col">חברה מתכננת</th><th scope="col">תחנות</th><th scope="col">קווים</th><th scope="col">פריסה צפון-דרום (ק״מ)</th><th scope="col">פריסה מזרח-מערב (ק״מ)</th><th scope="col">עדכון אחרון</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.metro %}
+        <tr><th scope="row">{{ r[0] }}</th>{% for v in r[1:] %}<td>{{ v }}</td>{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+{%- if model.flags.map %}
+{%- for chunk in model.charts.map.chunks %}
+<script type="application/json" id="map-s-{{ loop.index0 }}">{{ chunk | tojson }}</script>
+{%- endfor %}
+<script>
+  (function () {
+    var el = document.getElementById("map-stations");
+    if (!el || !window.L || !window.GovMap) { return; }
+    var meta = {{ {"origin": model.charts.map.origin, "scale": model.charts.map.scale, "statuses": model.charts.map.statuses, "colors": model.charts.map.colors, "types": model.charts.map.types, "metros": model.charts.map.metros, "under": model.charts.map.under, "zoom": model.charts.map.zoom, "bounds": model.charts.map.bounds} | tojson }};
+    document.querySelectorAll("#map-legend .map-dot").forEach(function (d) {
+      d.style.background = meta.colors[Number(d.getAttribute("data-i"))];
+    });
+    var map = L.map(el, { scrollWheelZoom: false, zoomSnap: 0.25, preferCanvas: true });
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: "© <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a>" }).addTo(map);
+    var feats = GovMap.islands("map-s");
+    feats.sort(function (a, b) { return b[0] - a[0]; });
+    feats.forEach(function (f) {
+      var ll = GovMap.ring(f[5], meta.origin, meta.scale)[0];
+      var under = f[1] === meta.under;
+      var m = L.circleMarker(ll, { radius: 6, color: under ? "#0c3058" : "#ffffff", weight: under ? 3 : 1.5, fillColor: meta.colors[f[0]], fillOpacity: 0.9 }).addTo(map);
+      m.bindPopup(function () {
+        return GovMap.popup(f[3], [["קו", f[4]], ["סטטוס", meta.statuses[f[0]]], ["סוג", meta.types[f[1]]], ["מטרופולין", meta.metros[f[2]]]]);
+      });
+    });
+    map.fitBounds(meta.bounds, { padding: [12, 12] });
+    document.querySelectorAll("#map-zoom button").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var i = Number(b.getAttribute("data-zoom"));
+        map.fitBounds(i < 0 ? meta.bounds : meta.zoom[i].bounds, { padding: [16, 16], maxZoom: 15 });
+      });
+    });
+  })();
+</script>
+{%- endif %}
+
+<script>
+  (function () {
+    var d = {{ model.charts.metro | tojson }};
+    var c = echarts.init(document.getElementById("chart-metro"));
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return Number(v).toLocaleString("he-IL") + " תחנות"; } },
+      legend: { bottom: 0 },
+      grid: { left: 12, right: 24, top: 8, bottom: 48, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3 },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { interval: 0, fontSize: 12 } },
+      series: d.series.map(function (s) { return { type: "bar", stack: "m", name: s.name, data: s.data, itemStyle: { color: s.color }, barMaxWidth: 48 }; })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.lines | tojson }};
+    var esc = echarts.format.encodeHTML;
+    var c = echarts.init(document.getElementById("chart-lines"));
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        return esc(d.names[i]) + "<br>" + d.values[i] + " תחנות, מהן " + d.existing[i] + " מסומנות כקיימות בנקודה של המסלול בלבד";
+      } },
+      grid: { left: 12, right: 40, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: "value", axisLabel: { show: false }, splitLine: { show: false } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { interval: 0, fontSize: 11, width: 130, overflow: "truncate" } },
+      series: [{ type: "bar", barMaxWidth: 22,
+                 data: d.values.map(function (v, i) { return { value: v, itemStyle: { color: d.colors[i], opacity: d.dashed[i] ? 0.55 : 1, borderColor: d.colors[i], borderType: d.dashed[i] ? "dashed" : "solid", borderWidth: d.dashed[i] ? 1.5 : 0 } }; }),
+                 label: { show: true, position: "right", fontFamily: "Rubik" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.type | tojson }};
+    var c = echarts.init(document.getElementById("chart-type"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return Number(v).toLocaleString("he-IL") + " תחנות"; } },
+      legend: { bottom: 0 },
+      grid: { left: 12, right: 24, top: 8, bottom: 48, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3 },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { interval: 0, fontSize: 11, width: 110, overflow: "break" } },
+      series: d.series.map(function (s) { return { type: "bar", stack: "t", name: s.name, data: s.data, barMaxWidth: 40 }; })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.xfer | tojson }};
+    var c = echarts.init(document.getElementById("chart-xfer"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return Number(v).toLocaleString("he-IL") + " תחנות"; } },
+      legend: { bottom: 0 },
+      grid: { left: 12, right: 12, top: 16, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: d.names, axisLabel: { interval: 0, fontSize: 11 } },
+      yAxis: { type: "value", splitNumber: 4 },
+      series: d.series.map(function (s) { return { type: "bar", stack: "x", name: s.name, data: s.data, barMaxWidth: 56 }; })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+{%- if model.flags.spacing %}
+<script>
+  (function () {
+    var d = {{ model.charts.spacing | tojson }};
+    var c = echarts.init(document.getElementById("chart-spacing"));
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return Number(v).toLocaleString("he-IL") + " מ׳"; } },
+      grid: { left: 12, right: 48, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: "value", axisLabel: { show: false }, splitLine: { show: false } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { interval: 0, fontSize: 11, width: 130, overflow: "truncate" } },
+      series: [{ type: "bar", barMaxWidth: 22,
+                 data: d.values.map(function (v, i) { return { value: v, itemStyle: { color: d.colors[i] } }; }),
+                 label: { show: true, position: "right", fontFamily: "Rubik", formatter: function (p) { return Number(p.value).toLocaleString("he-IL"); } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
