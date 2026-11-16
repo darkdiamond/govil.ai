@@ -88,9 +88,12 @@ export function buildHome(index: SearchIndex): HomeData {
   const datasets: SlimEntry[] = index.datasets ?? [];
 
   // Newest render first: a page re-renders only when its data (or recipe)
-  // moved, so this is "what changed lately". Ties break on id.
+  // moved, so this is "what changed lately". Ties break on id. A dataset
+  // removed upstream (archived) no longer updates, so it never shows here.
   const updated = datasets
-    .filter((d) => time(d.last_analyzed_at) > 0)
+    .filter(
+      (d) => time(d.last_analyzed_at) > 0 && d.source_status !== "unavailable"
+    )
     .sort(
       (a, b) =>
         time(b.last_analyzed_at) - time(a.last_analyzed_at) ||

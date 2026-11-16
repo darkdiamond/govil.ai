@@ -3,6 +3,7 @@
 // box. The search is a plain GET form to /datasets/?q=, which reads the query
 // on load, so it works before hydration and without JS.
 import type { TagRow } from "~/utils/home";
+import { formatNumber as fmt } from "~/composables/useRelativeTime";
 import { tagPath } from "~/utils/paths";
 
 defineProps<{
@@ -10,8 +11,6 @@ defineProps<{
   ministryCount: number;
   chips: TagRow[];
 }>();
-
-const fmt = (n: number) => n.toLocaleString("he-IL");
 </script>
 
 <template>
@@ -49,7 +48,7 @@ const fmt = (n: number) => n.toLocaleString("he-IL");
 
     <nav
       v-if="chips.length"
-      aria-label="נושאים מבוקשים"
+      aria-label="הנושאים עם הכי הרבה מאגרים"
       class="mt-4 -mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto"
     >
       <ul class="list-none m-0 p-0 flex sm:flex-wrap gap-2 w-max sm:w-auto">

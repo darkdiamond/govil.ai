@@ -66,6 +66,10 @@ const INDEX = {
     }),
     ds("d", { tags: ["תג-בודד"] }), // never rendered
     ds("e", { last_analyzed_at: "not a date" }),
+    ds("f", {
+      last_analyzed_at: "2026-11-16T00:00:00Z",
+      source_status: "unavailable",
+    }),
   ],
   tag_index: {
     רכב: {
@@ -104,7 +108,7 @@ const INDEX = {
   ],
 };
 
-test("updated: newest render first, ties on id, undated and invalid left out", () => {
+test("updated: newest render first, ties on id, undated, invalid and archived left out", () => {
   const h = buildHome(INDEX);
   assert.deepEqual(
     h.updated.map((r) => r.id),
@@ -186,7 +190,7 @@ test("topics are capped", () => {
 
 test("counts and ministries", () => {
   const h = buildHome(INDEX);
-  assert.equal(h.datasetCount, 5);
+  assert.equal(h.datasetCount, 6);
   assert.equal(h.ministryCount, 2);
   assert.deepEqual(
     h.ministries.map((m) => [m.slug, m.count]),

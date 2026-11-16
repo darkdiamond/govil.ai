@@ -2,11 +2,10 @@
 // Ways into the catalog besides search: topics (with their biggest tags) and
 // the publishing bodies with the most datasets.
 import type { HomeTopic, MinistryRow } from "~/utils/home";
+import { formatNumber as fmt } from "~/composables/useRelativeTime";
 import { tagPath } from "~/utils/paths";
 
 defineProps<{ topics: HomeTopic[]; ministries: MinistryRow[] }>();
-
-const fmt = (n: number) => n.toLocaleString("he-IL");
 </script>
 
 <template>
