@@ -184,28 +184,36 @@ test("cellLink: only a whole http(s) URL becomes a link", () => {
   assert.equal(cellLink(null), "");
 });
 
-test("linkColumnIds: one URL repeated on every row is not a link column", () => {
-  const cols = [col({ id: "same" }), col({ id: "doc" }), col({ id: "solo" })];
+test("linkColumnIds: one bare origin on every row is a placeholder, not a link column", () => {
+  const cols = [col({ id: "host" }), col({ id: "pdf" }), col({ id: "sites" })];
   const rows = [
     {
-      same: "https://trademarks.justice.gov",
-      doc: "https://a.gov.il/1",
-      solo: "",
+      host: "https://trademarks.justice.gov",
+      pdf: "https://a.gov.il/protocol/7.pdf",
+      sites: "https://www.jerusalem.muni.il",
     },
     {
-      same: "https://trademarks.justice.gov",
-      doc: "https://a.gov.il/2",
-      solo: null,
-    },
-    {
-      same: " https://trademarks.justice.gov ",
-      doc: "https://a.gov.il/1",
-      solo: "https://a.gov.il/x",
+      host: " https://Trademarks.justice.gov/ ",
+      pdf: "https://a.gov.il/protocol/7.pdf",
+      sites: "https://www.tel-aviv.gov.il/",
     },
   ];
-  assert.deepEqual([...linkColumnIds(rows, cols)], ["doc", "solo"]);
-  // A one-row page (a search hit) still links its URL.
-  assert.deepEqual([...linkColumnIds(rows.slice(0, 1), cols)], ["same", "doc"]);
+  // Same document on every row (one meeting's items) still links; so do
+  // distinct homepages.
+  assert.deepEqual([...linkColumnIds(rows, cols)], ["pdf", "sites"]);
+  // A one-hit first page (a carried-over search) can't revive the placeholder.
+  // One homepage alone looks the same and loses its link: the cheaper mistake.
+  assert.deepEqual([...linkColumnIds(rows.slice(0, 1), cols)], ["pdf"]);
+  // A host with a query is a real link.
+  assert.deepEqual(
+    [
+      ...linkColumnIds(
+        [{ host: "https://a.gov.il/?id=1" }],
+        [col({ id: "host" })]
+      ),
+    ],
+    ["host"]
+  );
 });
 
 test("linkColumnIds + withLinkCols: all-URL columns move first", () => {
