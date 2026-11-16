@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { SITE_URL, tagPath } from "~/utils/paths";
+import { topicGroups } from "~/utils/home";
 import { loadSearchIndex } from "~/utils/search-index";
 
 useSeo({
@@ -13,42 +14,13 @@ useSeo({
   ],
 });
 
-interface TagRow {
-  name: string;
-  slug: string;
-  count: number;
-}
-interface TopicGroup {
-  id: string;
-  label: string;
-  intro: string;
-  tags: TagRow[];
-}
-
 // Bake only the grouped [tag, slug, count] rows into the payload. Topics keep
 // the vocabulary's order; tags within a topic are count DESC (tag_index order).
 // The slim index (not the server-only manifest): with payloadExtraction off,
 // a client-side navigation here re-runs this fetcher in the browser.
-const { data } = await useAsyncData("tags-index", async () => {
-  const m = await loadSearchIndex();
-  const groups = new Map<string, TopicGroup>(
-    (m.topics ?? []).map((t) => [
-      t.id,
-      { id: t.id, label: t.label_he, intro: t.intro_he ?? "", tags: [] },
-    ])
-  );
-  const other: TopicGroup = {
-    id: "other",
-    label: "נושאים נוספים",
-    intro: "",
-    tags: [],
-  };
-  for (const [name, t] of Object.entries(m.tag_index ?? {})) {
-    const g = (t.topic && groups.get(t.topic)) || other;
-    g.tags.push({ name, slug: t.slug, count: t.count });
-  }
-  return [...groups.values(), other].filter((g) => g.tags.length);
-});
+const { data } = await useAsyncData("tags-index", async () =>
+  topicGroups(await loadSearchIndex())
+);
 
 const groups = computed(() => data.value ?? []);
 const tagCount = computed(() =>

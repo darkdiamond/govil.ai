@@ -45,7 +45,7 @@ const newsOn = Number(useRuntimeConfig().public.newsCount || 0) > 0;
               <span class="font-display text-lg leading-none">govil.ai</span>
               <span
                 class="hidden sm:inline text-[11px] text-white/75 mt-1 leading-none"
-                >מידע ממשלתי. בעזרת AI.</span
+                >מידע ממשלתי, מוסבר.</span
               >
             </span>
           </NuxtLink>
@@ -131,8 +131,8 @@ const newsOn = Number(useRuntimeConfig().public.newsCount || 0) > 0;
             govil.ai
           </div>
           <p class="text-white/75 leading-relaxed m-0">
-            מאגרי המידע הציבוריים של ממשלת ישראל — מוסברים על ידי AI, פתוחים לכל
-            אחד.
+            מאגרי המידע הציבוריים של ממשלת ישראל, מוסברים ומתעדכנים מהנתונים
+            הרשמיים. פתוחים לכל אחד.
           </p>
         </div>
         <div>
