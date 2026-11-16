@@ -281,3 +281,11 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
   `terms.vue:45,50,73`, `accessibility.vue:38,142,145`, `disclaimer.vue:93`. Terms and
   disclaimer are legal text, so rewrite them deliberately rather than by search-and-replace.
   Leave `news/about.vue` alone (accurate). (2026-11-16)
+
+## Deploy and scheduling
+
+- **`QUIET_WINDOW` is set in two deploy scripts.** `infra/builder-job.deploy.sh` and
+  `infra/news-job.deploy.sh` each carry their own default, and only `test_schedule.py` checks
+  that they match. An override given to one script (`QUIET_WINDOW=… ./infra/builder-job.deploy.sh`)
+  puts the two jobs on different windows without any check seeing it. Fix: read the window from
+  one file both scripts source (e.g. `infra/schedule.env`). (2026-11-16)
