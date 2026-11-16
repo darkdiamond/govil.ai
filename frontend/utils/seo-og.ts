@@ -14,7 +14,9 @@ export interface OgImageInput {
   alt?: string | null;
 }
 
-type Meta = { property?: string; name?: string; content: string };
+// One or the other, never both: the shape useHead's meta entries take.
+type Meta =
+  { property: string; content: string } | { name: string; content: string };
 
 /** The image's absolute URL plus its meta tags. Width and height only when
  *  known: a wrong size is worse than none. */
