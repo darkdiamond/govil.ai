@@ -1,5 +1,13 @@
 <h1>{{ model.agent_data.seo.name }}</h1>
 
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline border-2 border-brand">
+  <img src="/icons/search.svg" alt="" class="w-6 h-6 shrink-0" />
+  <span>
+    <span class="block text-lg font-semibold text-ink-deep">בדיקת סימן מסחר: חיפוש לפי שם הסימן, מספר סימן או בעלים ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל {{ model.kpis.total.display }} הבקשות במאגר, עם מצב התיק, סוגי ניצה, מיופה הכוח ותאריך תום התוקף לכל סימן</span>
+  </span>
+</a>
+
 <section class="card p-5 mb-6">
   <div class="flex items-center gap-2 mb-3 text-brand">
     <img src="/icons/info.svg" alt="" class="w-5 h-5" />
@@ -7,14 +15,6 @@
   </div>
   <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
 </section>
-
-<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
-  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
-  <span>
-    <span class="block font-semibold text-ink-deep">איתור סימן מסחר לפי שם, מספר סימן או בעלים ←</span>
-    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר: מספר הסימן, תיאור הסימן בעברית ובאנגלית, שם בעל הסימן, שם מיופה הכוח, סוגי ניצה ורשימת הסחורות.</span>
-  </span>
-</a>
 
 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
   <div class="card p-4 text-center">
@@ -109,6 +109,7 @@
     <h2 class="m-0 text-lg font-semibold text-ink-deep">תחומי המוצרים והשירותים (סיווג ניצה)</h2>
   </div>
   <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.classes_note }}</p>
+  <p class="m-0 text-sm text-subtle mb-3">שמות כל הסוגים ורכיבי הלוגו מופיעים ב<a href="/datasets/סימני-מסחר-סיווגים-556634fd/">סיווגי סימני המסחר: ניצה ווינה</a>.</p>
   <div id="chart-classes" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.classes_aria }}"></div>
   <details class="mt-3">
     <summary class="text-sm text-subtle">הצג כטבלה</summary>
@@ -236,6 +237,40 @@
     </table>
   </details>
   <p class="m-0 mt-3 text-sm text-subtle">{{ model.labels.extras }}</p>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">איך בודקים ורושמים סימן מסחר בישראל</h2>
+  </div>
+  <div class="space-y-4 text-sm">
+    <div>
+      <h3 class="m-0 mb-1 text-base font-semibold text-ink-deep">איך בודקים אם סימן מסחר רשום?</h3>
+      <p class="m-0 text-subtle leading-relaxed">מחפשים בטבלת הנתונים בתחתית העמוד לפי שם הסימן בעברית או באנגלית, מספר הסימן, שם בעל הסימן או שם מיופה הכוח. כל שורה מציגה את מצב התיק (רשום, סגור, קובל, בחינה ראשונה ועוד), את סוגי ניצה ואת תאריך תום התוקף. {{ model.labels.faq_check }}</p>
+      <p class="m-0 mt-1 text-subtle leading-relaxed">המצב המחייב של כל סימן מופיע ב<a href="https://trademarks.justice.gov.il/" target="_blank" rel="noopener">חיפוש הרשמי של רשות הפטנטים</a>.</p>
+    </div>
+{%- if model.labels.faq_lag %}
+    <div>
+      <h3 class="m-0 mb-1 text-base font-semibold text-ink-deep">כמה זמן לוקח לרשום סימן מסחר?</h3>
+      <p class="m-0 text-subtle leading-relaxed">{{ model.labels.faq_lag }} הזמן כולל את הבחינה ואת תקופת ההתנגדות שאחרי קיבול הבקשה.</p>
+    </div>
+{%- endif %}
+{%- if model.labels.faq_term %}
+    <div>
+      <h3 class="m-0 mb-1 text-base font-semibold text-ink-deep">לכמה זמן סימן מסחר מוגן ומתי מחדשים אותו?</h3>
+      <p class="m-0 text-subtle leading-relaxed">{{ model.labels.faq_term }} סימן שלא חודש פוקע ועובר לתיקים הסגורים.</p>
+    </div>
+{%- endif %}
+    <div>
+      <h3 class="m-0 mb-1 text-base font-semibold text-ink-deep">מה ההבדל בין בקשה לאומית לייעוד בינלאומי?</h3>
+      <p class="m-0 text-subtle leading-relaxed">בקשה לאומית מוגשת ישירות לרשות הפטנטים בישראל. ייעוד בינלאומי מגיע לפי פרוטוקול מדריד: בעל הסימן מגיש בקשה בינלאומית דרך הארגון העולמי לקניין רוחני ומייעד בה גם את ישראל. {{ model.labels.faq_intl }} גם בעל סימן ישראלי יכול להגיש <a href="https://www.gov.il/he/service/international_mark_registration" target="_blank" rel="noopener">בקשה לרישום סימן בינלאומי</a>.</p>
+    </div>
+    <div>
+      <h3 class="m-0 mb-1 text-base font-semibold text-ink-deep">איך מגישים בקשה לרישום סימן מסחר?</h3>
+      <p class="m-0 text-subtle leading-relaxed">את הבקשה מגישים באתר המקוון של מחלקת סימני המסחר ברשות הפטנטים (<a href="https://www.gov.il/he/service/trademark_registration" target="_blank" rel="noopener">הגשת בקשה לרישום סימן מסחר</a>), עם פרטי הסימן, רשימת הסחורות או השירותים וסוגי ניצה (רשימת המונחים המקובלים ב<a href="/datasets/מנהל-הטובין-025c3e07/">מנהל הטובין</a>). מבקש עם כתובת למשלוח מסמכים בישראל יכול להגיש בלי עורך דין או עורך פטנטים, והאגרה משולמת בסוף ההגשה המקוונת. לפני ההגשה כדאי לחפש במאגר סימנים דומים באותם סוגי ניצה.</p>
+    </div>
+  </div>
 </section>
 
 <section class="card p-5 mb-6">
