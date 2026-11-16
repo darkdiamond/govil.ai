@@ -5,7 +5,21 @@ import type { NewsIndexEntry } from "~/types/news";
 import { newsDate } from "~/utils/news";
 import { thumbOf } from "~/utils/news-front";
 
-defineProps<{ lead: NewsIndexEntry; side: NewsIndexEntry[] }>();
+const props = withDefaults(
+  defineProps<{
+    lead: NewsIndexEntry;
+    side: NewsIndexEntry[];
+    /** Link the lead's first dataset under it (the homepage). */
+    showSource?: boolean;
+  }>(),
+  { showSource: false }
+);
+// The first dataset the story used that has a page and a title.
+const source = computed(() =>
+  props.showSource
+    ? (props.lead.datasets?.find((d) => d.href && d.title) ?? null)
+    : null
+);
 </script>
 
 <template>
@@ -61,6 +75,11 @@ defineProps<{ lead: NewsIndexEntry; side: NewsIndexEntry[] }>();
           :height="48"
         />
       </div>
+      <!-- Above the stretched link (z-10), so it opens the dataset page. -->
+      <p v-if="source" class="relative z-10 m-0 mt-4 text-sm text-subtle">
+        מתוך המאגר:
+        <a :href="source.href!" class="font-medium">{{ source.title }}</a>
+      </p>
     </article>
 
     <ul v-if="side.length" class="list-none m-0 p-0 min-w-0">

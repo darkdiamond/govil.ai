@@ -1,6 +1,6 @@
 // Shared SEO helper. Emits title, description, canonical, OG, Twitter,
 // and JSON-LD blocks (WebSite always; BreadcrumbList + extras when given).
-// Keywords seeded with the AI/agentic terms the site ranks on (Hebrew + English).
+// Base keywords describe the site (open government data, Hebrew + English).
 
 import { SITE_URL } from "~/utils/paths";
 
@@ -9,16 +9,11 @@ const DEFAULT_OG = "/og-default.png";
 // The WebSite JSON-LD describes the site, so every page carries the same text
 // (the homepage's description), not its own.
 const SITE_DESCRIPTION =
-  "כל מאגר מידע ממשלתי חדש מוסבר בעברית פשוטה בעמוד אחד — תקציר, תובנות, גרפים ומפות אינטראקטיביות. בלי הורדות ובלי Excel.";
+  "כל מאגר מידע ממשלתי מוסבר בעמוד אחד: תקציר, גרפים ומפות שמתעדכנים מהנתונים הרשמיים, וחדשות מהנתונים. בלי הורדות ובלי Excel.";
 
 const BASE_KEYWORDS = [
   "מידע ממשלתי",
   "data.gov.il",
-  "בינה מלאכותית",
-  "AI",
-  "סוכן AI",
-  "agentic",
-  "אג׳נטי",
   "מאגרי מידע פתוחים",
   "ישראל",
   "open data Israel",

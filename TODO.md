@@ -257,3 +257,14 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
   published, rejected by reason, and how many articles carry `critic_final_round`. Read every
   release story that runs; if routine-release copy turns formulaic, tighten the editor's
   headline list. (2026-11-16)
+
+## Site copy
+
+- **Several pages still say an AI agent writes every dataset page.** Since 2026-10-29 dataset
+  pages are deterministic recipe renders; only news articles are AI-written. The homepage,
+  header/footer tagline, DatasetCard and default SEO keywords were fixed with the homepage
+  redesign, but these still carry the old claim: `frontend/pages/how-it-works.vue:72` (and its
+  "מערכת הניתוח" / "הקשר רגולטורי" pipeline copy), `faq.vue:18`, `datasets/index.vue:224`,
+  `terms.vue:45,50,73`, `accessibility.vue:38,142,145`, `disclaimer.vue:93`. Terms and
+  disclaimer are legal text, so rewrite them deliberately rather than by search-and-replace.
+  Leave `news/about.vue` alone (accurate). (2026-11-16)
