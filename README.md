@@ -18,7 +18,7 @@ ministries and topics. The live site is [govil.ai](https://govil.ai).
 ## How it works
 
 ```
-Cloud Scheduler (hourly 06:00–21:00 Asia/Jerusalem; Shabbat skipped)
+Cloud Scheduler (hourly 06:00–21:00 Asia/Jerusalem; quiet Fri 17:00–Sat 16:00)
         │
         ▼
 Cloud Run job: govdata-builder-job (1 task, no LLM)
@@ -141,7 +141,7 @@ npx serve .output/public
 - **Cloud Run jobs** run the builder hourly (`--task-timeout` 2h bounds
   the run, a Firestore lease keeps ticks from overlapping; each recipe's
   `compute()` is capped at 300s) and the news job 25 minutes after it.
-  Both skip Shabbat (`QUIET_WINDOW`).
+  Both pause from Friday 17:00 to Saturday 16:00 (`QUIET_WINDOW`).
 
 ## Configuration / self-hosting
 

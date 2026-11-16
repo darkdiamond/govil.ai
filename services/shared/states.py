@@ -143,7 +143,7 @@ class RunStatus(StrEnum):
     AUTHORING_FAILED = "authoring_failed"
     RECONCILE_FAILED = "reconcile_failed"
     SKIPPED_OVERLAP = "skipped_overlap"  # another execution holds the run lease
-    SKIPPED_QUIET = "skipped_quiet"      # inside QUIET_WINDOW (e.g. Shabbat)
+    SKIPPED_QUIET = "skipped_quiet"      # inside QUIET_WINDOW (weekly, e.g. fri17-sat16)
 
 
 class NewsRunStatus(StrEnum):

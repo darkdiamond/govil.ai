@@ -440,8 +440,8 @@ catalog` lists chapters → subjects → codes.
    Every job run calls
    `providers.sync.sync_provider_sources` after loading the recipe list.
    `PROVIDER_<KEY>_SYNC_HOURS` (Israel hours; unset = every run; prod BoI
-   `6,12,18`, CBS indices `6,14,16,19`: 19 for release evening, 16 for a Friday or
-   holiday-eve 14:00 release (Friday's last tick before the quiet window), CBS releases unset)
+   `6,12,18`, CBS indices `6,14,16,19,21`: 19 and 21 for release evening, 16 for a Friday
+   or holiday-eve 14:00 release (Friday's last tick before the quiet window), CBS releases unset)
    limits a provider's sync to those ticks: in any other hour its sources are
    skipped (`provider_gated:<key>`) before the healthcheck, docs untouched, so
    nothing new reaches the refresh. `--source` ignores it.

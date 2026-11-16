@@ -100,7 +100,9 @@ PROVIDER_CBS_INDEX_ENABLED=${PROVIDER_CBS_INDEX_ENABLED:-true}
 # 19:00 catches the indices on release evening (the 15th, 18:30). On a Friday
 # or a holiday eve CBS publishes at 14:00, about when the 14:00 tick syncs, so
 # 16:00 catches it (Friday's last tick before QUIET_WINDOW, Saturday's first).
-PROVIDER_CBS_INDEX_SYNC_HOURS=${PROVIDER_CBS_INDEX_SYNC_HOURS-6,14,16,19}
+# 21:00 is a second try on release evening, when the 19:00 sync came too early
+# or failed.
+PROVIDER_CBS_INDEX_SYNC_HOURS=${PROVIDER_CBS_INDEX_SYNC_HOURS-6,14,16,19,21}
 # How the recipe list is read from git main: `tarball` = one archive download
 # per run (~3s); `files` (code default) = 3+ raw.githubusercontent.com requests
 # per recipe, ~0.6s each (~9.5 min/run at 317 recipes, measured 2026-11-04).

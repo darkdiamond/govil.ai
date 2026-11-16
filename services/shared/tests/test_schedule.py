@@ -112,3 +112,4 @@ def test_prod_window_against_the_ticks(monkeypatch, fri, sat, offset):
     assert in_quiet_window(now=_il(fri, 17, 0, offset)) is True
     assert in_quiet_window(now=_il(sat, 15, 25, offset)) is True
     assert in_quiet_window(now=_il(sat, 16, 0, offset)) is False
+    assert in_quiet_window(now=_il(sat, 16, 25, offset)) is False

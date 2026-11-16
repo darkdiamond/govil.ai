@@ -7,10 +7,11 @@
 #   govdata-news-daily      → govdata-news-job     25 6-21 * * *  (hourly, :25)
 #
 # Hourly since 2026-11-12, so a data update is live within about an hour and
-# an article can follow in the same hour. Both jobs skip Shabbat themselves
-# (QUIET_WINDOW, in the deploy scripts, ends a run `skipped_quiet`), and each
-# holds a Firestore lease (`job_state/run`, `news_state/lock`), so a slow run
-# makes the next tick end `skipped_overlap` instead of overlapping it. The
+# an article can follow in the same hour. Both jobs pause from Friday 17:00
+# to Saturday 16:00 themselves (QUIET_WINDOW, in the deploy scripts, ends a
+# run `skipped_quiet`), and each holds a Firestore lease (`job_state/run`,
+# `news_state/lock`), so a slow run makes the next tick end `skipped_overlap`
+# instead of overlapping it. The
 # local Claude Code authoring routine runs at 07:00, 12:00 and 17:00 and works
 # through the issues the runs opened. The scheduler job names keep their
 # historical "-daily" suffix.

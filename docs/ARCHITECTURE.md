@@ -8,7 +8,7 @@ landing pages. For repository conventions and the detailed
 ## The big picture
 
 ```
-Cloud Scheduler (hourly 06:00–21:00 Asia/Jerusalem; Shabbat skipped)
+Cloud Scheduler (hourly 06:00–21:00 Asia/Jerusalem; quiet Fri 17:00–Sat 16:00)
         │
         ▼
 Cloud Run job: govdata-builder-job  (1 task, no LLM)
@@ -52,7 +52,7 @@ as a standalone CLI for debugging.
 ### 2. Builder / pipeline (`services/page_builder/pipeline.py`)
 
 The orchestrator, run hourly as a Cloud Run job. A run inside the weekly
-quiet window (Shabbat, `QUIET_WINDOW`) or while another execution holds the
+quiet window (`QUIET_WINDOW`, Friday 17:00 to Saturday 16:00) or while another execution holds the
 `job_state/run` lease ends at once (`skipped_quiet` / `skipped_overlap`), so
 ticks never overlap. Otherwise:
 
