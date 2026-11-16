@@ -1,0 +1,35 @@
+{
+  "contract_version": 1,
+  "dataset_id": "86fce9f0-0e5a-4012-8a84-86a233e83191",
+  "recipe_version": 1,
+  "authored_at": "2026-11-16T15:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-11-16T13:40:32.182351+00:00",
+    "rows": { "main": 314, "geo": 314 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "b2ca8ac5-d7ea-41a5-8119-a30e98cf71e0",
+      "required_columns": [
+        "X",
+        "Y",
+        "LINE",
+        "TYPE",
+        "STATUS",
+        "YEARMONTH",
+        "COMP",
+        "MTR_AREA",
+        "STAT_NAME"
+      ]
+    },
+    {
+      "name": "geo",
+      "by_id": "93400849-51ff-42c9-a151-cbaee630ded2",
+      "map": true,
+      "required_columns": ["STAT_NAME", "LINE", "STATUS", "TYPE", "MTR_AREA"]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}
