@@ -36,8 +36,9 @@ STAGING_BUCKET=${GCS_STAGING_BUCKET:-${PROJECT}-staging}
 # default 900 s, only bounds how long a dead run keeps later ticks out).
 TASK_TIMEOUT=${TASK_TIMEOUT:-3600s}
 # Scheduled runs inside this weekly window (Israel time) end `skipped_quiet`:
-# Friday 15:00 to Saturday 21:00. Empty = never quiet.
-QUIET_WINDOW=${QUIET_WINDOW-fri15-sat21}
+# Friday 17:00 to Saturday 16:00, so the last Friday tick is 16:00 (news
+# 16:25) and Saturday's first is 16:00. Empty = never quiet.
+QUIET_WINDOW=${QUIET_WINDOW-fri17-sat16}
 
 # :floor = cheapest endpoint first (AI Studio Flex, half price), then by price.
 NEWS_MODEL=${NEWS_MODEL:-google/gemini-4-hydrogen:floor}
