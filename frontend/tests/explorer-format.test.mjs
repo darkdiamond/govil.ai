@@ -184,6 +184,30 @@ test("cellLink: only a whole http(s) URL becomes a link", () => {
   assert.equal(cellLink(null), "");
 });
 
+test("linkColumnIds: one URL repeated on every row is not a link column", () => {
+  const cols = [col({ id: "same" }), col({ id: "doc" }), col({ id: "solo" })];
+  const rows = [
+    {
+      same: "https://trademarks.justice.gov",
+      doc: "https://a.gov.il/1",
+      solo: "",
+    },
+    {
+      same: "https://trademarks.justice.gov",
+      doc: "https://a.gov.il/2",
+      solo: null,
+    },
+    {
+      same: " https://trademarks.justice.gov ",
+      doc: "https://a.gov.il/1",
+      solo: "https://a.gov.il/x",
+    },
+  ];
+  assert.deepEqual([...linkColumnIds(rows, cols)], ["doc", "solo"]);
+  // A one-row page (a search hit) still links its URL.
+  assert.deepEqual([...linkColumnIds(rows.slice(0, 1), cols)], ["same", "doc"]);
+});
+
 test("linkColumnIds + withLinkCols: all-URL columns move first", () => {
   const cols = [
     col({ id: "name" }),

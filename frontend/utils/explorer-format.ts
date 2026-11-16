@@ -63,7 +63,11 @@ export function cellLink(v: unknown): string {
 
 // Columns whose non-empty cells on the sample page are all links. Decided
 // once per resource, from its first page, so columns don't jump around
-// between pages or searches.
+// between pages or searches. A column that repeats ONE URL on every row of
+// the page is not a per-row link but a constant, often a placeholder cut
+// short (the trademark registry's "קישור לנסח" is "https://trademarks.justice.gov",
+// a host that doesn't resolve, on all 364k rows); it stays plain text in
+// CKAN's position instead of opening the table with the same dead link.
 export function linkColumnIds(
   rows: Record<string, unknown>[],
   cols: Col[]
@@ -71,18 +75,21 @@ export function linkColumnIds(
   const out = new Set<string>();
   for (const col of cols) {
     if (col.numeric || col.date) continue;
+    const links = new Set<string>();
     let seen = 0;
     let ok = true;
     for (const row of rows) {
       const v = row[col.id];
       if (v === null || v === undefined || v === "") continue;
       seen++;
-      if (!cellLink(v)) {
+      const href = cellLink(v);
+      if (!href) {
         ok = false;
         break;
       }
+      links.add(href);
     }
-    if (ok && seen) out.add(col.id);
+    if (ok && seen && (seen === 1 || links.size > 1)) out.add(col.id);
   }
   return out;
 }
