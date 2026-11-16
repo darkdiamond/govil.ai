@@ -4,7 +4,8 @@
 import type { SearchIndex, SlimEntry } from "~/types/manifest";
 
 export const UPDATED_CAP = 8;
-export const CHIPS_CAP = 8;
+/** Masthead topic tiles; the grid adds an "all topics" tile after them. */
+export const CHIPS_CAP = 7;
 export const TOPIC_TAGS_CAP = 3;
 export const MINISTRIES_CAP = 8;
 /** The homepage lists the biggest topics; /tags/ has them all. */
@@ -124,11 +125,25 @@ export function buildHome(index: SearchIndex): HomeData {
     .sort((a, b) => b.count - a.count || a.title.localeCompare(b.title, "he"))
     .slice(0, MINISTRIES_CAP);
 
-  // Only tags with a page (tag_index holds exactly those), count DESC.
+  // Only tags with a page (tag_index holds exactly those), count DESC, and
+  // only the biggest tag of each topic: the tiles are ways into different
+  // subjects, not two spellings of transport. A tag with no (known) topic
+  // stands alone, as in topicGroups.
+  const knownTopics = new Set((index.topics ?? []).map((t) => t.id));
+  const seen = new Set<string>();
   const chips = Object.entries(index.tag_index ?? {})
-    .map(([name, t]) => ({ name, slug: t.slug, count: t.count }))
-    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, "he"))
-    .slice(0, CHIPS_CAP);
+    .sort(([an, a], [bn, b]) => b.count - a.count || an.localeCompare(bn, "he"))
+    .filter(([name, t]) => {
+      const key =
+        t.topic && knownTopics.has(t.topic)
+          ? `topic:${t.topic}`
+          : `tag:${name}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .slice(0, CHIPS_CAP)
+    .map(([name, t]) => ({ name, slug: t.slug, count: t.count }));
 
   // A topic's count is the datasets with any of its tags, not the sum of tag
   // counts (one dataset often carries two tags of the same topic). Biggest

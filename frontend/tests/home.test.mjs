@@ -134,12 +134,14 @@ test("updated is capped", () => {
   assert.equal(h.updated[0].id, `x${UPDATED_CAP + 4}`);
 });
 
-test("chips: only paged tags, count DESC, capped", () => {
+test("chips: only paged tags, count DESC, one per topic, capped", () => {
   const h = buildHome(INDEX);
+  // תחבורה ציבורית shares רכב's topic, so only the bigger one shows.
   assert.deepEqual(
     h.chips.map((c) => c.name),
-    ["יתום", "רכב", "רופאים", "תחבורה ציבורית"]
+    ["יתום", "רכב", "רופאים"]
   );
+  assert.deepEqual(Object.keys(h.chips[0]).sort(), ["count", "name", "slug"]);
   assert.ok(!h.chips.some((c) => c.name === "תג-בודד"));
   const tag_index = Object.fromEntries(
     Array.from({ length: CHIPS_CAP + 3 }, (_, i) => [
@@ -148,6 +150,43 @@ test("chips: only paged tags, count DESC, capped", () => {
     ])
   );
   assert.equal(buildHome({ ...INDEX, tag_index }).chips.length, CHIPS_CAP);
+  // Dedup runs before the cap: a crowd of one topic's tags doesn't eat the
+  // tiles. Two tags of a topic missing from the vocabulary both stay.
+  const crowded = {
+    ...tag_index,
+    ...Object.fromEntries(
+      Array.from({ length: CHIPS_CAP }, (_, i) => [
+        `big${i}`,
+        {
+          slug: `big${i}`,
+          topic: "health",
+          count: 100 + i,
+          ministries: {},
+          related: [],
+        },
+      ])
+    ),
+    stale1: {
+      slug: "stale1",
+      topic: "gone",
+      count: 90,
+      ministries: {},
+      related: [],
+    },
+    stale2: {
+      slug: "stale2",
+      topic: "gone",
+      count: 80,
+      ministries: {},
+      related: [],
+    },
+  };
+  const c = buildHome({ ...INDEX, tag_index: crowded }).chips;
+  assert.equal(c.length, CHIPS_CAP);
+  assert.deepEqual(
+    c.slice(0, 3).map((x) => x.name),
+    [`big${CHIPS_CAP - 1}`, "stale1", "stale2"]
+  );
 });
 
 test("topics: biggest first, distinct datasets per topic, no 'other', no empty", () => {

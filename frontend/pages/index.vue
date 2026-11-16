@@ -45,7 +45,10 @@ const { data: news } = await useAsyncData("home-news", async () => {
     />
 
     <section v-if="news?.lead" aria-labelledby="home-news-h" class="mt-8">
-      <div class="flex items-baseline justify-between gap-4 mb-5">
+      <!-- Same section head as the blocks below: title over a rule. -->
+      <div
+        class="flex items-baseline justify-between gap-4 pb-2 mb-5 border-b-2 border-ink-deep"
+      >
         <h2 id="home-news-h" class="m-0 text-2xl font-display text-ink-deep">
           חדשות
         </h2>
