@@ -78,6 +78,17 @@ def test_errors_inside_the_strike_window_wait(boi, synced, monkeypatch):  # noqa
     assert [e["id"] for e in _run(boi, synced.store, synced.repo)["escalated"]] == ["boi-a"]
 
 
+def test_provider_strike_hours_override_the_refresh_window(boi, synced, monkeypatch):  # noqa: F811
+    monkeypatch.setenv("REFRESH_STRIKE_MIN_HOURS", "72")
+    monkeypatch.setenv("PROVIDER_SYNC_STRIKE_MIN_HOURS", "24")
+    doc = synced.store.docs["boi-a"]
+    doc.update(provider_sync_strikes=5,
+               provider_sync_strikes_since=datetime.now(UTC) - timedelta(hours=23))
+    assert _run(boi, synced.store, synced.repo)["escalated"] == []
+    doc["provider_sync_strikes_since"] = datetime.now(UTC) - timedelta(hours=25)
+    assert [e["id"] for e in _run(boi, synced.store, synced.repo)["escalated"]] == ["boi-a"]
+
+
 def test_a_dataset_never_synced_is_not_counted(boi, tmp_path, monkeypatch):  # noqa: F811
     monkeypatch.setenv("REFRESH_TRANSIENT_STRIKES", "1")
     repo = make_repo(tmp_path, {"boi-a": _source().model_dump()})

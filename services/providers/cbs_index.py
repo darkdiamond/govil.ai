@@ -115,6 +115,11 @@ class CbsIndexDatasetConfig(ProviderDatasetConfig):
     resources: list[CbsIndexResource] = Field(min_length=1)
 
 
+def _count(v) -> int | None:
+    """A paging count (`last_page`, `page_size`, `total_items`): an int, else None."""
+    return v if isinstance(v, int) and not isinstance(v, bool) else None
+
+
 def _period(freq: str, row: dict) -> tuple[int, int]:
     year = int(row["year"])
     n = int(row["month"] if freq == "month" else row["quarter"])
@@ -434,8 +439,15 @@ class CbsIndexProvider(SourceProvider):
         return f"{resource['url']}#frequency={freq}"
 
     def pages(self, r: CbsIndexResource) -> list[dict]:
-        """The resource's rows, every page, without chaining coefficients."""
-        out, page, total, got = [], 1, None, 0
+        """The resource's rows, every page, without chaining coefficients.
+
+        Completeness is checked page by page: every page before the last
+        must be full (`page_size` rows), or the walk was cut short or a row
+        was withdrawn between pages. `total_items` can't be the check: it
+        runs a few rows above what CBS delivers (757 against 738 rows on one
+        complete page, 4746 against 4745 on five full ones; 2026-11-16), and
+        comparing against it froze five index pages from 2026-11-12."""
+        out, page = [], 1
         while True:
             data = self._get_json(self._url("data/price", **self._query(r), format="json",
                                             PageSize=PAGE_SIZE, Page=page))
@@ -445,21 +457,17 @@ class CbsIndexProvider(SourceProvider):
             out.append(data)
             n = sum(len(s.get("date") or []) for f in ("month", "quarter")
                     for s in data.get(f) or [] if isinstance(s, dict))
-            got += n
-            last = paging.get("last_page")
-            last = last if isinstance(last, int) and not isinstance(last, bool) else None
-            if page == 1:
-                t = paging.get("total_items")
-                total = t if isinstance(t, int) and not isinstance(t, bool) else None
-                if last is None and total is None and n > 1:
-                    raise ProviderError(f"{r.id}: CBS Index API answered {n} rows with no "
-                                        f"usable paging: {str(paging)[:200]}")
-            if last is None or page >= last:
-                # A walk cut short (a missing last_page, a row withdrawn
-                # between pages) would publish a truncated history.
-                if total is not None and got < total:
-                    raise ProviderError(f"{r.id}: CBS Index API returned {got} of {total} rows")
+            last = _count(paging.get("last_page"))
+            size = _count(paging.get("page_size")) or PAGE_SIZE
+            if page == 1 and last is None and _count(paging.get("total_items")) is None and n > 1:
+                raise ProviderError(f"{r.id}: CBS Index API answered {n} rows with no "
+                                    f"usable paging: {str(paging)[:200]}")
+            # With no last_page, a short page is the last one.
+            if (page >= last) if last is not None else (n < size):
                 return out
+            if n < size:
+                raise ProviderError(f"{r.id}: CBS Index API page {page} of {last} held "
+                                    f"{n} of {size} rows")
             page += 1
             if page > _MAX_PAGES:
                 raise ProviderError(f"{r.id}: more than {_MAX_PAGES} pages")

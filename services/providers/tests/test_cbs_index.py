@@ -189,19 +189,39 @@ def test_api_error_body_fails():
         p._capped(resource(p))[0]
 
 
-def test_walk_short_of_total_items_fails():
+def test_total_items_above_the_delivered_rows_passes():
+    # CBS's total_items runs above what full pages deliver (4746 vs 4745 on
+    # five full pages, 757 vs 738 on one complete page; 2026-11-16).
     pages = copy.deepcopy(CPI_PAGES)
-    del pages[0]["paging"]["last_page"]  # would stop after page 1 (10 of 27 rows)
+    for page in pages:
+        page["paging"]["total_items"] = 46
     p = make_provider({"120010": pages})
-    with pytest.raises(ProviderError, match="10 of 27 rows"):
-        p._capped(resource(p, start="07-2024"))[0]
+    assert len(rows(p._capped(resource(p, start="07-2024"))[0])) == 27
+
+
+def test_walk_without_last_page_continues_while_pages_are_full():
+    pages = copy.deepcopy(CPI_PAGES)
+    for page in pages:
+        del page["paging"]["last_page"]
+    calls = []
+    p = make_provider({"120010": pages}, calls=calls)
+    assert len(rows(p._capped(resource(p, start="07-2024"))[0])) == 27
+    assert sum("Page=" in u for u in calls) == 3
 
 
 def test_page_dropping_rows_mid_walk_fails():
     pages = copy.deepcopy(CPI_PAGES)
     pages[1]["month"][0]["date"].pop()  # a row withdrawn between page requests
     p = make_provider({"120010": pages})
-    with pytest.raises(ProviderError, match="26 of 27 rows"):
+    with pytest.raises(ProviderError, match="page 2 of 3 held 9 of 10 rows"):
+        p._capped(resource(p, start="07-2024"))[0]
+
+
+def test_short_first_page_of_several_fails():
+    pages = copy.deepcopy(CPI_PAGES)
+    del pages[0]["month"][0]["date"][-3:]
+    p = make_provider({"120010": pages})
+    with pytest.raises(ProviderError, match="page 1 of 3 held 7 of 10 rows"):
         p._capped(resource(p, start="07-2024"))[0]
 
 
