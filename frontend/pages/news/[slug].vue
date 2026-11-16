@@ -69,6 +69,10 @@ useSeo({
   description: article.value.dek,
   path,
   ogImage: hero.sizes["16x9"],
+  // services/news/images.py SIZES["16x9"].
+  ogImageWidth: 1600,
+  ogImageHeight: 900,
+  ogImageAlt: hero.alt ?? undefined,
   ogType: "article",
   publishedTime: article.value.published_at,
   modifiedTime: article.value.updated_at,

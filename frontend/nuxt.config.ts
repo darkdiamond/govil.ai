@@ -234,6 +234,14 @@ export default defineNuxtConfig({
         { rel: "icon", href: "/favicon.ico", sizes: "any" },
         { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
         { rel: "manifest", href: "/site.webmanifest" },
+        // Feed autodiscovery: Chrome's Follow (Google Discover) and feed
+        // readers find the news feed through this link, on any page.
+        {
+          rel: "alternate",
+          type: "application/rss+xml",
+          title: "חדשות govil.ai",
+          href: "/news/feed.xml",
+        },
         // Rubik is self-hosted (assets/css/tailwind.css @font-face, files in
         // public/fonts/). Preload the Hebrew subset — it's on every page's
         // critical path; latin loads on demand via unicode-range.
