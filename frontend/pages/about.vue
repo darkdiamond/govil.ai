@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SITE_URL } from "~/utils/paths";
+
 useSeo({
   title: "אודות govil.ai — מיזם אזרחי להנגשת מאגרי המידע הממשלתיים הפתוחים",
   description:
@@ -13,8 +15,8 @@ useSeo({
     "E-E-A-T",
   ],
   breadcrumbs: [
-    { name: "ראשי", url: "https://govil.ai/" },
-    { name: "אודות", url: "https://govil.ai/about/" },
+    { name: "ראשי", url: `${SITE_URL}/` },
+    { name: "אודות", url: `${SITE_URL}/about/` },
   ],
 });
 </script>
@@ -91,7 +93,7 @@ useSeo({
       </ul>
 
       <h2 class="font-display mt-10">חדשות מהנתונים</h2>
-      <p>
+      <p class="text-ink/85 leading-relaxed">
         מדור
         <NuxtLink to="/news/" class="text-brand-700 underline font-medium"
           >החדשות</NuxtLink
