@@ -6,6 +6,15 @@ import type { SearchIndex, SlimEntry } from "~/types/manifest";
 export const UPDATED_CAP = 8;
 /** Masthead topic tiles; the grid adds an "all topics" tile after them. */
 export const CHIPS_CAP = 7;
+/** City tags (taxonomy/tags.json, topic "localities") never get a masthead
+ * tile: one city is no subject for every visitor. Add a city tag here when the
+ * taxonomy gains one. Their tag pages and the topic list are unaffected. */
+export const PLACE_TAGS: ReadonlySet<string> = new Set([
+  "באר שבע",
+  "ירושלים",
+  "תל אביב",
+  "חיפה",
+]);
 export const TOPIC_TAGS_CAP = 3;
 export const MINISTRIES_CAP = 8;
 /** The homepage lists the biggest topics; /tags/ has them all. */
@@ -134,6 +143,7 @@ export function buildHome(index: SearchIndex): HomeData {
   const chips = Object.entries(index.tag_index ?? {})
     .sort(([an, a], [bn, b]) => b.count - a.count || an.localeCompare(bn, "he"))
     .filter(([name, t]) => {
+      if (PLACE_TAGS.has(name)) return false;
       const key =
         t.topic && knownTopics.has(t.topic)
           ? `topic:${t.topic}`
