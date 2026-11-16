@@ -184,6 +184,38 @@ test("cellLink: only a whole http(s) URL becomes a link", () => {
   assert.equal(cellLink(null), "");
 });
 
+test("linkColumnIds: one bare origin on every row is a placeholder, not a link column", () => {
+  const cols = [col({ id: "host" }), col({ id: "pdf" }), col({ id: "sites" })];
+  const rows = [
+    {
+      host: "https://trademarks.justice.gov",
+      pdf: "https://a.gov.il/protocol/7.pdf",
+      sites: "https://www.jerusalem.muni.il",
+    },
+    {
+      host: " https://Trademarks.justice.gov/ ",
+      pdf: "https://a.gov.il/protocol/7.pdf",
+      sites: "https://www.tel-aviv.gov.il/",
+    },
+  ];
+  // Same document on every row (one meeting's items) still links; so do
+  // distinct homepages.
+  assert.deepEqual([...linkColumnIds(rows, cols)], ["pdf", "sites"]);
+  // A one-hit first page (a carried-over search) can't revive the placeholder.
+  // One homepage alone looks the same and loses its link: the cheaper mistake.
+  assert.deepEqual([...linkColumnIds(rows.slice(0, 1), cols)], ["pdf"]);
+  // A host with a query is a real link.
+  assert.deepEqual(
+    [
+      ...linkColumnIds(
+        [{ host: "https://a.gov.il/?id=1" }],
+        [col({ id: "host" })]
+      ),
+    ],
+    ["host"]
+  );
+});
+
 test("linkColumnIds + withLinkCols: all-URL columns move first", () => {
   const cols = [
     col({ id: "name" }),

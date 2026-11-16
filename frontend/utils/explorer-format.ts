@@ -61,9 +61,27 @@ export function cellLink(v: unknown): string {
   return publicResourceUrl(s);
 }
 
+// A bare origin (no path, query or hash), lower-cased: "https://a.gov.il",
+// "https://A.gov.il/" → "https://a.gov.il". "" for anything with a path.
+function bareOrigin(href: string): string {
+  try {
+    const u = new URL(href);
+    if ((u.pathname === "/" || u.pathname === "") && !u.search && !u.hash) {
+      return u.origin.toLowerCase();
+    }
+  } catch {
+    /* not parseable: treat as a real link */
+  }
+  return "";
+}
+
 // Columns whose non-empty cells on the sample page are all links. Decided
 // once per resource, from its first page, so columns don't jump around
-// between pages or searches.
+// between pages or searches. Not a link column: one bare origin on every
+// sampled row. That is a placeholder, not a per-row link (656f6e4c's
+// "קישור לנסח" holds a cut-off host on every row), and it would open the
+// table with the same useless link. Distinct origins (a column of
+// organisations' websites) and shared document URLs still link.
 export function linkColumnIds(
   rows: Record<string, unknown>[],
   cols: Col[]
@@ -71,18 +89,22 @@ export function linkColumnIds(
   const out = new Set<string>();
   for (const col of cols) {
     if (col.numeric || col.date) continue;
+    const origins = new Set<string>();
     let seen = 0;
     let ok = true;
     for (const row of rows) {
       const v = row[col.id];
       if (v === null || v === undefined || v === "") continue;
       seen++;
-      if (!cellLink(v)) {
+      const href = cellLink(v);
+      if (!href) {
         ok = false;
         break;
       }
+      origins.add(bareOrigin(href));
     }
-    if (ok && seen) out.add(col.id);
+    const placeholder = origins.size === 1 && !origins.has("");
+    if (ok && seen && !placeholder) out.add(col.id);
   }
   return out;
 }
