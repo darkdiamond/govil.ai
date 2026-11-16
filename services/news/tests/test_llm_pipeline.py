@@ -169,9 +169,11 @@ def _draft(typed_number=False):
 class FakeLLM:
     """Scripted by role: editor / writer turns / critic / image."""
 
-    def __init__(self, drafts, critic=("pass",)):
+    def __init__(self, drafts, critic=("pass",), revise_score=2):
         self.drafts, self.critic = list(drafts), list(critic)
         self.cost_usd, self.calls, self.writer_msgs = 0.0, 0, []
+        self.critic_msgs = []
+        self.revise_score = revise_score
         self.turn = 0
 
     def chat_json(self, messages, **kw):
@@ -181,8 +183,9 @@ class FakeLLM:
             return {"briefs": [{"signal_keys": keys[:1], "dataset_ids": [MORT, RATE],
                                 "angle_he": "היקף המשכנתאות", "why_now_he": "נתון חדש",
                                 "questions": []}], "skipped": []}
+        self.critic_msgs.append(messages[1]["content"])
         v = self.critic.pop(0)
-        return {"verdict": v, "scores": {k: 5 if v == "pass" else 2 for k in
+        return {"verdict": v, "scores": {k: 5 if v == "pass" else self.revise_score for k in
                                          ("news", "framing", "voice", "risk_free", "sourcing")},
                 "issues": ["ניסוח כללי"] if v != "pass" else [], "fixes": []}
 
@@ -292,6 +295,43 @@ def test_critic_rounds_are_still_capped(tmp_path):
     assert llm.drafts == [] and llm.critic == []
 
 
+def test_critic_sees_its_previous_review_and_the_release(tmp_path):
+    """Reviewing each round from scratch raised fresh style notes every time
+    (2026-11-09..15): from round 2 the critic gets what it asked for."""
+    llm = FakeLLM([_draft(), _draft()], critic=("revise", "pass"))
+    out, _store, _ = _day(tmp_path, llm)
+    assert out["published"] == ["mortgage-volume-september"], out
+    first, second = llm.critic_msgs
+    assert "[previous review" not in first
+    assert "[previous review" in second and "- ניסוח כללי" in second
+    # boi-mortgage-rates is a monthly BoI series: a release story
+    assert first.startswith("KIND: news\nRELEASE: משכנתאות\n")
+
+
+def test_final_round_revise_with_every_score_at_the_bar_passes(tmp_path):
+    llm = FakeLLM([_draft()] * (CRITIC_REVISIONS + 1), critic=("revise",) * (CRITIC_REVISIONS + 1),
+                  revise_score=4)
+    out, _store, _ = _day(tmp_path, llm)
+    assert out["published"] == ["mortgage-volume-september"], out
+    # the earlier rounds still sent the fixes back
+    assert llm.drafts == [] and len(llm.critic_msgs) == CRITIC_REVISIONS + 1
+    doc = json.loads((tmp_path / out["published"][0] / "article.json").read_text(encoding="utf-8"))
+    assert doc["critic_final_round"] == {"issues": ["ניסוח כללי"], "fixes": []}
+
+
+def test_a_first_round_pass_records_no_final_round_notes(tmp_path):
+    out, _store, _ = _day(tmp_path, FakeLLM([_draft()]))
+    doc = json.loads((tmp_path / out["published"][0] / "article.json").read_text(encoding="utf-8"))
+    assert "critic_final_round" not in doc
+
+
+def test_final_round_revise_below_the_bar_is_rejected(tmp_path):
+    llm = FakeLLM([_draft()] * (CRITIC_REVISIONS + 1), critic=("revise",) * (CRITIC_REVISIONS + 1),
+                  revise_score=3)
+    out, _store, _ = _day(tmp_path, llm)
+    assert out["published"] == [] and out["rejected"][0]["reason"] == "critic_revise"
+
+
 def test_critic_kill_rejects(tmp_path):
     out, _, _ = _day(tmp_path, FakeLLM([_draft()], critic=("kill",)))
     assert out["published"] == [] and out["rejected"][0]["reason"] == "critic_kill"
@@ -343,6 +383,44 @@ def test_malformed_critic_reply_is_revise_and_never_raises(reply):
     assert all(isinstance(x, str) for x in out["issues"] + out["fixes"])
 
 
+FOURS = {k: 4 for k in ("news", "framing", "voice", "risk_free", "sourcing")}
+CORE = {"headline": "h", "dek": "d", "blocks": [], "charts": [], "sources": []}
+
+
+@pytest.mark.parametrize(("reply", "final", "verdict"), [
+    ({"verdict": "revise", "scores": FOURS, "issues": ["x"], "fixes": []}, True, "pass"),
+    ({"verdict": "revise", "scores": FOURS, "issues": ["x"], "fixes": []}, False, "revise"),
+    ({"verdict": "revise", "scores": FOURS | {"voice": 3}, "issues": ["x"]}, True, "revise"),
+    ({"verdict": "maybe", "scores": FOURS}, True, "revise"),
+    ({"scores": FOURS}, True, "revise"),
+    ({"verdict": "revise", "scores": FOURS, "issues": "one string"}, True, "revise"),
+    ({"verdict": "kill", "scores": FOURS}, True, "kill"),
+])
+def test_final_round_pass_needs_an_explicit_well_formed_revise(reply, final, verdict):
+    from services.news import gates
+    out = gates.critique(_Critic(reply), CORE, final=final)
+    assert out["verdict"] == verdict
+    assert out.get("final_round_pass", False) == (verdict == "pass")
+
+
+def test_critique_message_carries_release_and_previous_review():
+    from services.news import gates
+    seen = []
+
+    class L:
+        def chat_json(self, messages, **kw):
+            seen.append(messages[1]["content"])
+            return {"verdict": "pass", "scores": FIVE, "issues": [], "fixes": []}
+
+    gates.critique(L(), CORE, release="מדד המחירים לצרכן",
+                   previous={"issues": ["הכותרת עמומה"], "fixes": ["לציין את החודש"]})
+    gates.critique(L(), CORE, previous={"issues": [], "fixes": []})
+    assert seen[0].startswith("KIND: news\nRELEASE: מדד המחירים לצרכן\n")
+    assert seen[0].endswith("[previous review: what you asked of the last draft of this story]\n"
+                            "- הכותרת עמומה\n- לציין את החודש")
+    assert "RELEASE" not in seen[1] and "[previous review" not in seen[1]
+
+
 def test_well_formed_critic_pass_passes():
     from services.news import gates
     out = gates.critique(_Critic({"verdict": "pass", "scores": FIVE, "issues": [], "fixes": []}),
@@ -392,3 +470,17 @@ def test_non_retryable_4xx_is_not_transient():
 def test_editorial_rejection_is_not_a_model_error(tmp_path):
     out, _, _ = _day(tmp_path, FakeLLM([_draft()], critic=("kill",)))
     assert out["model_errors"] == 0
+
+
+def test_release_name_only_for_cbs_and_boi_periodic_series():
+    from services.news.writer import release_name
+
+    def sig(ds, freq):
+        return Signal(ds, "s", "s", freq, "2026-10", "2026-10-31", 1.0, ["unusual_change"], 1.0, {})
+
+    cat = {"cbs-index-cpi": {"title": "מדד המחירים לצרכן"}}
+    assert release_name({"signals": [sig("cbs-index-cpi", "M")]}, cat) == "מדד המחירים לצרכן"
+    assert release_name({"signals": [sig("boi-interest-rate", "E")]}, cat) == "boi-interest-rate"
+    assert release_name({"signals": [sig("a38ee853-150f", "M")]}, cat) is None
+    assert release_name({"signals": [sig("boi-interest-rate", "D")]}, cat) is None
+    assert release_name({"kind": "feature", "signals": []}, cat) is None

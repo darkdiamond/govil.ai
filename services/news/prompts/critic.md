@@ -65,6 +65,25 @@ whether the roundup as a whole tells readers what moved this week, clearly
 and with each comparison's basis. Kill only for artefacts or misleading items,
 not for the items being modest.
 
+If the article is marked RELEASE: <name>, it reports the new period of a
+recurring official release (a CBS report or price index, a Bank of Israel
+series) that readers follow every month or quarter, the way every Israeli
+newspaper reports the CPI or the average wage. The new figure is the news,
+even when it moved little or not at all: judge check 1 on whether the article
+states the new figure, its basis (which month or quarter, compared with the
+previous period and a year ago) and where it sits in the recent trend. Don't
+mark it down for being a routine release or for a small move. Do flag it
+(framing) if it presents a sub-index or a component as the headline number.
+
+If a "[previous review]" block follows the article, this draft is the
+reporter's revision of one you already reviewed, and the block lists what you
+asked for. First check each item: fixed or not. An item left unfixed is still
+an issue. Raise a NEW issue only for a factual or framing error, a risk, a
+sourcing problem, or something the revision itself broke. Don't add style or
+wording preferences you didn't raise last time: a reporter can't converge on a
+moving target. When your previous items are fixed and nothing blocking is
+new, pass.
+
 "pass" only if every score is ≥ 4. "kill" when there is no real story or the
 problem cannot be fixed by rewriting (wrong premise, artefact). Otherwise
 "revise" with concrete fixes.
