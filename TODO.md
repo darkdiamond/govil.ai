@@ -63,6 +63,23 @@ This repo is public: describe a security gap by what to change, never by how to 
   a classification such as ג5 allows, רשום vs מוכר) for queries at position 9-10 with no clicks
   ("מאגר קבלנים מוכרים", "בדיקת סיווג קבלנים", "חיפוש קבלן רשום לפי שם"), and a link to the
   official gov.il lookup once its URL is confirmed (gov.il's WAF blocked the check). (2026-11-15)
+- **מאגר סימני מסחר (656f6e4c): measure the 2026-11-16 SEO change.** The head query "מאגר
+  סימני מסחר" (~50% of impressions) sat at position ~5.5 with 0 clicks in 25 days, before and
+  after the 2026-11-04 title (0.2% CTR on the page either way); "רשם סימני המסחר" at ~11 and the
+  "רישום סימן מסחר" cluster at 23-50. The 2026-11-16 PR changed the title to "מאגר סימני מסחר
+  של רשות הפטנטים: חיפוש סימן מסחר רשום", added a computed Q&A section (check, time to
+  register, term and renewal, Madrid, how to file, with official links) and linked the page
+  from 556634fd, 025c3e07, 9859abec, 5a2d2f62 and 0a374a70. Fix: 14 days after the render goes
+  live (~2026-12-01), compare those three query groups before/after in GSC and organic sessions
+  in GA4. (2026-11-16)
+- **Five Patent Office recipes have no `agent_data.seo`.** 556634fd, 025c3e07, 9859abec,
+  5a2d2f62 and 0a374a70 fail `author verify`'s SEO check (title/description missing), so any
+  edit to them can't pass verify cleanly, and their head tags fall back to the CKAN title. Fix:
+  give each a seo block scored against its GSC queries, as in the SEO batches. (2026-11-16)
+- **No signal of explorer use.** The site sends only GA4 enhanced measurement, so for lookup
+  pages (trademarks, contractors, doctors) there is no way to tell whether a visitor searched
+  the table, which is the main thing those pages are for. Fix: a GA4 event from GovExplorer on
+  the first search per page view (debounced, no query text sent). (2026-11-16)
 - **59d2e891 and df60d73b compete for "אזורי חיוג".** Batch 3 gave df60d73b (numbering plan,
   which has the geographic codes) a title for "אזורי חיוג בארץ" / "קידומת טלפון ישראל", but
   59d2e891 (service numbers, no geographic codes) still has "קידומות ואזורי חיוג" in its title

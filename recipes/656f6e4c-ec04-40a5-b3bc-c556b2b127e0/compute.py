@@ -88,6 +88,7 @@ SHARE_PP = 3.0                  # share moves below this many points read as "st
 AGENT_CONC_MIN = 0.30           # top-5 agents' share must reach this to be called concentrated
 AGENT_LEAD = 1.5                # leader must have this multiple of the runner-up to be named the leader
 OWNER_MIN = 200                 # a leading owner must hold at least this many marks
+TERM_YEARS = 8                  # filing years used to read the protection term
 LAG_CHANGE = 0.10               # median-time change below this reads as "stable"
 
 _BIDI = re.compile("[\u200e\u200f\u202a-\u202e\u2066-\u2069]")
@@ -500,6 +501,15 @@ def compute(frames):
     expiry_chart = {"x": [str(y) for y in exp_counts.index],
                     "y": [int(v) for v in exp_counts]}
     reg_no_future_exp = registered - int(esel.sum())
+    n_exp_next = int(exp_counts.get(as_of_year + 1, 0))
+    # protection term as recorded: filing date → current expiry, for registered
+    # marks filed in the last TERM_YEARS years (not yet renewed)
+    tsel = (group == G_REG) & exp.notna() & app.notna() & (year >= as_of_year - TERM_YEARS + 1)
+    term_years = None
+    if int(tsel.sum()) >= LAG_MIN_N:
+        t_med = float(((exp[tsel] - app[tsel]).dt.days / 365.25).median())
+        if 5 <= t_med <= 20:
+            term_years = round(t_med)
 
     # ── features by filing year ──
     fig = yes("דמות")
@@ -588,13 +598,13 @@ def compute(frames):
             "temporal_coverage": f"{first_year}/{as_of_year}",
             "spatial_coverage": "ישראל",
             "seo": {
-                "title": "מאגר סימני מסחר: חיפוש סימן מסחר רשום בישראל",
-                "description": (f"חיפוש במאגר סימני המסחר לפי שם הסימן, מספר סימן או בעלים: "
-                                f"{_int(n_all)} בקשות מאז {first_year}, מהן {_int(registered)} "
-                                "סימנים רשומים ובתוקף."),
-                "name": "מאגר סימני מסחר",
-                "alternate_names": ["מאגר סימני המסחר", "רשם סימני המסחר", "חיפוש סימני מסחר",
-                                    "סימן מסחרי רשום"],
+                "title": "מאגר סימני מסחר של רשות הפטנטים: חיפוש סימן מסחר רשום",
+                "description": (f"חיפוש מהיר ב-{_int(n_all)} בקשות לפי שם הסימן, מספר, בעלים או "
+                                f"מיופה כוח, עם מצב התיק ותאריך תום התוקף. נתוני רשם סימני "
+                                f"המסחר עד {as_of_s}."),
+                "name": "מאגר סימני המסחר: חיפוש ובדיקת סימן מסחר רשום",
+                "alternate_names": ["מאגר סימני מסחר", "רשם סימני המסחר", "חיפוש סימני מסחר",
+                                    "בדיקת סימן מסחר", "סימן מסחרי רשום"],
             },
         },
         "kpis": {
@@ -692,6 +702,19 @@ def compute(frames):
                             f"{_int(n_vienna)} סימנים שסווגו; סימן אחד יכול להשתייך לכמה קטגוריות."),
             "vienna_aria": (f"תרשים עמודות אופקי: {len(vi_counts)} קטגוריות וינה הנפוצות ברכיבים "
                             f"הציוריים של סימנים."),
+            "faq_check": (f"במאגר {_int(n_all)} בקשות, מהן {_int(registered)} סימנים רשומים "
+                          f"ובתוקף ו-{_int(pending)} בקשות בבחינה או בתקופת התנגדות. הנתונים "
+                          f"נכונים ל-{as_of_s}."),
+            "faq_lag": (f"בסימנים שנרשמו ב-{lag_last_year} עברו בחציון {lag_last:.1f} חודשים "
+                        f"מהגשת הבקשה ועד הרישום. רבע מהם נרשמו תוך "
+                        f"{float(lag_stats['p25'].iloc[-1]):.1f} חודשים, ורבע נמשכו יותר מ-"
+                        f"{float(lag_stats['p75'].iloc[-1]):.1f} חודשים."
+                        if lag_last_year else ""),
+            "faq_term": ((f"לפי המאגר, התוקף של סימן שנרשם בשנים האחרונות מסתיים בדרך כלל "
+                          f"{term_years} שנים מיום הגשת הבקשה, ואז יש לחדש אותו. " if term_years else "")
+                         + (f"ב-{as_of_year + 1} מסתיים התוקף של {_int(n_exp_next)} סימנים רשומים."
+                            if n_exp_next else "")),
+            "faq_intl": (f"ב-{full_year} היו {_pct(intl_last)} מהבקשות ייעודים בינלאומיים."),
             "extras": (f"במאגר {_int(n_licensed)} סימנים עם בעל רשות (רישיון שימוש) רשום, "
                        f"ו-{_int(n_customs)} סימנים רשומים שמונה להם מייצג לעניין אכיפה במכס: "
                        f"מנגנון המאפשר לעכב בנמל יבוא של מוצרים מזויפים."),
