@@ -53,6 +53,9 @@ This repo is public: describe a security gap by what to change, never by how to 
   0b160f8a, a63133ab, e3f2eab4, e9b65317, 27b4b40e, b87ef422, dcd96625, 6397d78e, 83372c35;
   bump each `recipe_version`. Batch 4 pages each missed only ~4-7 clicks per 90 days, so
   compare batches 1-4's CTR in GSC (~2026-12-02) before spending on the long tail. (2026-11-06)
+  The five Patent Office pages linked to 656f6e4c (556634fd, 025c3e07, 9859abec, 5a2d2f62,
+  0a374a70) have no seo block either, so any edit to them fails `author verify`'s SEO check.
+  (2026-11-16)
 - **פנקס הקבלנים (a545d0ba): measure the 2026-11-15 title change, then decide on a Q&A
   block.** The head query "פנקס הקבלנים" is ~60% of the page's impressions and sat at 1.0% CTR,
   position ~6, both before and after the 2026-11-04 title (navigational intent: people want the
@@ -72,10 +75,6 @@ This repo is public: describe a security gap by what to change, never by how to 
   from 556634fd, 025c3e07, 9859abec, 5a2d2f62 and 0a374a70. Fix: 14 days after the render goes
   live (~2026-12-01), compare those three query groups before/after in GSC and organic sessions
   in GA4. (2026-11-16)
-- **Five Patent Office recipes have no `agent_data.seo`.** 556634fd, 025c3e07, 9859abec,
-  5a2d2f62 and 0a374a70 fail `author verify`'s SEO check (title/description missing), so any
-  edit to them can't pass verify cleanly, and their head tags fall back to the CKAN title. Fix:
-  give each a seo block scored against its GSC queries, as in the SEO batches. (2026-11-16)
 - **No signal of explorer use.** The site sends only GA4 enhanced measurement, so for lookup
   pages (trademarks, contractors, doctors) there is no way to tell whether a visitor searched
   the table, which is the main thing those pages are for. Fix: a GA4 event from GovExplorer on

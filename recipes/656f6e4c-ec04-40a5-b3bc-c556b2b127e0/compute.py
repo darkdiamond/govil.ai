@@ -486,6 +486,8 @@ def compute(frames):
         "n": [int(v) for v in lag_stats["n"]],
     }
     lag_last_year = int(lag_stats.index.max()) if len(lag_stats) else None
+    # the Q&A quotes a whole registration year, never the partial current one
+    lag_full = lag_stats[lag_stats.index <= full_year]
     lag_last = float(lag_stats["p50"].iloc[-1]) if len(lag_stats) else None
     lag_tone = "brand"
     if len(lag_stats) > 5 and lag_last is not None:
@@ -602,7 +604,7 @@ def compute(frames):
                 "description": (f"חיפוש מהיר ב-{_int(n_all)} בקשות לפי שם הסימן, מספר, בעלים או "
                                 f"מיופה כוח, עם מצב התיק ותאריך תום התוקף. נתוני רשם סימני "
                                 f"המסחר עד {as_of_s}."),
-                "name": "מאגר סימני המסחר: חיפוש ובדיקת סימן מסחר רשום",
+                "name": "מאגר סימני המסחר של רשות הפטנטים",
                 "alternate_names": ["מאגר סימני מסחר", "רשם סימני המסחר", "חיפוש סימני מסחר",
                                     "בדיקת סימן מסחר", "סימן מסחרי רשום"],
             },
@@ -705,15 +707,17 @@ def compute(frames):
             "faq_check": (f"במאגר {_int(n_all)} בקשות, מהן {_int(registered)} סימנים רשומים "
                           f"ובתוקף ו-{_int(pending)} בקשות בבחינה או בתקופת התנגדות. הנתונים "
                           f"נכונים ל-{as_of_s}."),
-            "faq_lag": (f"בסימנים שנרשמו ב-{lag_last_year} עברו בחציון {lag_last:.1f} חודשים "
-                        f"מהגשת הבקשה ועד הרישום. רבע מהם נרשמו תוך "
-                        f"{float(lag_stats['p25'].iloc[-1]):.1f} חודשים, ורבע נמשכו יותר מ-"
-                        f"{float(lag_stats['p75'].iloc[-1]):.1f} חודשים."
-                        if lag_last_year else ""),
+            "faq_lag": (f"בסימנים שנרשמו ב-{int(lag_full.index[-1])} עברו בחציון "
+                        f"{float(lag_full['p50'].iloc[-1]):.1f} חודשים מהגשת הבקשה ועד הרישום. "
+                        f"רבע מהם נרשמו תוך {float(lag_full['p25'].iloc[-1]):.1f} חודשים, ורבע "
+                        f"נמשכו יותר מ-{float(lag_full['p75'].iloc[-1]):.1f} חודשים."
+                        if len(lag_full) else ""),
+            # the section asks for the term, so it shows only when the term was read
             "faq_term": ((f"לפי המאגר, התוקף של סימן שנרשם בשנים האחרונות מסתיים בדרך כלל "
-                          f"{term_years} שנים מיום הגשת הבקשה, ואז יש לחדש אותו. " if term_years else "")
-                         + (f"ב-{as_of_year + 1} מסתיים התוקף של {_int(n_exp_next)} סימנים רשומים."
-                            if n_exp_next else "")),
+                          f"{term_years} שנים מיום הגשת הבקשה, ואז יש לחדש אותו."
+                          + (f" ב-{as_of_year + 1} מסתיים התוקף של {_int(n_exp_next)} סימנים "
+                             f"רשומים." if n_exp_next else ""))
+                         if term_years else ""),
             "faq_intl": (f"ב-{full_year} היו {_pct(intl_last)} מהבקשות ייעודים בינלאומיים."),
             "extras": (f"במאגר {_int(n_licensed)} סימנים עם בעל רשות (רישיון שימוש) רשום, "
                        f"ו-{_int(n_customs)} סימנים רשומים שמונה להם מייצג לעניין אכיפה במכס: "
