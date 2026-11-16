@@ -31,6 +31,7 @@ const {
   topicGroups,
   UPDATED_CAP,
   CHIPS_CAP,
+  PLACE_TAGS,
   MINISTRIES_CAP,
   TOPICS_CAP,
 } = mod.exports;
@@ -187,6 +188,33 @@ test("chips: only paged tags, count DESC, one per topic, capped", () => {
     c.slice(0, 3).map((x) => x.name),
     [`big${CHIPS_CAP - 1}`, "stale1", "stale2"]
   );
+});
+
+test("chips: city tags never get a tile; the topic's next tag does", () => {
+  const tag_index = {
+    ...INDEX.tag_index,
+    "באר שבע": {
+      slug: "באר-שבע",
+      topic: "localities",
+      count: 50,
+      ministries: {},
+      related: [],
+    },
+    "רשויות מקומיות": {
+      slug: "רשויות-מקומיות",
+      topic: "localities",
+      count: 40,
+      ministries: {},
+      related: [],
+    },
+  };
+  const topics = [...INDEX.topics, { id: "localities", label_he: "יישובים" }];
+  assert.ok(PLACE_TAGS.has("באר שבע"));
+  const names = buildHome({ ...INDEX, tag_index, topics }).chips.map(
+    (c) => c.name
+  );
+  assert.ok(!names.includes("באר שבע"));
+  assert.equal(names[0], "רשויות מקומיות");
 });
 
 test("topics: biggest first, distinct datasets per topic, no 'other', no empty", () => {
