@@ -3,9 +3,9 @@
 // Base keywords describe the site (open government data, Hebrew + English).
 
 import { SITE_URL } from "~/utils/paths";
+import { ogImageMeta } from "~/utils/seo-og";
 
 const SITE_NAME = "govil.ai";
-const DEFAULT_OG = "/og-default.png";
 // The WebSite JSON-LD describes the site, so every page carries the same text
 // (the homepage's description), not its own.
 const SITE_DESCRIPTION =
@@ -30,6 +30,10 @@ export interface SeoInput {
   description: string;
   path: string;
   ogImage?: string;
+  /** Pixel size of ogImage; emitted as og:image:width/height when both set. */
+  ogImageWidth?: number;
+  ogImageHeight?: number;
+  ogImageAlt?: string;
   keywords?: string[];
   breadcrumbs?: BreadcrumbItem[];
   extraJsonLd?: object | object[];
@@ -50,9 +54,12 @@ export interface SeoInput {
 export function useSeo(input: SeoInput) {
   const title = input.title;
   const url = `${SITE_URL}${input.path}`;
-  const image = input.ogImage
-    ? `${SITE_URL}${input.ogImage}`
-    : `${SITE_URL}${DEFAULT_OG}`;
+  const og = ogImageMeta({
+    path: input.ogImage,
+    width: input.ogImageWidth,
+    height: input.ogImageHeight,
+    alt: input.ogImageAlt,
+  });
   const keywords = [...BASE_KEYWORDS, ...(input.keywords ?? [])].join(", ");
 
   const websiteLd = {
@@ -140,12 +147,11 @@ export function useSeo(input: SeoInput) {
       { property: "og:title", content: title },
       { property: "og:description", content: input.description },
       { property: "og:url", content: url },
-      { property: "og:image", content: image },
       { property: "og:locale", content: "he_IL" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: title },
       { name: "twitter:description", content: input.description },
-      { name: "twitter:image", content: image },
+      ...og.meta,
     ],
     script: ldBlocks.map((ld, i) => ({
       key: `ld-${i}`,

@@ -136,3 +136,38 @@ export const monthLabel = (key: string) =>
   MONTH_RE.test(key)
     ? MONTH_LABEL.format(new Date(`${key}-15T12:00:00Z`))
     : "ללא תאריך";
+
+/** Pixel size of an article's 16:9 hero (services/news/images.py SIZES). */
+export const HERO_16X9 = { width: 1600, height: 900 } as const;
+
+/** The front page's share image: the lead story's 16:9 hero, so /news/
+ *  previews as today's edition instead of the site-wide default. Null when the
+ *  lead has no hero. */
+export function frontShareImage(
+  front: FrontPage
+): { path: string; width: number; height: number; alt: string | null } | null {
+  const lead = front.lead;
+  if (!lead?.hero) return null;
+  return {
+    path: lead.hero,
+    ...HERO_16X9,
+    alt: lead.hero_alt ?? null,
+  };
+}
+
+/** The /news/ CollectionPage's ItemList: story URLs, newest first. URLs only:
+ *  each article page carries its own full NewsArticle. */
+export function storiesItemList(
+  articles: NewsIndexEntry[],
+  siteUrl: string,
+  limit: number
+) {
+  return {
+    "@type": "ItemList",
+    itemListElement: articles.slice(0, limit).map((a, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      url: `${siteUrl}/news/${a.slug}/`,
+    })),
+  };
+}

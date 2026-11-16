@@ -2,7 +2,14 @@
 import { SITE_URL } from "~/utils/paths";
 import type { NewsIndexEntry, NewsKind } from "~/types/news";
 import { loadNewsIndex } from "~/utils/news";
-import { MONTH_RE, buildFront, monthKey, monthLabel } from "~/utils/news-front";
+import {
+  MONTH_RE,
+  buildFront,
+  frontShareImage,
+  monthKey,
+  monthLabel,
+  storiesItemList,
+} from "~/utils/news-front";
 
 // Prerender and client-side navigation both (utils/news.ts).
 const { data } = await useAsyncData("news-index", async () => ({
@@ -148,11 +155,16 @@ const filterTo = (patch: Record<string, string | null>) => {
   return { path: "/news/", query };
 };
 
+const share = frontShareImage(front.value);
 useSeo({
   title: "חדשות govil.ai",
   description:
     "כתבות קצרות על מה שהשתנה במאגרי המידע הממשלתיים: שיאים, ירידות, מגמות ושנה מול שנה, ישר מהנתונים הרשמיים.",
   path: "/news/",
+  ogImage: share?.path,
+  ogImageWidth: share?.width,
+  ogImageHeight: share?.height,
+  ogImageAlt: share?.alt ?? undefined,
   breadcrumbs: [
     { name: "ראשי", url: `${SITE_URL}/` },
     { name: "חדשות", url: `${SITE_URL}/news/` },
@@ -162,12 +174,7 @@ useSeo({
     "@type": "CollectionPage",
     name: "חדשות govil.ai",
     url: `${SITE_URL}/news/`,
-    hasPart: articles.value.slice(0, PAGE).map((a) => ({
-      "@type": "NewsArticle",
-      headline: a.headline,
-      url: `${SITE_URL}/news/${a.slug}/`,
-      datePublished: a.published_at,
-    })),
+    mainEntity: storiesItemList(articles.value, SITE_URL, PAGE),
   },
 });
 </script>

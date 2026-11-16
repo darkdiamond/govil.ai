@@ -26,7 +26,15 @@ const { outputFiles } = await build({
 });
 const mod = { exports: {} };
 new Function("module", "exports", outputFiles[0].text)(mod, mod.exports);
-const { buildFront, thumbOf, monthKey, monthLabel, EDITION_SIZE } = mod.exports;
+const {
+  buildFront,
+  thumbOf,
+  monthKey,
+  monthLabel,
+  EDITION_SIZE,
+  frontShareImage,
+  storiesItemList,
+} = mod.exports;
 // Fills the edition, so the stories after it reach the sections.
 const edition = (kind = "news") => many(EDITION_SIZE, kind);
 
@@ -197,4 +205,33 @@ test("analyses fill whole rows of two", () => {
   const f = buildFront([...edition(), ...many(3, "feature")]);
   assert.equal(f.analyses.length, 2);
   assert.equal(f.archive.length, 1);
+});
+
+test("the front's share image is the lead story's 16:9 hero", () => {
+  const lead = story("news", null, {
+    hero: "/news/s/hero-16x9-a.jpg",
+    hero_alt: "איור",
+  });
+  const front = buildFront([lead, ...edition()]);
+  assert.deepEqual(frontShareImage(front), {
+    path: "/news/s/hero-16x9-a.jpg",
+    width: 1600,
+    height: 900,
+    alt: "איור",
+  });
+  assert.equal(frontShareImage(buildFront([story("news")])), null);
+  assert.equal(frontShareImage(buildFront([])), null);
+});
+
+test("the stories ItemList lists URLs in order, capped", () => {
+  const items = [story("news"), story("feature"), story("news")];
+  const ld = storiesItemList(items, "https://govil.ai", 2);
+  assert.equal(ld["@type"], "ItemList");
+  assert.deepEqual(
+    ld.itemListElement.map((e) => [e.position, e.url]),
+    [
+      [1, `https://govil.ai/news/${items[0].slug}/`],
+      [2, `https://govil.ai/news/${items[1].slug}/`],
+    ]
+  );
 });

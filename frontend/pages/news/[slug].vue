@@ -4,6 +4,7 @@ import { SITE_URL, tagPath } from "~/utils/paths";
 import type { NewsArticle, NewsIndexEntry } from "~/types/news";
 import { buildDatasetLibTags } from "~/utils/dataset-libs";
 import { loadArticle, loadNewsIndex, newsDate, safeHref } from "~/utils/news";
+import { HERO_16X9 } from "~/utils/news-front";
 
 const route = useRoute();
 const slug = String(route.params.slug);
@@ -69,6 +70,9 @@ useSeo({
   description: article.value.dek,
   path,
   ogImage: hero.sizes["16x9"],
+  ogImageWidth: HERO_16X9.width,
+  ogImageHeight: HERO_16X9.height,
+  ogImageAlt: hero.alt ?? undefined,
   ogType: "article",
   publishedTime: article.value.published_at,
   modifiedTime: article.value.updated_at,

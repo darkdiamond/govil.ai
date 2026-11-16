@@ -211,6 +211,19 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
 
 ## Tags, related datasets and list pages
 
+- **Dataset pages share one generic share image, so Discover can't show them as large cards.**
+  Every dataset page (and `/`, tag and ministry pages) uses `og-default.png`; Discover wants a
+  large, representative image and skips logo-like ones. News pages got their own images on
+  2026-11-16; the user deferred datasets. Design worked out then: the builder draws a 1600×900
+  JPEG chart card (no text; Pillow is already in the image) from the page model at refresh time,
+  choosing the series with `services/news/series.extract_series` (moved to `services/shared/`)
+  in the `services/news/images.chart_card` look, stages it as `datasets/<id>/og.jpg` (it rides
+  the existing rsync in all three publish paths), and records its hash in `sources/<id>`. The
+  publisher emits `og_image` into data.json only when the rsynced file's hash matches, so a
+  missing card falls back to the default, never a 404. Rollout: an `OG_CARDS=off|observe|on`
+  knob, a backfill from `models/<id>/latest.json.gz`, and no changes to `_RENDER_CODE_FILES` or
+  `schema.py`. (2026-11-16)
+
 - **Firebase Hosting redirect count is unverified.** `gen-redirects.mjs` now writes ~550 tag
   redirects next to ~560 dataset ones. The docs state no cap; confirm on a preview channel deploy
   that ~1,100 rules are accepted before relying on growth beyond that. (2026-10-30)
