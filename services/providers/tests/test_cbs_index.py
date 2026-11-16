@@ -217,6 +217,17 @@ def test_page_dropping_rows_mid_walk_fails():
         p._capped(resource(p, start="07-2024"))[0]
 
 
+def test_total_moving_mid_walk_fails():
+    # Offset paging: a row withdrawn after page 1 pushes a page-2 row onto
+    # page 1's tail, out of reach, while every page still comes back full.
+    pages = copy.deepcopy(CPI_PAGES)
+    for page in pages[1:]:
+        page["paging"]["total_items"] = 26
+    p = make_provider({"120010": pages})
+    with pytest.raises(ProviderError, match="total moved from 27 to 26"):
+        p._capped(resource(p, start="07-2024"))[0]
+
+
 def test_short_first_page_of_several_fails():
     pages = copy.deepcopy(CPI_PAGES)
     del pages[0]["month"][0]["date"][-3:]

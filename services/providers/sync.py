@@ -20,10 +20,13 @@ every run. A run for chosen ids (`--source`) ignores it.
 Never raises for one dataset: a bad config or a failed download leaves that
 doc untouched (its last-good page stays live) and is reported in the summary.
 A provider error that repeats (a CBS table gone from the newest edition) is
-counted on the doc (`provider_sync_strikes`); after REFRESH_TRANSIENT_STRIKES
-runs in a row, and with PROVIDER_SYNC_STRIKE_MIN_HOURS (unset: the refresh's
-REFRESH_STRIKE_MIN_HOURS) once the run of them is that old, the dataset is listed in `escalated` and the pipeline opens its
-needs-authoring issue (the refresh never runs for it, so nothing else would).
+counted on the doc (`provider_sync_strikes`); after PROVIDER_SYNC_STRIKES runs
+in a row (unset: REFRESH_TRANSIENT_STRIKES), and with
+PROVIDER_SYNC_STRIKE_MIN_HOURS (unset: REFRESH_STRIKE_MIN_HOURS) once the run
+of them is that old, the dataset is listed in `escalated` and the pipeline
+opens its needs-authoring issue (the refresh never runs for it, so nothing
+else would). A gated provider syncs only a few times a day (cbs_index 4), so
+the count needs its own knob for the hours bar to be the one that binds.
 """
 from __future__ import annotations
 
@@ -174,7 +177,8 @@ def _listing_key(p: SourceProvider, dataset_id: str, source, cfg) -> str | None:
 def _count_provider_error(store, dataset_id: str, error: str) -> dict | None:
     """One more consecutive provider error for this dataset. Returns the
     `escalated` entry (and resets the count) once the run reaches
-    REFRESH_TRANSIENT_STRIKES and, with PROVIDER_SYNC_STRIKE_MIN_HOURS (unset:
+    PROVIDER_SYNC_STRIKES (unset: REFRESH_TRANSIENT_STRIKES) and, with
+    PROVIDER_SYNC_STRIKE_MIN_HOURS (unset:
     REFRESH_STRIKE_MIN_HOURS), began at least that long ago. Its own knob: a
     failed sync freezes a release page, so a day of failures is worth a human
     look where a CKAN hiccup isn't. Never
@@ -190,7 +194,7 @@ def _count_provider_error(store, dataset_id: str, error: str) -> dict | None:
             since = now
         since = since if since.tzinfo else since.replace(tzinfo=UTC)
         n = prior + 1
-        limit = env_int("REFRESH_TRANSIENT_STRIKES", 6)
+        limit = env_int("PROVIDER_SYNC_STRIKES", env_int("REFRESH_TRANSIENT_STRIKES", 6))
         min_hours = max(0.0, env_float("PROVIDER_SYNC_STRIKE_MIN_HOURS",
                                        env_float("REFRESH_STRIKE_MIN_HOURS", 0.0)))
         if n >= limit and (min_hours <= 0 or now - since >= timedelta(hours=min_hours)):

@@ -457,9 +457,9 @@ catalog` lists chapters → subjects → codes.
    CKAN explorer and credits the source. A provider outage only leaves
    its pages last-good. A sync that fails for one dataset (`provider_error`,
    e.g. a CBS table gone from the newest edition) counts
-   `provider_sync_strikes` on its doc; after `REFRESH_TRANSIENT_STRIKES` runs
-   (and `PROVIDER_SYNC_STRIKE_MIN_HOURS`, prod 24, unset = the refresh's
-   `REFRESH_STRIKE_MIN_HOURS`) the pipeline
+   `provider_sync_strikes` on its doc; after `PROVIDER_SYNC_STRIKES` runs (prod 3,
+   unset = `REFRESH_TRANSIENT_STRIKES`) and `PROVIDER_SYNC_STRIKE_MIN_HOURS` (prod 24,
+   unset = the refresh's `REFRESH_STRIKE_MIN_HOURS`) the pipeline
    opens its `schema_changed` needs-authoring issue through `queue_authoring`
    (`pipeline.queue_provider_escalations`), since the refresh never runs for it. Adding a source means one subclass plus one
    registry line. Refresh, publisher and frontend need no change.

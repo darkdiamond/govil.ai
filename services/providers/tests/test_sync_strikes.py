@@ -89,6 +89,13 @@ def test_provider_strike_hours_override_the_refresh_window(boi, synced, monkeypa
     assert [e["id"] for e in _run(boi, synced.store, synced.repo)["escalated"]] == ["boi-a"]
 
 
+def test_provider_strike_count_overrides_the_refresh_count(boi, synced, monkeypatch):  # noqa: F811
+    monkeypatch.setenv("REFRESH_TRANSIENT_STRIKES", "6")
+    monkeypatch.setenv("PROVIDER_SYNC_STRIKES", "2")
+    assert _run(boi, synced.store, synced.repo)["escalated"] == []
+    assert [e["id"] for e in _run(boi, synced.store, synced.repo)["escalated"]] == ["boi-a"]
+
+
 def test_a_dataset_never_synced_is_not_counted(boi, tmp_path, monkeypatch):  # noqa: F811
     monkeypatch.setenv("REFRESH_TRANSIENT_STRIKES", "1")
     repo = make_repo(tmp_path, {"boi-a": _source().model_dump()})

@@ -442,12 +442,16 @@ class CbsIndexProvider(SourceProvider):
         """The resource's rows, every page, without chaining coefficients.
 
         Completeness is checked page by page: every page before the last
-        must be full (`page_size` rows), or the walk was cut short or a row
-        was withdrawn between pages. `total_items` can't be the check: it
-        runs a few rows above what CBS delivers (757 against 738 rows on one
-        complete page, 4746 against 4745 on five full ones; 2026-11-16), and
-        comparing against it froze five index pages from 2026-11-12."""
-        out, page = [], 1
+        must be full (`page_size` rows), or the walk was cut short.
+        `total_items` can't be checked against the rows delivered: it runs a
+        few rows above them (757 against 738 rows on one complete page, 4746
+        against 4745 on five full ones; 2026-11-16), and comparing against it
+        froze five index pages from 2026-11-12. It is steady across the pages
+        of one walk, though, so a change in it means rows were added or
+        withdrawn between page requests. Paging is by offset, so a withdrawn
+        row shifts a row of the next page out of reach while every page
+        still comes back full; only the moved count shows it."""
+        out, page, total = [], 1, None
         while True:
             data = self._get_json(self._url("data/price", **self._query(r), format="json",
                                             PageSize=PAGE_SIZE, Page=page))
@@ -459,13 +463,21 @@ class CbsIndexProvider(SourceProvider):
                     for s in data.get(f) or [] if isinstance(s, dict))
             last = _count(paging.get("last_page"))
             size = _count(paging.get("page_size")) or PAGE_SIZE
-            if page == 1 and last is None and _count(paging.get("total_items")) is None and n > 1:
-                raise ProviderError(f"{r.id}: CBS Index API answered {n} rows with no "
-                                    f"usable paging: {str(paging)[:200]}")
-            # With no last_page, a short page is the last one.
-            if (page >= last) if last is not None else (n < size):
+            t = _count(paging.get("total_items"))
+            if page == 1:
+                total = t
+                if last is None and total is None and n > 1:
+                    raise ProviderError(f"{r.id}: CBS Index API answered {n} rows with no "
+                                        f"usable paging: {str(paging)[:200]}")
+            elif total is not None and t is not None and t != total:
+                raise ProviderError(f"{r.id}: CBS Index API total moved from {total} to {t} "
+                                    f"during the walk (page {page})")
+            if last is None:
+                if n < size:  # with no last_page, a short page is the last one
+                    return out
+            elif page >= last:
                 return out
-            if n < size:
+            elif n < size:
                 raise ProviderError(f"{r.id}: CBS Index API page {page} of {last} held "
                                     f"{n} of {size} rows")
             page += 1

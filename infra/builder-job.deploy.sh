@@ -79,6 +79,9 @@ REFRESH_STRIKE_MIN_HOURS=${REFRESH_STRIKE_MIN_HOURS:-72}
 # Shorter: a failed sync freezes a release page (the CBS index pages sat 4 days
 # on a bad row-count check, 2026-11-12..16, before anyone was told).
 PROVIDER_SYNC_STRIKE_MIN_HOURS=${PROVIDER_SYNC_STRIKE_MIN_HOURS:-24}
+# ...and its run count: cbs_index syncs 4 times a day, BoI 3, so 6 strikes
+# would take 1.5-2 days and the 24h bar would never bind.
+PROVIDER_SYNC_STRIKES=${PROVIDER_SYNC_STRIKES:-3}
 # A pending bump the fingerprint skipped is re-probed (one preview call per
 # input) at most once per this many hours while nothing moved (0 = every run).
 REFRESH_REPROBE_MIN_HOURS=${REFRESH_REPROBE_MIN_HOURS:-6}
@@ -147,6 +150,7 @@ ENV_PAIRS=(
   "AUTHORING_QUEUE_HOURS=${AUTHORING_QUEUE_HOURS}"
   "REFRESH_STRIKE_MIN_HOURS=${REFRESH_STRIKE_MIN_HOURS}"
   "PROVIDER_SYNC_STRIKE_MIN_HOURS=${PROVIDER_SYNC_STRIKE_MIN_HOURS}"
+  "PROVIDER_SYNC_STRIKES=${PROVIDER_SYNC_STRIKES}"
   "REFRESH_REPROBE_MIN_HOURS=${REFRESH_REPROBE_MIN_HOURS}"
   "PROVIDER_BOI_SDMX_SYNC_HOURS=${PROVIDER_BOI_SDMX_SYNC_HOURS}"
   "PROVIDER_CBS_INDEX_SYNC_HOURS=${PROVIDER_CBS_INDEX_SYNC_HOURS}"
