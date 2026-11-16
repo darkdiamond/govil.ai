@@ -42,7 +42,7 @@ PUBLISH_MODES = ("live", "off")
 LOCK_DOC = f"{STATE}/{LOCK}"
 META_FIELDS = ("slug", "status", "headline", "dek", "published_at", "updated_at", "byline",
                "dataset_ids", "tags", "signal_keys", "hero", "run_id", "models", "words",
-               "critic_scores", "correction", "kind")
+               "critic_scores", "critic_final_round", "correction", "kind")
 BODY_FIELDS = ("blocks", "charts", "sources", "ledger")
 
 

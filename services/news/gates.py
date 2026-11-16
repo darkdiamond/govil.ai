@@ -12,8 +12,9 @@ and chart, and lists every problem (any one blocks publication):
   - headline/dek/body length, too little Hebrew
 
 `critique()` then asks the model, as copy chief, for pass / revise / kill
-(prompts/critic.md). The writer gets one revision round for either kind of
-problem.
+(prompts/critic.md). From the second round it sees its own previous review
+(`previous`), so a revision is judged against what it asked for, not from
+scratch. A release story is marked `RELEASE:` (the new figure is the news).
 """
 from __future__ import annotations
 
@@ -430,10 +431,32 @@ def _score_ok(x) -> bool:
         return False
 
 
-def critique(llm, core: dict, *, kind: str = "news", ledger: Ledger | None = None) -> dict:
+def critique(llm, core: dict, *, kind: str = "news", ledger: Ledger | None = None,
+             previous: dict | None = None, release: str | None = None,
+             final: bool = False) -> dict:
+    """The copy chief's verdict on one draft.
+
+    `previous`: its own last review of this story ({issues, fixes}); the
+    critic checks those first and raises new issues only when substantive
+    (prompts/critic.md), so a reporter isn't chasing fresh style nits every
+    round. It goes in the system message, apart from the model-written
+    article, so a draft can't pose as the critic's own list. `release`: the
+    release's name when the story reports a recurring official release's new
+    period. `final`: the writer has no round left, so a well-formed "revise"
+    whose scores are all >= 4 AND whose open issues the critic marks
+    `blocking: false` (style only, nothing factual, framing, risk or
+    sourcing) passes instead of throwing the draft away (2026-11: one with
+    every score >= 4 died on two style notes); earlier rounds still send
+    those fixes back, and a blocking issue is never published."""
     style = (PROMPTS / "style_he.md").read_text(encoding="utf-8")
     system = (PROMPTS / "critic.md").read_text(encoding="utf-8") + "\n\n# Style guide\n\n" + style
-    body = f"KIND: {kind}\n\n" + as_markdown(core, ledger)
+    if previous and (previous.get("issues") or previous.get("fixes")):
+        system += ("\n\n# Your previous review of this story\n\n"
+                   "What you asked of the reporter's last draft:\n"
+                   + "\n".join(f"- {x}" for x in [*(previous.get("issues") or []),
+                                                  *(previous.get("fixes") or [])][:20]))
+    head = f"KIND: {kind}\n" + (f"RELEASE: {release}\n" if release else "")
+    body = head + "\n" + as_markdown(core, ledger)
     try:
         verdict = llm.chat_json([{"role": "system", "content": system},
                                  {"role": "user", "content": body}], temperature=0.2)
@@ -450,4 +473,10 @@ def critique(llm, core: dict, *, kind: str = "news", ledger: Ledger | None = Non
         v = "revise"
     if v not in ("pass", "revise", "kill"):
         v = "revise"
-    return {"verdict": v, "scores": scores, "issues": issues, "fixes": fixes}
+    out = {"verdict": v, "scores": scores, "issues": issues, "fixes": fixes}
+    # Only an explicit "revise" with an explicit `blocking: false`: a missing
+    # or unknown verdict, or any doubt about what the open issues are, never passes.
+    if (final and verdict.get("verdict") == "revise" and verdict.get("blocking") is False
+            and well_formed and all(scores[k] >= 4 for k in RUBRIC)):
+        out |= {"verdict": "pass", "final_round_pass": True}
+    return out

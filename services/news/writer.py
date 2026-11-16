@@ -10,6 +10,14 @@ one of those, and with one shared budget that slip killed a draft the critic
 was about to pass (2026-11-13: two of three explainers). Running out of
 either, a "kill", or running out of tool calls rejects the story. Nothing is
 ever published "anyway".
+
+From its second round the copy chief sees its own previous review and checks
+that first, raising new issues only when substantive: reviewing every round
+from scratch produced fresh style notes each time, and most rejected drafts
+(2026-11-09..15) died on the last round that way. On that last round a
+"revise" whose scores all clear the bar (>= 4) and whose open notes are
+style only (`blocking: false`) passes (`gates.critique` `final`). A brief on a recurring release's new period tells the critic so
+(`RELEASE:`): the new figure is the news, however small the move.
 """
 from __future__ import annotations
 
@@ -21,6 +29,7 @@ from pathlib import Path
 from services.shared.states import ArticleKind
 
 from . import gates
+from .signals import is_release
 from .tools import SUBMIT_SPEC, TOOL_SPECS, Toolbox
 
 log = logging.getLogger(__name__)
@@ -82,6 +91,22 @@ def seed_facts(tb: Toolbox, brief: dict) -> list[dict]:
     return out
 
 
+def release_name(brief: dict, catalog: dict) -> str | None:
+    """The release's name when the brief reports a new period of a recurring
+    official release (a CBS or BoI monthly/quarterly series, `signals.is_release`,
+    unusual or not), else None. Only a news story's lead dataset counts: a
+    digest pools many datasets, and a CBS series linked into another
+    dataset's story doesn't make that story a release."""
+    if str(brief.get("kind") or ArticleKind.NEWS) != ArticleKind.NEWS:
+        return None
+    sigs = brief.get("signals") or []
+    lead = sigs[0].dataset_id if sigs else None
+    for sig in sigs:
+        if sig.dataset_id == lead and is_release(sig):
+            return (catalog.get(sig.dataset_id) or {}).get("title") or sig.dataset_id
+    return None
+
+
 def write(llm, tb: Toolbox, brief: dict, *, catalog: dict, vocab: set[str], today: str,
           max_tool_calls: int = 25) -> Outcome:
     seeds = seed_facts(tb, brief)
@@ -110,6 +135,8 @@ def write(llm, tb: Toolbox, brief: dict, *, catalog: dict, vocab: set[str], toda
     over = 0                  # calls refused in a turn that still offered tools
     critic_rounds = gate_rounds = 0
     critic = None
+    last_review = None        # the copy chief's previous {issues, fixes}, kept across gate rounds
+    release = release_name(brief, catalog)
     nudged = False
     turns = 0
     while True:
@@ -165,12 +192,14 @@ def write(llm, tb: Toolbox, brief: dict, *, catalog: dict, vocab: set[str], toda
         core, problems = gates.check(draft, ledger=tb.ledger, series_by_ds=tb.series,
                                      catalog=catalog, vocab=vocab, article_kind=kind)
         if not problems:
-            critic = gates.critique(llm, core, kind=kind, ledger=tb.ledger)
+            critic = gates.critique(llm, core, kind=kind, ledger=tb.ledger, previous=last_review,
+                                    release=release, final=critic_rounds >= CRITIC_REVISIONS)
             if critic["verdict"] == "pass":
                 return Outcome("accepted", core=core, critic=critic, tool_calls=calls)
             if critic["verdict"] == "kill":
                 return Outcome("rejected", core=core, reason="critic_kill", critic=critic, tool_calls=calls)
             problems = [f"copy chief: {x}" for x in critic["issues"] + critic["fixes"]]
+            last_review = {"issues": critic["issues"], "fixes": critic["fixes"]}
         by_critic = critic is not None
         log.info("news writer %s: %s round %d: %s", brief.get("signal_keys"),
                  "critic" if by_critic else "gates", (critic_rounds if by_critic else gate_rounds) + 1,

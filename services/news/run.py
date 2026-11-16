@@ -509,6 +509,10 @@ class _Day:
                 "blocks": core["blocks"], "charts": core["charts"], "sources": core["sources"],
                 "ledger": ledger.dump(keep=core["fact_ids"]), "words": core["words"], "run_id": self.run_id,
                 "critic_scores": (out.critic or {}).get("scores"),
+                # Passed on the last round on its scores despite open notes
+                # (gates.critique `final`): kept so they can be audited.
+                **({"critic_final_round": {k: out.critic.get(k) for k in ("issues", "fixes")}}
+                   if (out.critic or {}).get("final_round_pass") else {}),
                 "models": {"text": llm_mod.TEXT_MODEL, "reasoning_effort": llm_mod.REASONING_EFFORT or None,
                            "image": llm_mod.IMAGE_MODEL if hero["kind"] == "illustration" else None},
             }
