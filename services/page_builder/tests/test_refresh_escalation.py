@@ -89,6 +89,18 @@ def test_a_fetch_that_fails_every_run_escalates(env, monkeypatch, ckan_cls, stri
     assert _first(_run(env, store, ckan))["reason"] == "up_to_date"  # locked
 
 
+def test_a_resolved_probe_breaks_an_upstream_empty_run(env, monkeypatch):
+    """The resource comes back, but the run fails later (here the export):
+    the stale upstream_empty count must not carry over to the next emptying."""
+    monkeypatch.setenv("REFRESH_TRANSIENT_STRIKES", "3")
+    store = _rendered_then_bumped(env)
+    for n in (1, 2):
+        _first(_run(env, store, EmptyUpstreamCkan(_rows([2024, 2025]))))
+        assert store.states[DS]["transient_strikes"] == {"upstream_empty": n}
+    _first(_run(env, store, NoExport(_rows([2024, 2025]))))
+    assert store.states[DS]["transient_strikes"] == {"export_failed": 1}
+
+
 def test_a_growing_table_still_escalates(env, monkeypatch):
     """The data version moves every run (a table that grows during every
     export): the count must not restart on it."""

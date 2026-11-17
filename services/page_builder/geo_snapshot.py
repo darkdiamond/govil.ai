@@ -854,7 +854,8 @@ def read_map_stream(src: bytes | Path, name: str, *, member: str | None = None,
                 if not kmls:
                     raise SnapshotError(f"{name}: the KMZ holds no .kml")
                 return _drain(_read_kml(inner.read(kmls[0]))), ""
-        if zips := sorted(n for n in names if n.endswith(".zip")):
+        if zips := sorted(n for n in names if n.endswith(".zip")
+                          and not n.rsplit("/", 1)[-1].startswith("._")):  # macOS forks
             if len(zips) > 1:
                 raise SnapshotError(
                     f"{name}: {len(zips)} inner zips; name the one to read (map_member)"
@@ -912,14 +913,17 @@ def _tiff_members(src: bytes | Path, name: str) -> Iterator[tuple[str, bytes]]:
     if not zipfile.is_zipfile(zsrc):
         raise SnapshotError(f"{name}: not a TIFF or a zip")
     with zipfile.ZipFile(zsrc) as z:
-        _check_unzipped(z, name)
+        try:
+            _check_unzipped(z, name)
+        except SnapshotError as e:  # the data outgrew the cap: too_large, not a new shape
+            raise SnapshotTooLarge(str(e)) from None
         tifs = sorted(n for n in z.namelist()
                       if not n.endswith("/") and n.lower().endswith(_TIFF_SUFFIXES)
                       and not Path(n).name.startswith("._"))  # macOS resource forks
         if not tifs:
             raise SnapshotError(f"{name}: the zip holds no .tif")
         if len(tifs) > MAX_RASTERS:
-            raise SnapshotError(f"{name}: {len(tifs)} TIFFs, over {MAX_RASTERS}")
+            raise SnapshotTooLarge(f"{name}: {len(tifs)} TIFFs, over {MAX_RASTERS}")
         for n in tifs:
             yield Path(n).name, z.read(n)
 
@@ -937,7 +941,10 @@ def _read_tiff(data: bytes, what: str):
     with img:
         w, h = img.size
         if w * h > MAX_RASTER_PIXELS:
-            raise SnapshotError(f"{what}: {w}×{h} pixels, over {MAX_RASTER_PIXELS:,}")
+            raise SnapshotTooLarge(f"{what}: {w}x{h} pixels, over {MAX_RASTER_PIXELS:,}")
+        if len(img.getbands()) != 1:  # before decoding: the pixel cap assumes one band
+            raise SnapshotError(f"{what}: {len(img.getbands())} bands; one band expected")
+        f32 = img.mode == "F"  # float32 cells: the nodata text is compared at that precision
         tags = getattr(img, "tag_v2", {})
         scale, tie = tags.get(33550), tags.get(33922)
         if not scale or not tie or len(scale) < 2 or len(tie) < 6:
@@ -958,9 +965,12 @@ def _read_tiff(data: bytes, what: str):
     if nodata is not None:
         try:
             nv = float(str(nodata).strip().strip("\0"))
-            bad |= a == nv
         except ValueError:
-            pass
+            nv = None
+        if nv is not None:
+            bad |= a == nv
+            if f32 and abs(nv) < 3.4e38:  # "-9999.99" is stored as float32(-9999.99)
+                bad |= a == float(np.float32(nv))
     a[bad] = np.nan
     return a, (x - i * dx, y + j * dy, dx, dy)
 
@@ -991,25 +1001,34 @@ def raster_table(src: bytes | Path, name: str, *,
         m = _YEAR_RE.search(fname)
         year = m.group(0) if m else ""
         v = a[~np.isnan(a)]
-        stats = (["", "", "", "", "", ""] if v.size == 0 else
+        n_valid = int(v.size)
+        stats = (["", "", "", "", "", ""] if n_valid == 0 else
                  [_rnum(v.mean()), _rnum(v.min()),
                   *(_rnum(q) for q in np.percentile(v, [10, 50, 90])), _rnum(v.max())])
-        summary_row = [fname, year, str(int(v.size)), str(int(a.size - v.size)), *stats,
+        del v  # the valid cells' copy: not needed for the grid
+        summary_row = [fname, year, str(n_valid), str(int(a.size - n_valid)), *stats,
                        _rcoord(x0), _rcoord(y0), _rcoord(dx), _rcoord(dy)]
         if grid is None:
             rows.append(summary_row)
             continue
         rows.append(["summary", *summary_row, "", "", "", "", ""])
-        if v.size == 0:
+        if n_valid == 0:
             continue
         crs = _raster_crs(x0, y0)
         h, w = a.shape
         nr, nc = -(-h // grid), -(-w // grid)
-        pad = np.full((nr * grid, nc * grid), np.nan)
-        pad[:h, :w] = a
-        blocks = pad.reshape(nr, grid, nc, grid)
-        counts = (~np.isnan(blocks)).sum(axis=(1, 3))
-        sums = np.nansum(blocks, axis=(1, 3))
+        if (nr * grid, nc * grid) != (h, w):  # pad the edge blocks out with no-data
+            pad = np.full((nr * grid, nc * grid), np.nan)
+            pad[:h, :w] = a
+            a = pad
+            del pad
+        # `a` is this function's own copy: zero its no-data cells in place and
+        # count them from a bool mask, instead of nansum's full float copy.
+        valid = ~np.isnan(a)
+        a[~valid] = 0.0
+        counts = valid.reshape(nr, grid, nc, grid).sum(axis=(1, 3))
+        del valid
+        sums = a.reshape(nr, grid, nc, grid).sum(axis=(1, 3))
         blank = [""] * (len(RASTER_COLUMNS) - 2)
         for r, c in zip(*np.nonzero(counts), strict=True):
             n_cells += 1

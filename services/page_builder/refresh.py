@@ -484,6 +484,9 @@ def _preview_blocked(rid: str) -> bool:
 _BLOCK_CHECK_TIMEOUT_S = 20.0
 _PREVIEW_STRIKE = StrikeKind.PREVIEW_UNAVAILABLE
 _PREVIEW_STRIKES = frozenset({StrikeKind.PREVIEW_UNAVAILABLE, StrikeKind.PREVIEW_BLOCKED})
+# Broken by a probe whose previews all answered and resolved: no preview
+# failed and no resource read as emptied to `_id`.
+_PROBE_STRIKES = _PREVIEW_STRIKES | {StrikeKind.UPSTREAM_EMPTY}
 
 
 def _preview_strike(message: str) -> StrikeError:
@@ -496,13 +499,14 @@ def _preview_strike(message: str) -> StrikeError:
 
 def _strikes_after_probe(state: RefreshState, probe: InputProbe | None) -> dict | None:
     """The `transient_strikes` to write once this run's previews answered:
-    a run of preview failures is broken, so that count restarts. None = leave
+    a run of preview (or `upstream_empty`) failures is broken, so that count
+    restarts. None = leave
     the stored map alone (also when no preview was asked yet, e.g. a `by_id`
     input with no column check, whose preview comes only in `fetch_inputs`)."""
     strikes = state.transient_strikes or {}
-    if probe is None or not (_PREVIEW_STRIKES & set(strikes)) or not probe.answered():
+    if probe is None or not (_PROBE_STRIKES & set(strikes)) or not probe.answered():
         return None
-    return {k: v for k, v in strikes.items() if k not in _PREVIEW_STRIKES}
+    return {k: v for k, v in strikes.items() if k not in _PROBE_STRIKES}
 
 
 def _utcnow() -> datetime:
@@ -1073,7 +1077,9 @@ def _fetch_raster(inp, res: dict, dest_dir: Path, fetch_file_fn: Callable, *,
     try:
         header, rows = geo_snapshot.raster_table(raw, _map_file_name(res), grid=inp.raster_grid)
     except geo_snapshot.SnapshotTooLarge as e:
-        raise RecipeError(f"{what}: {e} (raster_grid)", reason=FailReason.TOO_LARGE) from None
+        # The pixel / TIFF-count / inflate caps, or the grid's (its message says
+        # to raise raster_grid).
+        raise RecipeError(f"{what}: {e}", reason=FailReason.TOO_LARGE) from None
     except geo_snapshot.SnapshotError as e:
         raise RecipeError(f"{what}: {e}", reason=FailReason.SCHEMA_CHANGED) from None
     finally:

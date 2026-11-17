@@ -493,6 +493,9 @@ def test_map_input_takes_columns_and_a_member():
     inp = RecipeInput.model_validate({**_map_input(), "columns": ["a"],
                                       "required_columns": ["a"], "map_member": "Lots_view.ZIP"})
     assert inp.columns == ["a"] and inp.map_member == "Lots_view.ZIP"
+    # __geometry is always kept, so it may be required without being listed
+    RecipeInput.model_validate({**_map_input(), "columns": ["a"],
+                                "required_columns": ["a", "__geometry"]})
 
 
 def test_map_input_takes_a_city_scale_cap():
@@ -816,6 +819,13 @@ def test_a_zip_of_zips_reads_one_level_down():
     assert [f["properties"]["NAME"] for f in feats] == ["חיפה"]
     with pytest.raises(gs.SnapshotError, match="0 inner zips"):
         gs.iter_map(bundle, "gis_dira.zip", member="nope.zip")
+
+
+def test_a_mac_resource_fork_is_not_an_inner_zip():
+    inner = _shp_zip([SQ], ["באר שבע"])
+    feats, _ = gs.load_map(_zip({"Lots_view.zip": inner, "__MACOSX/._Lots_view.zip": b"x"}),
+                           "gis_dira.zip")
+    assert feats[0]["properties"] == {"NAME": "באר שבע"}
 
 
 def test_a_zip_three_levels_deep_is_refused():

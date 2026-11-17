@@ -162,6 +162,31 @@ def test_a_raster_over_the_pixel_cap_is_refused_before_decoding(monkeypatch):
         gs.raster_table(_tif(_grid()), "x.tif")
 
 
+def test_a_nodata_value_float32_cant_hold_is_still_masked():
+    a = _grid()
+    a[0, 0] = -9999.99  # stored as float32(-9999.99) != -9999.99
+    _, rows = gs.raster_table(_tif(a, nodata="-9999.99"), "x.tif")
+    assert rows[0][2:4] == ["23", "1"]
+
+
+def test_a_multiband_tiff_is_refused_before_decoding():
+    buf = io.BytesIO()
+    Image.new("RGB", (4, 4)).save(buf, format="TIFF")
+    with pytest.raises(gs.SnapshotError, match="3 bands"):
+        gs.raster_table(buf.getvalue(), "x.tif")
+
+
+def test_a_raster_over_a_cap_is_too_large(monkeypatch):
+    with monkeypatch.context() as m:
+        m.setattr(gs, "MAX_RASTER_PIXELS", 10)
+        with pytest.raises(gs.SnapshotTooLarge):
+            gs.raster_table(_tif(_grid()), "x.tif")
+    with monkeypatch.context() as m:
+        m.setattr(gs, "MAX_UNZIPPED_BYTES", 10)
+        with pytest.raises(gs.SnapshotTooLarge):
+            gs.raster_table(_zip({"a.tif": _tif(_grid())}), "x.zip")
+
+
 def test_the_grid_adds_block_means_with_wgs84_centres():
     a = _grid(4, 6)
     a[0, 0] = np.nan

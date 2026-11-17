@@ -240,7 +240,9 @@ class RecipeInput(BaseModel):
                 "/ 'latest_year'"
             )
         if self.columns is not None:
-            missing = [c for c in self.required_columns if c not in self.columns]
+            # A map input's __geometry is always kept, and may not be listed.
+            missing = [c for c in self.required_columns if c not in self.columns
+                       and not (self.map and c == GEOMETRY_COLUMN)]
             if missing:
                 raise ValueError(
                     f"input {self.name!r}: required_columns {missing} not in columns"
