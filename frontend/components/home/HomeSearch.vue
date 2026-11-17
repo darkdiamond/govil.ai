@@ -51,6 +51,11 @@ const EXAMPLES = [
 ];
 const placeholder = ref(STATIC_PLACEHOLDER);
 let typer: ReturnType<typeof setTimeout> | undefined;
+// Scrolled out of view, the loop stops (no timer) and the observer restarts
+// it when the box comes back.
+let typing: (() => void) | undefined;
+let inView = true;
+let observer: IntersectionObserver | undefined;
 
 function startTyping() {
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
@@ -58,6 +63,8 @@ function startTyping() {
   let len = 0;
   let erasing = false;
   const tick = () => {
+    typer = undefined;
+    if (!inView) return;
     if (focused.value || query.value || document.hidden) {
       placeholder.value = STATIC_PLACEHOLDER;
       typer = setTimeout(tick, 800);
@@ -85,7 +92,16 @@ function startTyping() {
       typer = setTimeout(tick, 35);
     }
   };
+  typing = tick;
   typer = setTimeout(tick, 1200);
+  if ("IntersectionObserver" in window && rootEl.value) {
+    observer = new IntersectionObserver(([entry]) => {
+      inView = entry?.isIntersecting ?? true;
+      if (inView && typing && typer === undefined)
+        typer = setTimeout(typing, 350);
+    });
+    observer.observe(rootEl.value);
+  }
 }
 
 // ---- Open / close ----------------------------------------------------------
@@ -165,12 +181,14 @@ function onNavigate(kind: "page" | "route") {
   if (kind === "route") dismissed.value = true;
 }
 
-// "/" anywhere on the page (outside a field) jumps to the box.
+// "/" anywhere on the page (outside a field, and outside an open dialog such
+// as the header search's panel) jumps to the box.
 function onGlobalKey(e: KeyboardEvent) {
   if (e.key !== "/" || e.ctrlKey || e.metaKey || e.altKey) return;
   const t = e.target as HTMLElement | null;
   if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)))
     return;
+  if (document.activeElement?.closest('[role="dialog"]')) return;
   e.preventDefault();
   inputEl.value?.focus();
 }
@@ -195,6 +213,8 @@ onMounted(() => {
 });
 onBeforeUnmount(() => {
   clearTimeout(typer);
+  typing = undefined;
+  observer?.disconnect();
   window.removeEventListener("pageshow", onPageShow);
   window.removeEventListener("keydown", onGlobalKey);
 });

@@ -34,6 +34,8 @@ const {
   previewEntry,
   tagList,
   idleTags,
+  idleTagCount,
+  WIDE_QUERY,
 } = await load("site-search.ts");
 const { recentDatasets } = await load("home.ts");
 const { submitTarget } = await load("header-search.ts");
@@ -104,6 +106,12 @@ test("idleTags: biggest first, city tags left out", () => {
     "תחבורה",
     "חינוך",
   ]);
+});
+
+test("idleTagCount: 3 chips on a phone, 6 from sm up", () => {
+  assert.equal(idleTagCount(false), 3);
+  assert.equal(idleTagCount(true), 6);
+  assert.equal(WIDE_QUERY, "(min-width: 640px)");
 });
 
 test("matchTags: returns name, slug and count only", () => {
