@@ -45,7 +45,6 @@ add("/ministries/", "0.7", "weekly", manifestLastmod);
 add("/tags/", "0.7", "weekly", manifestLastmod);
 add("/kinds/", "0.6", "weekly", manifestLastmod);
 add("/about/", "0.5", "monthly");
-add("/how-it-works/", "0.5", "monthly");
 add("/faq/", "0.5", "monthly");
 add("/contact/", "0.5", "monthly");
 add("/disclaimer/", "0.4", "monthly");

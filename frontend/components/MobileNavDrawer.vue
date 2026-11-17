@@ -14,7 +14,6 @@ const links = [
   ...(newsOn ? [{ to: "/news/", label: "חדשות" }] : []),
   { to: "/ministries/", label: "משרדים" },
   { to: "/tags/", label: "נושאים" },
-  { to: "/how-it-works/", label: "איך זה עובד" },
   { to: "/about/", label: "אודות" },
   { to: "/faq/", label: "שאלות נפוצות" },
   { to: "/disclaimer/", label: "הבהרה משפטית" },

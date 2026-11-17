@@ -2804,6 +2804,16 @@
         "source": "/tags/תיקי פיקוח/",
         "destination": "/tags/%D7%AA%D7%99%D7%A7%D7%99-%D7%A4%D7%99%D7%A7%D7%95%D7%97/",
         "type": 301
+      },
+      {
+        "source": "/how-it-works",
+        "destination": "/about/",
+        "type": 301
+      },
+      {
+        "source": "/how-it-works/",
+        "destination": "/about/",
+        "type": 301
       }
     ],
     "headers": [
