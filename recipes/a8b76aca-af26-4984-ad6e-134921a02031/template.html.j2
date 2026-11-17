@@ -365,7 +365,7 @@
       const sm = U.narrow(el);
       return {
         tooltip: { position: "top", formatter: function (p) {
-          return "אשכול " + d.levels[p.value[0]] + "<br/>" + U.esc(d.measures[p.value[1]]) + ": " + U.pct(p.value[2]);
+          return "אשכול " + U.esc(d.levels[p.value[0]]) + "<br/>" + U.esc(d.measures[p.value[1]]) + ": " + U.pct(p.value[2]);
         } },
         grid: { left: 8, right: 8, top: 8, bottom: 80, containLabel: true },
         xAxis: { type: "category", data: d.levels, name: "אשכול", nameLocation: "middle", nameGap: 26, splitArea: { show: true } },

@@ -427,7 +427,7 @@
       tooltip: {
         position: "top",
         formatter: function (p) {
-          return echarts.format.encodeHTML(d.rows[p.value[1]]) + ", " + d.months[p.value[0]] + "<br>מקסימום ממוצע: " + p.value[2].toFixed(1) + "°";
+          return echarts.format.encodeHTML(d.rows[p.value[1]]) + ", " + echarts.format.encodeHTML(d.months[p.value[0]]) + "<br>מקסימום ממוצע: " + p.value[2].toFixed(1) + "°";
         }
       },
       grid: { left: 8, right: 16, top: 8, bottom: 64, containLabel: true },
@@ -485,7 +485,7 @@
       tooltip: {
         position: "top",
         formatter: function (p) {
-          return echarts.format.encodeHTML(d.rows[p.value[1]]) + ", " + d.months[p.value[0]] + "<br>" + p.value[2].toFixed(2) +
+          return echarts.format.encodeHTML(d.rows[p.value[1]]) + ", " + echarts.format.encodeHTML(d.months[p.value[0]]) + "<br>" + p.value[2].toFixed(2) +
             "% מימי הדיווח<br>ימי דיווח: " + p.value[3].toLocaleString("he-IL");
         }
       },
@@ -666,7 +666,7 @@
       tooltip: {
         position: "top",
         formatter: function (p) {
-          return d.months[p.value[1]] + ", שעות " + echarts.format.encodeHTML(d.hours[p.value[0]]) + " (UTC)<br>" + p.value[2].toLocaleString("he-IL") + " וואט למ״ר";
+          return echarts.format.encodeHTML(d.months[p.value[1]]) + ", שעות " + echarts.format.encodeHTML(d.hours[p.value[0]]) + " (UTC)<br>" + p.value[2].toLocaleString("he-IL") + " וואט למ״ר";
         }
       },
       grid: { left: 8, right: 16, top: 8, bottom: 64, containLabel: true },

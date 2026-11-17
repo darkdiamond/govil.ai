@@ -298,7 +298,7 @@
       color: window.GOVIL_PALETTE,
       tooltip: { trigger: "axis", formatter: function (p) {
         var i = p[0].dataIndex;
-        return d.names[i] + "<br>" + d.values[i].toLocaleString("he-IL") + " בקשות (" + d.share[i] + "%)";
+        return echarts.format.encodeHTML(d.names[i]) + "<br>" + d.values[i].toLocaleString("he-IL") + " בקשות (" + d.share[i] + "%)";
       } },
       grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
       xAxis: { type: "value", splitNumber: 3, axisLabel: { hideOverlap: true } },
@@ -411,7 +411,7 @@
     var c = echarts.init(document.getElementById("chart-cooc"));
     c.setOption(window.GovEcharts.option({
       tooltip: { position: "top", formatter: function (p) {
-        return h.names[p.value[1]] + " + " + h.names[p.value[0]] + ": " + p.value[2].toLocaleString("he-IL") + " בקשות";
+        return echarts.format.encodeHTML(h.names[p.value[1]]) + " + " + echarts.format.encodeHTML(h.names[p.value[0]]) + ": " + p.value[2].toLocaleString("he-IL") + " בקשות";
       } },
       grid: { left: 16, right: 16, top: 16, bottom: 72, containLabel: true },
       xAxis: { type: "category", data: h.x, splitArea: { show: true } },

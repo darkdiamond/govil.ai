@@ -167,6 +167,19 @@ and the cost is paid once. Go deeper:
 - 4–8 insights across the page, each a real finding with numbers.
 - Interactivity ECharts gives for free (dataZoom on long series, legend
   toggles, tooltips with units) — no custom JS frameworks, no network calls.
+- **Every string an ECharts tooltip formatter appends goes through
+  `echarts.format.encodeHTML(...)`**: one it reads from its closure
+  (`h.y[p.value[1]]`, `names[p.dataIndex]`, `labels[p.dataIndex]`,
+  `cats[p.value[0]]`, a field of `d.rows[p.dataIndex]`) and one it reads
+  from `params` (`p.name`, `p.seriesName`, `p.data.note`). Formatters return
+  HTML and model strings come from CKAN cells. gov-echarts.js neutralizes
+  `<`/`>` in `params` before the formatter runs, but it can't see the
+  closure, so it is a backstop, not the escape. Numbers need none; compare
+  and look up with the raw string, escape only what you append. Don't
+  escape in `label`/`axisLabel` formatters: those draw canvas text, not
+  HTML, so an entity would show literally (`ת&quot;א`).
+  `recipes/39ffaf87-c67a-4eeb-91cc-edfc79b4dd8e/template.html.j2` (heatmap
+  tooltip) shows the form.
 
 **Depth bar — coverage, not a chart quota.** Before designing, list every
 column of every input and the questions it can answer alone and in
@@ -303,7 +316,8 @@ types, source CRS, property columns), or says why it failed.
    long line into pieces in `compute` so no single feature outgrows an island
    (`pack` raises if one does). `recipes/5ecf0587-21e6-411a-8f04-9f4f44a43956/`
    is the worked example (lines, coloured by type, popups built with
-   `textContent`). Escape every string that goes into a popup or tooltip. Map
+   `textContent`). Escape every string that goes into a popup or tooltip
+   (ECharts formatters: the rule under "Ambition" above). Map
    `<name>.__geometry` in `coverage.json` (`map-<id>`).
 
 **Fallback: a committed snapshot**, only for a file BRIEF.md lists as

@@ -283,6 +283,12 @@ def compute(frames):
             "suggested_tags": ["רכבת ישראל", "תחבורה ציבורית", "אמינות שירות", "ביטולי נסיעות"],
             "temporal_coverage": f"{p0}/{p1}",
             "spatial_coverage": "ישראל",
+            "seo": {
+                "name": "רכבת ישראל: תכנון מול ביצוע",
+                "title": "ביטולי נסיעות ברכבת ישראל: תכנון מול ביצוע",
+                "description": ("כמה מנסיעות רכבת ישראל המתוכננות בוצעו בפועל ובוטלו, לפי חודש, "
+                                "שנה, תחנה וקו, עם מפת חום של שיעור הביטולים לאורך השנים."),
+            },
         },
         "kpis": kpis,
         "charts": {"monthly": monthly, "yearly": yearly_chart, "season": season_chart,

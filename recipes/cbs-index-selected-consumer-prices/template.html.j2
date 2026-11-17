@@ -175,7 +175,7 @@
     const d = {{ model.charts.heat | tojson }};
     const chart = echarts.init(document.getElementById("chart-heat"));
     chart.setOption(window.GovEcharts.option({
-      tooltip: { position: "top", formatter: (p) => echarts.format.encodeHTML(d.items[p.value[1]]) + ", " + d.years[p.value[0]] + ": " + (p.value[2] > 0 ? "+" : "") + p.value[2].toFixed(1) + "%" },
+      tooltip: { position: "top", formatter: (p) => echarts.format.encodeHTML(d.items[p.value[1]]) + ", " + echarts.format.encodeHTML(d.years[p.value[0]]) + ": " + (p.value[2] > 0 ? "+" : "") + p.value[2].toFixed(1) + "%" },
       grid: { left: 8, right: 8, top: 8, bottom: 72, containLabel: true },
       xAxis: { type: "category", data: d.years, position: "top", splitArea: { show: true }, axisLabel: { interval: 0, fontSize: 11 } },
       yAxis: { type: "category", data: d.items, inverse: true, axisLabel: { interval: 0, width: window.innerWidth < 640 ? 110 : 220, overflow: "truncate" } },

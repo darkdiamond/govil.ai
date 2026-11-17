@@ -254,7 +254,7 @@
     var c5 = echarts.init(document.getElementById("chart-heat"));
     c5.setOption(window.GovEcharts.option({
       tooltip: { position: "top", formatter: function (p) {
-        return hm.stations[p.value[1]] + ", " + hm.months[p.value[0]] + ": " + p.value[2].toFixed(1) + "%";
+        return echarts.format.encodeHTML(hm.stations[p.value[1]]) + ", " + echarts.format.encodeHTML(hm.months[p.value[0]]) + ": " + p.value[2].toFixed(1) + "%";
       } },
       grid: { left: 110, right: 24, top: 16, bottom: 88, containLabel: true },
       xAxis: { type: "category", data: hm.months, splitArea: { show: true }, axisLabel: { rotate: 45 } },

@@ -188,7 +188,7 @@
       color: window.GOVIL_PALETTE,
       tooltip: { trigger: "axis", formatter: function (p) {
         var i = p[0].dataIndex, v = d.y[i];
-        var s = d.x[i] + "<br>" + Math.round(v) + "% מהרגיל לחודש זה<br>" + d.n[i] + " מעיינות";
+        var s = echarts.format.encodeHTML(d.x[i]) + "<br>" + Math.round(v) + "% מהרגיל לחודש זה<br>" + d.n[i] + " מעיינות";
         if (d.roll[i] !== null) s += "<br>חציון נע שנתי: " + Math.round(d.roll[i]) + "%";
         return s;
       } },
@@ -223,7 +223,7 @@
       tooltip: { trigger: "axis", formatter: function (p) {
         var i = p[0].dataIndex;
         function f(v) { return v === null ? "אין נתון" : v.toLocaleString("he-IL"); }
-        return d.x[i] + "<br>" + d.cur_name + ": " + f(d.cur[i]) + " אלמ״ק<br>" + d.pre_name + ": " + f(d.pre[i]) +
+        return echarts.format.encodeHTML(d.x[i]) + "<br>" + echarts.format.encodeHTML(d.cur_name) + ": " + f(d.cur[i]) + " אלמ״ק<br>" + echarts.format.encodeHTML(d.pre_name) + ": " + f(d.pre[i]) +
           " אלמ״ק<br>חציון: " + f(d.med[i]) + "<br>טווח העשירונים: " + f(d.p10[i]) + " עד " + f(d.p90[i]);
       } },
       legend: { top: 0, type: "scroll", data: [d.cur_name, d.pre_name, "חציון"] },
@@ -249,7 +249,7 @@
     var c = echarts.init(document.getElementById("chart-heat"));
     c.setOption(window.GovEcharts.option({
       tooltip: { position: "top", formatter: function (p) {
-        return d.y[p.value[1]] + ", " + d.x[p.value[0]] + "<br>" + p.value[2].toLocaleString("he-IL") + " אלמ״ק";
+        return echarts.format.encodeHTML(d.y[p.value[1]]) + ", " + echarts.format.encodeHTML(d.x[p.value[0]]) + "<br>" + p.value[2].toLocaleString("he-IL") + " אלמ״ק";
       } },
       grid: { left: 16, right: 16, top: 8, bottom: 64, containLabel: true },
       xAxis: { type: "category", data: d.x, splitArea: { show: true }, axisLabel: { rotate: 45 } },

@@ -124,7 +124,7 @@
     chart.setOption(window.GovEcharts.option({
       color: [pal[0], pal[5]],
       tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
-        formatter: (ps) => { const i = ps[0].dataIndex; return d.x[i] + "<br>" + ps.map((p) => p.marker + p.seriesName + ": " + n(p.value)).join("<br>") + "<br>סך הכל: " + n(d.total[i]); } },
+        formatter: (ps) => { const i = ps[0].dataIndex; return echarts.format.encodeHTML(d.x[i]) + "<br>" + ps.map((p) => p.marker + p.seriesName + ": " + n(p.value)).join("<br>") + "<br>סך הכל: " + n(d.total[i]); } },
       legend: { top: 0 },
       grid: { left: 16, right: 16, top: 64, bottom: 24, containLabel: true },
       xAxis: { type: "category", data: d.x },

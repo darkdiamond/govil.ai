@@ -284,7 +284,7 @@
     var c8 = echarts.init(document.getElementById("chart-heat"));
     c8.setOption(window.GovEcharts.option({
       tooltip: { position: "top", formatter: function (p) {
-        return hm.banks[p.value[1]] + ", גיל " + hm.ages[p.value[0]] + ": " + p.value[2].toFixed(2) + "%";
+        return echarts.format.encodeHTML(hm.banks[p.value[1]]) + ", גיל " + echarts.format.encodeHTML(hm.ages[p.value[0]]) + ": " + p.value[2].toFixed(2) + "%";
       } },
       grid: { left: 96, right: 24, top: 16, bottom: 88, containLabel: true },
       xAxis: { type: "category", data: hm.ages, splitArea: { show: true }, axisLabel: { rotate: 45 } },

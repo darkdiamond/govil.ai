@@ -327,7 +327,7 @@
       color: window.GOVIL_PALETTE,
       tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
         var i = p[0].dataIndex;
-        var s = d.labels[i] + "<br>" + d.counts[i].toLocaleString("he-IL") + " תושבים · " + d.shares[i] + "%";
+        var s = echarts.format.encodeHTML(d.labels[i]) + "<br>" + d.counts[i].toLocaleString("he-IL") + " תושבים · " + d.shares[i] + "%";
         if (d.per_year[i] !== null) { s += "<br>" + d.per_year[i].toLocaleString("he-IL") + " בממוצע לשנת גיל"; }
         return s;
       } },
@@ -484,7 +484,7 @@
       color: window.GOVIL_PALETTE,
       tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
         var i = p[0].dataIndex;
-        return d.labels[i] + "<br>קובץ הארכיון: " + d.base[i].toLocaleString("he-IL") + "<br>הקובץ הנוכחי: " +
+        return echarts.format.encodeHTML(d.labels[i]) + "<br>קובץ הארכיון: " + d.base[i].toLocaleString("he-IL") + "<br>הקובץ הנוכחי: " +
           d.cur[i].toLocaleString("he-IL") + "<br>שינוי: " + d.g[i] + "%";
       } },
       legend: { bottom: 0 },

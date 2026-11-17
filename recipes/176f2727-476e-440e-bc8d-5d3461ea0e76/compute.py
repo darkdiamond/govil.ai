@@ -515,6 +515,12 @@ def compute(frames):
                             "669b2652-f75b-4de3-8e6b-0dfa17accef5"],
             "temporal_coverage": f"{start}/{ref.strftime('%Y-%m-%d')}",
             "spatial_coverage": "ישראל",
+            "seo": {
+                "name": "פנקס הסניגורים הציבוריים",
+                "title": "מינויי סניגורים ציבוריים לפי מחוז, שנה וסניגור",
+                "description": ("מינויי סניגורים ציבוריים לתיקים פליליים לפי שנה, מחוז, סוג הליך "
+                                "וסניגור: מגמות, עונתיות, עומס המינויים וריכוזם בקרב הסניגורים."),
+            },
         },
         "kpis": kpis,
         "charts": {"yearly": ch_yearly, "heat": ch_heat, "dist": ch_dist, "codes": ch_codes,

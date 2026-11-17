@@ -239,7 +239,7 @@
       tooltip: { trigger: "axis", formatter: function (p) {
         var i = p[0].dataIndex, v = d.y[i];
         var tag = v < d.drought ? " (שנה שחונה)" : (v >= d.wet ? " (שנה גשומה)" : "");
-        return d.x[i] + "<br>" + Math.round(v) + "% מהרגיל" + tag + "<br>" + d.n[i] + " מעיינות";
+        return echarts.format.encodeHTML(d.x[i]) + "<br>" + Math.round(v) + "% מהרגיל" + tag + "<br>" + d.n[i] + " מעיינות";
       } },
       grid: { left: 48, right: 16, top: 24, bottom: 72, containLabel: true },
       xAxis: { type: "category", data: d.x },
@@ -318,7 +318,7 @@
       color: window.GOVIL_PALETTE,
       tooltip: { trigger: "axis", formatter: function (p) {
         var i = p[0].dataIndex;
-        return d.x[i] + "<br>חציון: " + Math.round(d.p50[i]) + "% מהרגיל<br>טווח הרבעונים: " +
+        return echarts.format.encodeHTML(d.x[i]) + "<br>חציון: " + Math.round(d.p50[i]) + "% מהרגיל<br>טווח הרבעונים: " +
           Math.round(d.p25[i]) + "% עד " + Math.round(d.p75[i]) + "%";
       } },
       grid: { left: 40, right: 16, top: 24, bottom: 32, containLabel: true },
@@ -345,7 +345,7 @@
     var c = echarts.init(document.getElementById("chart-region"));
     c.setOption(window.GovEcharts.option({
       tooltip: { position: "top", formatter: function (p) {
-        return d.regions[p.value[1]] + "<br>" + d.decades[p.value[0]] + ": " + p.value[2] + "% מהרגיל<br>" + p.value[3] + " שנות-מעיין";
+        return echarts.format.encodeHTML(d.regions[p.value[1]]) + "<br>" + echarts.format.encodeHTML(d.decades[p.value[0]]) + ": " + p.value[2] + "% מהרגיל<br>" + p.value[3] + " שנות-מעיין";
       } },
       grid: { left: 16, right: 16, top: 16, bottom: 72, containLabel: true },
       xAxis: { type: "category", data: d.decades, splitArea: { show: true }, axisLabel: { rotate: 45 } },

@@ -601,6 +601,12 @@ def compute(frames):
                             "5beb2241-cbca-4350-bdae-55d096373acf"],
             "temporal_coverage": f"{first.strftime('%Y-%m-%d')}/{ref.strftime('%Y-%m-%d')}",
             "spatial_coverage": "ישראל",
+            "seo": {
+                "title": "היתרי שריפת גזם חקלאי לפי יישוב וגידול | משרד החקלאות",
+                "description": (f"היתרי שריפת גזם חקלאי של משרד החקלאות לפי יישוב, מחוז, גידול וחודש: "
+                                f"{n(total)} היתרים, עם עונתיות, חלונות שעות ומשך תוקף."),
+                "name": "היתרי שריפת גזם חקלאי",
+            },
         },
         "kpis": kpis,
         "charts": charts,

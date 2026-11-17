@@ -295,7 +295,7 @@
       color: window.GOVIL_PALETTE,
       tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
         var i = ps[0].dataIndex;
-        return d.names[i] + "<br>הצעות: " + d.values[i].toLocaleString("he-IL") +
+        return echarts.format.encodeHTML(d.names[i]) + "<br>הצעות: " + d.values[i].toLocaleString("he-IL") +
           "<br>מוסדות: " + d.inst[i].toLocaleString("he-IL") +
           "<br>קורסים שונים: " + d.courses[i].toLocaleString("he-IL") +
           "<br>ישובים: " + d.cities[i].toLocaleString("he-IL");
@@ -341,7 +341,7 @@
         color: window.GOVIL_PALETTE,
         tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
           var i = ps[0].dataIndex;
-          var s = d.names[i] + "<br>" + unit + ": " + d.values[i].toLocaleString("he-IL");
+          var s = echarts.format.encodeHTML(d.names[i]) + "<br>" + unit + ": " + d.values[i].toLocaleString("he-IL");
           return extra ? s + extra(i) : s;
         } },
         grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
@@ -354,7 +354,7 @@
     }
     var ci = {{ model.charts.cities | tojson }};
     hbar("chart-cities", ci, "הצעות", function (i) {
-      return "<br>" + ci.district[i] + "<br>מוסדות: " + ci.inst[i].toLocaleString("he-IL");
+      return "<br>" + echarts.format.encodeHTML(ci.district[i]) + "<br>מוסדות: " + ci.inst[i].toLocaleString("he-IL");
     });
     var dm = {{ model.charts.domains | tojson }};
     hbar("chart-domains", dm, "הצעות", function (i) {
@@ -366,7 +366,7 @@
       return "<br>מחוזות: " + co.reach[i].toLocaleString("he-IL");
     });
     var ins = {{ model.charts.inst | tojson }};
-    hbar("chart-inst", ins, "קורסים", function (i) { return "<br>" + ins.city[i]; });
+    hbar("chart-inst", ins, "קורסים", function (i) { return "<br>" + echarts.format.encodeHTML(ins.city[i]); });
   })();
 </script>
 
@@ -376,7 +376,7 @@
     var c = echarts.init(document.getElementById("chart-mix"));
     c.setOption(window.GovEcharts.option({
       tooltip: { position: "top", formatter: function (p) {
-        return h.y[p.value[1]] + "<br>" + h.x[p.value[0]] + ": " + p.value[2] + "% (" +
+        return echarts.format.encodeHTML(h.y[p.value[1]]) + "<br>" + echarts.format.encodeHTML(h.x[p.value[0]]) + ": " + p.value[2] + "% (" +
           p.value[3].toLocaleString("he-IL") + " הצעות)";
       } },
       grid: { left: 16, right: 16, top: 16, bottom: 72, containLabel: true },

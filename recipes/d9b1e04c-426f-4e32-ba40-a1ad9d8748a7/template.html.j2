@@ -307,7 +307,7 @@
       tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
         var i = p[0].dataIndex;
         var note = d.break && d.x[i] >= d.break ? "<br>(כולל זרים)" : "";
-        return d.x[i] + "<br>" + d.y[i].toLocaleString("he-IL") + " תושבים<br>" + d.n[i].toLocaleString("he-IL") + " יישובים מיושבים" + note;
+        return echarts.format.encodeHTML(d.x[i]) + "<br>" + d.y[i].toLocaleString("he-IL") + " תושבים<br>" + d.n[i].toLocaleString("he-IL") + " יישובים מיושבים" + note;
       } },
       grid: { left: 16, right: 16, top: 24, bottom: 16, containLabel: true },
       xAxis: { type: "category", data: d.x },
@@ -459,7 +459,7 @@
       color: ["#0068f5", "#0b3668"],
       tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
         var i = ps[0].dataIndex;
-        return d.names[i] + " תושבים<br>" + d.n[i].toLocaleString("he-IL") + " יישובים<br>" + d.share[i].toLocaleString("he-IL") + "% מהאוכלוסייה";
+        return echarts.format.encodeHTML(d.names[i]) + " תושבים<br>" + d.n[i].toLocaleString("he-IL") + " יישובים<br>" + d.share[i].toLocaleString("he-IL") + "% מהאוכלוסייה";
       } },
       legend: { bottom: 0 },
       grid: { left: 16, right: 16, top: 24, bottom: 40, containLabel: true },
@@ -600,7 +600,7 @@
       color: window.GOVIL_PALETTE,
       tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
         var i = ps[0].dataIndex;
-        return d.names[i] + " מ'<br>" + d.n[i].toLocaleString("he-IL") + " יישובים";
+        return echarts.format.encodeHTML(d.names[i]) + " מ'<br>" + d.n[i].toLocaleString("he-IL") + " יישובים";
       } },
       grid: { left: 16, right: 16, top: 24, bottom: 16, containLabel: true },
       xAxis: { type: "category", data: d.names, axisLabel: { interval: 0, rotate: 45, fontSize: 10 } },

@@ -241,7 +241,7 @@
           formatter: function (p) {
             const r = g.rows[p.seriesIndex];
             const prev = r.prev >= d.cap ? "מחוץ לדירוג" : "מקום " + r.prev;
-            return echarts.format.encodeHTML(r.name) + "<br>" + pyl + ": " + prev + "<br>" + yl + ": מקום " + r.now;
+            return echarts.format.encodeHTML(r.name) + "<br>" + echarts.format.encodeHTML(pyl) + ": " + prev + "<br>" + echarts.format.encodeHTML(yl) + ": מקום " + r.now;
           }
         },
         grid: { left: 72, right: 72, top: 24, bottom: 24 },

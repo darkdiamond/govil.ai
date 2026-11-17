@@ -264,3 +264,98 @@ test("treemap/sunburst treePathInfo and treeAncestors names are escaped", () => 
   assert.ok(html.startsWith(marker), "ECharts marker HTML untouched");
   assert.equal(path[1].name, evil);
 });
+
+test("a string nested past the depth cap is escaped, not passed through", () => {
+  const { window } = loadGovEcharts();
+  const o = window.GovEcharts.option({
+    tooltip: {
+      formatter: (p) => p.data.a.b.c.d.e.f.g.label + p.data.a.b.c.d.e.f.ok,
+    },
+  });
+  const item = {
+    a: { b: { c: { d: { e: { f: { g: { label: evil }, ok: "שלום" } } } } } },
+  };
+  const html = o.tooltip.formatter({ data: item });
+  assert.ok(!html.includes("<img"), html);
+  assert.ok(html.endsWith("שלום"), "clean strings past the cap survive");
+  assert.equal(item.a.b.c.d.e.f.g.label, evil, "chart data not mutated");
+});
+
+test("a clean subtree past the depth cap is returned as is", () => {
+  const { window } = loadGovEcharts();
+  let seen;
+  const o = window.GovEcharts.option({
+    tooltip: {
+      formatter: (p) => {
+        seen = p.data.a.b.c.d.e;
+        return "";
+      },
+    },
+  });
+  const deep = { f: { g: "clean" } };
+  o.tooltip.formatter({ data: { a: { b: { c: { d: { e: deep } } } } } });
+  assert.equal(seen, deep);
+});
+
+test("an unserializable (cyclic) subtree past the cap fails closed", () => {
+  const { window } = loadGovEcharts();
+  let seen = "unset";
+  const o = window.GovEcharts.option({
+    tooltip: {
+      formatter: (p) => {
+        seen = p.data.a.b.c.d.e;
+        return "";
+      },
+    },
+  });
+  const cyc = { label: evil };
+  cyc.self = cyc;
+  o.tooltip.formatter({ data: { a: { b: { c: { d: { e: cyc } } } } } });
+  assert.equal(seen, null);
+});
+
+test("tooltips under tree data[].children[] and series levels[] are wrapped", () => {
+  const { window, captured } = loadGovEcharts();
+  const chart = window.echarts.init({});
+  const f = (p) => p.name;
+  chart.setOption({
+    series: [
+      {
+        type: "treemap",
+        levels: [{ tooltip: { formatter: f } }, {}],
+        data: [
+          {
+            name: "a",
+            tooltip: { formatter: f },
+            children: [
+              {
+                name: "b",
+                children: [{ name: "c", tooltip: { formatter: f } }],
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  });
+  const s = captured[0].series[0];
+  for (const fn of [
+    s.levels[0].tooltip.formatter,
+    s.data[0].tooltip.formatter,
+    s.data[0].children[0].children[0].tooltip.formatter,
+  ]) {
+    assert.equal(fn({ name: evil }), "&lt;img src=x onerror=alert(1)&gt;");
+  }
+});
+
+test("a cyclic children tree does not hang the belt", () => {
+  const { window, captured } = loadGovEcharts();
+  const chart = window.echarts.init({});
+  const node = { name: "x", tooltip: { formatter: (p) => p.name } };
+  node.children = [node];
+  chart.setOption({ series: [{ type: "tree", data: [node] }] });
+  assert.equal(
+    captured[0].series[0].data[0].tooltip.formatter({ name: "<b>" }),
+    "&lt;b&gt;"
+  );
+});

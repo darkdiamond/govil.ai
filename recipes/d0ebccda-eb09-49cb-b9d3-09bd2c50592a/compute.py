@@ -546,6 +546,12 @@ def compute(frames):
         "summary_he": summary,
         "dataset_kind": "registry",
         "spatial_coverage": "ישראל",
+        "seo": {
+            "name": "רשימת מבקרי מטפים ותחזוקאי מטפים מורשים (ת״י 129)",
+            "title": "תחזוקאי מטפים ומבקרי מטפים מורשים: חיפוש לפי יישוב",
+            "description": ("רשימת מבקרי מטפים ותחזוקאי מטפים מורשים לפי תקן ישראלי 129: איתור לפי שם, "
+                            "חברת שירות ויישוב, ומספר ההרשאות לאורך השנים."),
+        },
     }
     if span_txt:
         agent_data["temporal_coverage"] = f"{first_d.year}/{last_d.year}"

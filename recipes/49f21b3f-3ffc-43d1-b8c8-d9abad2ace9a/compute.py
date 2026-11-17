@@ -290,6 +290,12 @@ def compute(frames):
             "related_ids": ["03bf114c-73cc-452c-a3d1-58520d6dc506", "b5ee9460-87d7-4eb4-868a-58e35bc507b2"],
             "temporal_coverage": f"{first.strftime('%Y-%m-%d')}/{anchor.strftime('%Y-%m-%d')}",
             "spatial_coverage": "ישראל",
+            "seo": {
+                "name": "תיקי פיקוח חדשים עם תוצאה תקינה - נציבות שוויון זכויות לאנשים עם מוגבלות",
+                "title": "פיקוח נגישות עם תוצאה תקינה: נציבות שוויון זכויות",
+                "description": (f"{_int(n)} פיקוחי נגישות של נציבות שוויון זכויות לאנשים עם מוגבלות "
+                                "שבהם לא נמצאו ליקויים או נמצאו מעטים: מה נבדק, איפה ובעקבות מה."),
+            },
         },
         "kpis": {
             "files": {"value": n, "display": _int(n), "tone": "brand"},

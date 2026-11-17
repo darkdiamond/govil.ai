@@ -331,7 +331,7 @@
           return p.name + "<br/>חציון: " + v[2].toLocaleString("he-IL") + " ₪<br/>מחצית אמצעית: " +
             v[1].toLocaleString("he-IL") + " עד " + v[3].toLocaleString("he-IL") + " ₪";
         }
-        return d.names[p.value[0]] + ": " + p.value[1].toLocaleString("he-IL") + " ₪";
+        return echarts.format.encodeHTML(d.names[p.value[0]]) + ": " + p.value[1].toLocaleString("he-IL") + " ₪";
       } },
       grid: { left: 16, right: 16, top: 32, bottom: 24, containLabel: true },
       xAxis: { type: "category", data: d.names, axisLabel: { fontSize: 11, interval: 0 } },

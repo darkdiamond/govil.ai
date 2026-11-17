@@ -302,6 +302,12 @@ def compute(frames):
             "dataset_kind": "rankings",
             "suggested_tags": ["חיסכון לכל ילד", "ריביות", "בנקים", "ביטוח לאומי"],
             "temporal_coverage": f"{d0.strftime('%Y-%m-%d')}/{d1.strftime('%Y-%m-%d')}",
+            "seo": {
+                "name": "ריביות חיסכון לכל ילד (חשכ״ל) בפיקדונות הבנקים",
+                "title": "ריבית חיסכון לכל ילד: השוואת הבנקים לפי מסלול וגיל",
+                "description": ("השוואת ריביות החיסכון לכל ילד (חשכ\"ל) בבנקים: הריבית הקבועה והצמודה "
+                                "בכל בנק, לפי גיל הילד, ואיך השתנו הריביות לאורך זמן."),
+            },
         },
         "kpis": kpis,
         "charts": {"banks": by_bank, "trend": trend, "range": spread_ts, "age": by_age,

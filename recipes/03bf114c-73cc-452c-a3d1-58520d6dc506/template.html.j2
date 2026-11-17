@@ -254,7 +254,7 @@
     var c = echarts.init(document.getElementById("chart-heat"));
     c.setOption(window.GovEcharts.option({
       tooltip: { position: "top", formatter: function (p) {
-        return h.categories[p.value[1]] + " · " + h.components[p.value[0]] + ": " + p.value[2] + "%";
+        return echarts.format.encodeHTML(h.categories[p.value[1]]) + " · " + echarts.format.encodeHTML(h.components[p.value[0]]) + ": " + p.value[2] + "%";
       } },
       grid: { left: 110, right: 24, top: 16, bottom: 110, containLabel: true },
       xAxis: { type: "category", data: h.components, splitArea: { show: true },

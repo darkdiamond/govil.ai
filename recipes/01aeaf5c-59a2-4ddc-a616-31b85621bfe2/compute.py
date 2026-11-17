@@ -430,6 +430,12 @@ def compute(frames):
             "suggested_tags": ["פירוק חברות", "פירוק מרצון", "רשם החברות", "חיסול", "הליך מזורז"],
             "temporal_coverage": f"{df['approved'].min().strftime('%Y-%m-%d')}/{ref.strftime('%Y-%m-%d')}",
             "spatial_coverage": "ישראל",
+            "seo": {
+                "name": "חברות בפרוק מרצון בהליך מזורז",
+                "title": "פירוק מרצון בהליך מזורז: רשימת החברות",
+                "description": (f"רשימת {n(total)} החברות שבקשתן לפירוק מרצון בהליך מזורז אושרה, "
+                                "עם מועד החיסול הצפוי, עיר ומעמד ברשם החברות."),
+            },
         },
         "kpis": kpis,
         "charts": charts,

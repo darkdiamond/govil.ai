@@ -369,7 +369,7 @@
     var c = echarts.init(el);
     c.setOption(window.GovEcharts.option({
       tooltip: { position: "top", formatter: function (p) {
-        return h.y[p.value[1]] + " · " + h.x[p.value[0]] + ": " + Number(p.value[2]).toLocaleString("he-IL") + " תכשירים";
+        return echarts.format.encodeHTML(h.y[p.value[1]]) + " · " + echarts.format.encodeHTML(h.x[p.value[0]]) + ": " + Number(p.value[2]).toLocaleString("he-IL") + " תכשירים";
       } },
       grid: { left: 8, right: 8, top: 8, bottom: 56, containLabel: true },
       xAxis: { type: "category", data: h.x, splitArea: { show: true },
@@ -403,7 +403,7 @@
       color: [P[0], P[1]],
       tooltip: { trigger: "item", formatter: function (p) {
         var i = p.dataIndex;
-        return d.names[i] + "<br>לקהל הרחב: עד " + d.pub[i] + "%<br>למדבירים בלבד: עד " + d.pro[i] + "%<br>יחס: ×" + d.ratio[i];
+        return echarts.format.encodeHTML(d.names[i]) + "<br>לקהל הרחב: עד " + d.pub[i] + "%<br>למדבירים בלבד: עד " + d.pro[i] + "%<br>יחס: ×" + d.ratio[i];
       } },
       legend: { bottom: 0, data: ["לקהל הרחב", "למדבירים בלבד"] },
       grid: { left: 16, right: 24, top: 16, bottom: 44, containLabel: true },

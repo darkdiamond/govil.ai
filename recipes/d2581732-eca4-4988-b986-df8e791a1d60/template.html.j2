@@ -292,7 +292,7 @@
     c.setOption(window.GovEcharts.option({
       color: P,
       tooltip: { trigger: "item", formatter: function (p) {
-        return p.name + ": " + p.value.toLocaleString("he-IL") + " ישובים (" + d.themes[p.dataIndex] + ")";
+        return p.name + ": " + p.value.toLocaleString("he-IL") + " ישובים (" + echarts.format.encodeHTML(d.themes[p.dataIndex]) + ")";
       } },
       grid: { left: 16, right: 40, top: 16, bottom: 24, containLabel: true },
       xAxis: { type: "value", splitNumber: 4, axisLabel: { hideOverlap: true } },
@@ -358,7 +358,7 @@
       color: window.GOVIL_PALETTE,
       tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
         var i = ps[0].dataIndex;
-        return d.names[i] + "<br>ממוספרים: " + d.numbered[i].toLocaleString("he-IL") + " (" + d.numbered_pct[i] +
+        return echarts.format.encodeHTML(d.names[i]) + "<br>ממוספרים: " + d.numbered[i].toLocaleString("he-IL") + " (" + d.numbered_pct[i] +
           "%)<br>בעלי שם: " + d.named[i].toLocaleString("he-IL");
       } },
       legend: { top: 0 },

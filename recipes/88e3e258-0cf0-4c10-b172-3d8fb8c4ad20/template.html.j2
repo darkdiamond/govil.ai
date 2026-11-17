@@ -252,7 +252,7 @@
     c6.setOption(window.GovEcharts.option({
       tooltip: { position: "top", formatter: function (p) {
         var v = p.value[2] === "-" ? 0 : p.value[2];
-        return hm.cats[p.value[1]] + ", " + hm.years[p.value[0]] + ": " + v;
+        return echarts.format.encodeHTML(hm.cats[p.value[1]]) + ", " + echarts.format.encodeHTML(hm.years[p.value[0]]) + ": " + v;
       } },
       grid: { left: 16, right: 16, top: 16, bottom: 72, containLabel: true },
       xAxis: { type: "category", data: hm.years, splitArea: { show: true }, axisLabel: { rotate: 45 } },

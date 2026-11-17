@@ -285,7 +285,7 @@
     var c = echarts.init(document.getElementById("chart-heat"));
     c.setOption(window.GovEcharts.option({
       tooltip: { position: "top", formatter: function (p) {
-        return h.months[p.data[0]] + " " + h.years[p.data[1]] + "<br>" + p.data[2].toLocaleString("he-IL") + " כלי רכב";
+        return echarts.format.encodeHTML(h.months[p.data[0]]) + " " + echarts.format.encodeHTML(h.years[p.data[1]]) + "<br>" + p.data[2].toLocaleString("he-IL") + " כלי רכב";
       } },
       grid: { left: 8, right: 16, top: 8, bottom: 56, containLabel: true },
       xAxis: { type: "category", data: h.months, splitArea: { show: true }, axisLabel: { interval: 0, rotate: 45, fontSize: 10 } },

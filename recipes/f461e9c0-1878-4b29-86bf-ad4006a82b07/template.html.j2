@@ -482,7 +482,7 @@
     c.setOption(window.GovEcharts.option({
       tooltip: { position: "top", formatter: function (p) {
         var v = p.data;
-        return E(d.stations[v[1]]) + " (" + E(d.streams[v[1]]) + "), " + d.years[v[0]] + "<br>" + v[3] + " דגימות" +
+        return E(d.stations[v[1]]) + " (" + E(d.streams[v[1]]) + "), " + E(d.years[v[0]]) + "<br>" + v[3] + " דגימות" +
           (v[4] ? "<br>חציון BOD: " + E(v[4]) + " מ״ג/ל׳" : "<br>ללא מדידת BOD");
       } },
       grid: { left: 8, right: 16, top: 8, bottom: 72, containLabel: true },

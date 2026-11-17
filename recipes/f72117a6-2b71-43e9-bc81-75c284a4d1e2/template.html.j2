@@ -245,7 +245,7 @@
       tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
         var p = ps[0], i = p.dataIndex;
         return echarts.format.encodeHTML(r.names[i]) + "<br/>" + qf(r.values[i]) + UNIT + "<br/>" +
-          r.dates[i] + (r.recon[i] ? " (משוחזר)" : "");
+          echarts.format.encodeHTML(r.dates[i]) + (r.recon[i] ? " (משוחזר)" : "");
       } },
       grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
       xAxis: { type: "value", name: "מ״ק/שנייה" },
@@ -347,7 +347,7 @@
     var c = echarts.init(document.getElementById("chart-heat"));
     c.setOption(window.GovEcharts.option({
       tooltip: { position: "top", formatter: function (p) {
-        return h.months[p.value[0]] + " " + h.years[p.value[1]] + ": " + p.value[2] + " תחנות בשיטפון";
+        return echarts.format.encodeHTML(h.months[p.value[0]]) + " " + echarts.format.encodeHTML(h.years[p.value[1]]) + ": " + p.value[2] + " תחנות בשיטפון";
       } },
       grid: { left: 16, right: 16, top: 16, bottom: 72, containLabel: true },
       xAxis: { type: "category", data: h.months, splitArea: { show: true }, axisLabel: { interval: 0, rotate: 45 } },

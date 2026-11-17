@@ -182,7 +182,7 @@
     var h = {{ model.charts.heat | tojson }};
     var c = echarts.init(document.getElementById("chart-heat"));
     c.setOption(window.GovEcharts.option({
-      tooltip: { position: "top", formatter: function (p) { return h.months[p.value[0]] + "/" + h.years[p.value[1]] + ": " + p.value[2]; } },
+      tooltip: { position: "top", formatter: function (p) { return echarts.format.encodeHTML(h.months[p.value[0]]) + "/" + echarts.format.encodeHTML(h.years[p.value[1]]) + ": " + p.value[2]; } },
       grid: { left: 16, right: 16, top: 16, bottom: 64, containLabel: true },
       xAxis: { type: "category", data: h.months, splitArea: { show: true } },
       yAxis: { type: "category", data: h.years, splitArea: { show: true } },

@@ -579,6 +579,12 @@ def compute(frames):
             "suggested_tags": ["הגנת הפרטיות", "מאגרי מידע", "מידע אישי", "רישום", "משרד המשפטים"],
             "temporal_coverage": f"{first_year}/{ref.strftime('%Y-%m-%d')}",
             "spatial_coverage": "ישראל",
+            "seo": {
+                "name": "מאגר פנקס מאגרי המידע",
+                "title": "פנקס מאגרי המידע: מאגרי מידע אישי רשומים",
+                "description": (f"{n(total)} מאגרי מידע אישי הרשומים ברשות להגנת הפרטיות: בעל המאגר, "
+                                "מטרתו, סוגי המידע, מחזיקים חיצוניים והעברה לחו״ל."),
+            },
         },
         "kpis": kpis,
         "charts": charts,

@@ -258,7 +258,7 @@
           trigger: "item",
           formatter: function (p) {
             const r = d[p.dataIndex];
-            let s = echarts.format.encodeHTML(r.name) + "<br/>שנה: " + r.year +
+            let s = echarts.format.encodeHTML(r.name) + "<br/>שנה: " + echarts.format.encodeHTML(r.year) +
               "<br/>שיעור עמידה: " + r.rate.toFixed(1) + "%<br/>מקרים: " + r.n.toLocaleString("he-IL");
             if (r.target !== null) { s += "<br/>יעד: " + r.target.toFixed(0) + "%"; }
             return s + "<br/>" + statusText[r.status];
@@ -342,7 +342,7 @@
         tooltip: {
           position: "top",
           formatter: function (p) {
-            return echarts.format.encodeHTML(d.names[p.value[1]]) + "<br/>" + d.months[p.value[0]] +
+            return echarts.format.encodeHTML(d.names[p.value[1]]) + "<br/>" + echarts.format.encodeHTML(d.months[p.value[0]]) +
               ": " + p.value[2].toFixed(0) + " (ממוצע = 100)";
           }
         },

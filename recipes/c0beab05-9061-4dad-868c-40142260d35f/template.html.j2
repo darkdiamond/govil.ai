@@ -274,7 +274,7 @@
     var c5 = echarts.init(document.getElementById("chart-heat"));
     c5.setOption(window.GovEcharts.option({
       tooltip: { position: "top", formatter: function (p) {
-        return hm.months[p.value[1]] + " " + hm.years[p.value[0]] + ": " + p.value[2];
+        return echarts.format.encodeHTML(hm.months[p.value[1]]) + " " + echarts.format.encodeHTML(hm.years[p.value[0]]) + ": " + p.value[2];
       } },
       grid: { left: 64, right: 24, top: 16, bottom: 72, containLabel: true },
       xAxis: { type: "category", data: hm.years, splitArea: { show: true } },
@@ -314,7 +314,7 @@
     var c8 = echarts.init(document.getElementById("chart-sec-theme"));
     c8.setOption(window.GovEcharts.option({
       tooltip: { position: "top", formatter: function (p) {
-        return st.sectors[p.value[1]] + " · " + st.themes[p.value[0]] + ": " +
+        return echarts.format.encodeHTML(st.sectors[p.value[1]]) + " · " + echarts.format.encodeHTML(st.themes[p.value[0]]) + ": " +
                p.value[2] + "% (" + p.value[3] + ")";
       } },
       grid: { left: 16, right: 16, top: 16, bottom: 72, containLabel: true },

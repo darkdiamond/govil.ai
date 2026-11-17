@@ -393,7 +393,7 @@
     c.setOption(window.GovEcharts.option({
       color: window.GOVIL_PALETTE,
       tooltip: { position: "top", formatter: function (p) {
-        return h.x[p.value[0]] + " " + h.y[p.value[1]] + ": " + p.value[2].toLocaleString("he-IL");
+        return echarts.format.encodeHTML(h.x[p.value[0]]) + " " + echarts.format.encodeHTML(h.y[p.value[1]]) + ": " + p.value[2].toLocaleString("he-IL");
       } },
       grid: { left: 16, right: 16, top: 16, bottom: 72, containLabel: true },
       xAxis: { type: "category", data: h.x, splitArea: { show: true }, axisLabel: { fontSize: 10, interval: 0, rotate: 45 } },

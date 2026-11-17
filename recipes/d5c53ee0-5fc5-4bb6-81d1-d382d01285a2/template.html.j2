@@ -331,7 +331,7 @@
       color: window.GOVIL_PALETTE,
       tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
         var i = p[0].dataIndex;
-        var s = d.x[i] + (i === d.partial_index ? " (שנה חלקית)" : "") + "<br>";
+        var s = echarts.format.encodeHTML(d.x[i]) + (i === d.partial_index ? " (שנה חלקית)" : "") + "<br>";
         p.forEach(function (q) { s += q.marker + q.seriesName + ": " + Number(q.value).toLocaleString("he-IL") + "<br>"; });
         return s + "סך הכול: " + d.total[i].toLocaleString("he-IL");
       } },
@@ -374,7 +374,7 @@
     var c = echarts.init(document.getElementById("chart-heat"));
     c.setOption(window.GovEcharts.option({
       tooltip: { position: "top", formatter: function (p) {
-        return d.months[p.value[1]] + " " + d.years[p.value[0]] + ": " + p.value[2].toLocaleString("he-IL") + " בקשות";
+        return echarts.format.encodeHTML(d.months[p.value[1]]) + " " + echarts.format.encodeHTML(d.years[p.value[0]]) + ": " + p.value[2].toLocaleString("he-IL") + " בקשות";
       } },
       grid: { left: 16, right: 16, top: 16, bottom: 64, containLabel: true },
       xAxis: { type: "category", data: d.years, splitArea: { show: true } },

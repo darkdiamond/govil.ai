@@ -340,7 +340,7 @@
     var c = echarts.init(document.getElementById("chart-reg-heat"));
     c.setOption(window.GovEcharts.option({
       tooltip: { position: "top", formatter: function (p) {
-        return d.x[p.value[0]] + " " + d.y[p.value[1]] + ": " + Number(p.value[2]).toLocaleString("he-IL") + " רכבים";
+        return echarts.format.encodeHTML(d.x[p.value[0]]) + " " + echarts.format.encodeHTML(d.y[p.value[1]]) + ": " + Number(p.value[2]).toLocaleString("he-IL") + " רכבים";
       } },
       grid: { left: 16, right: 16, top: 16, bottom: 64, containLabel: true },
       xAxis: { type: "category", data: d.x, splitArea: { show: true }, axisLabel: { interval: 0, rotate: 45 } },
@@ -478,7 +478,7 @@
       color: window.GOVIL_PALETTE,
       tooltip: { trigger: "axis", formatter: function (p) {
         var i = p[0].dataIndex;
-        return d.x[i] + "<br>חציון: " + d.p50[i].toLocaleString("he-IL") + " ק\"מ<br>רבעונים: "
+        return echarts.format.encodeHTML(d.x[i]) + "<br>חציון: " + d.p50[i].toLocaleString("he-IL") + " ק\"מ<br>רבעונים: "
           + d.p25[i].toLocaleString("he-IL") + " עד " + d.p75[i].toLocaleString("he-IL") + " ק\"מ";
       } },
       grid: { left: 16, right: 16, top: 24, bottom: 24, containLabel: true },

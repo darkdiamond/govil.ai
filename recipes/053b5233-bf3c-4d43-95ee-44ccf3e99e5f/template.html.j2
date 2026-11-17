@@ -215,7 +215,7 @@
     var c = echarts.init(document.getElementById("chart-heat"));
     c.setOption(window.GovEcharts.option({
       tooltip: { position: "top", formatter: function (p) {
-        return d.months[p.value[0]] + " " + d.years[p.value[1]] + ": " + p.value[2] + " עיצומים";
+        return echarts.format.encodeHTML(d.months[p.value[0]]) + " " + echarts.format.encodeHTML(d.years[p.value[1]]) + ": " + p.value[2] + " עיצומים";
       } },
       grid: { left: 16, right: 16, top: 16, bottom: 64, containLabel: true },
       xAxis: { type: "category", data: d.months, splitArea: { show: true }, axisLabel: { interval: 0, rotate: 45 } },

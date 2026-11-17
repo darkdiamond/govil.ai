@@ -235,7 +235,7 @@
     var c3 = echarts.init(document.getElementById("chart-heat"));
     c3.setOption(window.GovEcharts.option({
       tooltip: { position: "top", formatter: function (p) {
-        return h.groups[p.value[1]] + " · " + h.districts[p.value[0]] + ": " + p.value[2] + "% (" + p.value[3] + ")";
+        return echarts.format.encodeHTML(h.groups[p.value[1]]) + " · " + echarts.format.encodeHTML(h.districts[p.value[0]]) + ": " + p.value[2] + "% (" + p.value[3] + ")";
       } },
       grid: { left: 8, right: 16, top: 8, bottom: 72, containLabel: true },
       xAxis: { type: "category", data: h.districts, splitArea: { show: true } },
