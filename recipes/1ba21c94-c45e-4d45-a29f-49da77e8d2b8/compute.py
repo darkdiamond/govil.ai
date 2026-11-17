@@ -44,6 +44,11 @@ def _strip_quotes(s):
     return _clean(s).strip('"“”„').strip()
 
 
+def _mode(counter):
+    """Most common key; ties go to the smallest key."""
+    return min(counter.items(), key=lambda t: (-t[1], t[0]))[0]
+
+
 def _title_ok(raw):
     t = _clean(raw)
     if not t:
@@ -51,7 +56,8 @@ def _title_ok(raw):
     # the last line of a spilled multi-line title: closes a quote it never opened
     if t.endswith('"') and not t.startswith('"'):
         return False
-    return t.count('"') % 2 == 0 or t.startswith('"')
+    # an odd count is a quote opened or closed on another line: the title spilled
+    return t.count('"') % 2 == 0
 
 
 def _authors(raw):
@@ -106,7 +112,8 @@ def _parse(df):
             auth_partial = _clean(auth_raw).startswith('"') and _clean(auth_raw).count('"') == 1
             records.append({
                 "vol": int(m.group(1)), "num": int(m.group(2)), "year": int(y.group(1)),
-                "title": _strip_quotes(title_raw) if ok else "",
+                # balanced quotes belong to the title ('"To Dream Big": ...'): keep them
+                "title": _clean(title_raw) if ok else "",
                 "authors": _authors(auth_raw),
                 "authors_full": not auth_partial,
                 "url": _gov_url(cells),
@@ -143,10 +150,9 @@ def compute(frames):
     issue_rows = []
     for k in issue_keys:
         rs = issues[k]
-        years = Counter(r["year"] for r in rs)
-        year = min(years.items(), key=lambda t: (-t[1], t[0]))[0]
+        year = _mode(Counter(r["year"] for r in rs))
         urls = Counter(r["url"] for r in rs if r["url"])
-        url = min(urls.items(), key=lambda t: (-t[1], t[0]))[0] if urls else None
+        url = _mode(urls) if urls else None
         issue_rows.append({"key": k, "label": _issue_label(*k), "year": year, "n": len(rs), "url": url})
     n_issues = len(issue_rows)
     n_with_pdf = sum(1 for i in issue_rows if i["url"])
@@ -154,25 +160,41 @@ def compute(frames):
     years_all = sorted({r["year"] for r in recs})
     y0, y1 = years_all[0], years_all[-1]
 
+    # by each issue's year, not the records': a stray record year has no issue
     issues_per_year = Counter(i["year"] for i in issue_rows)
     full_size = max(issues_per_year.values())
-    latest_year_issues = issues_per_year[y1]
-    partial_year = y1 if (len(years_all) > 1 and latest_year_issues < full_size) else None
+    last_issue_year = max(issues_per_year)
+    latest_year_issues = issues_per_year[last_issue_year]
+    partial_year = last_issue_year if (len(issues_per_year) > 1 and latest_year_issues < full_size) else None
 
     # ---- genres -------------------------------------------------------
     genre_of = [(_genre(r["title"]) if r["title"] else UNKNOWN) for r in recs]
     genre_counts = Counter(genre_of)
     genres_present = [g for g in GENRE_ORDER if genre_counts.get(g)]
-    genre_series = []
-    for g in genres_present:
-        genre_series.append({"name": g, "data": [sum(1 for r, gg in zip(recs, genre_of) if r["year"] == y and gg == g) for y in years_all]})
+    by_year_genre = Counter((r["year"], g) for r, g in zip(recs, genre_of))
+    genre_series = [{"name": g, "data": [by_year_genre[(y, g)] for y in years_all]} for g in genres_present]
     known = n - genre_counts.get(UNKNOWN, 0)
 
     # ---- authors ------------------------------------------------------
     # The same article listed in two issues (same author set, same year) is
-    # one work: authors and team sizes count it once.
+    # one work: authors and team sizes count it once. Where that author set
+    # has two different readable titles that year (an editor's message in two
+    # issues), each title is its own work.
+    def base_key(r):
+        return (r["year"], frozenset(a.lower() for a in r["authors"]))
+
+    titles_of = defaultdict(set)
+    for r in recs:
+        if r["authors"] and r["title"]:
+            titles_of[base_key(r)].add(r["title"].lower())
+
     def work_key(i, r):
-        return (r["year"], frozenset(a.lower() for a in r["authors"])) if r["authors"] else ("row", i)
+        if not r["authors"]:
+            return ("row", i)
+        b = base_key(r)
+        if r["title"] and len(titles_of[b]) > 1:
+            return b + (r["title"].lower(),)
+        return b
 
     work_issues = defaultdict(set)
     for i, r in enumerate(recs):
@@ -187,7 +209,7 @@ def compute(frames):
             key = a.lower()
             spell[key][a] += 1
             per_author[key].add(work_key(i, r))
-    display = {k: min(c.items(), key=lambda t: (-t[1], t[0]))[0] for k, c in spell.items()}
+    display = {k: _mode(c) for k, c in spell.items()}
     n_authors = len(per_author)
     ranked = sorted(per_author.items(), key=lambda t: (-len(t[1]), display[t[0]]))
     top = [(display[k], len(v), sorted({w[0] for w in v})) for k, v in ranked if len(v) >= 2][:12]
