@@ -5,21 +5,27 @@ Vacancy Survey (how many jobs employers can't fill). Its key measure is the
 supply-to-demand ratio: job seekers per vacancy. Below 1 there are more open
 jobs than people looking for them.
 
-Inputs, all grids of the newest edition:
-  t2   vacancies and ratio by occupation (major groups and selected detailed
-       occupations), one column pair per quarter for the last 5-8 quarters,
-       plus the relative sampling error of the latest ratio
-  t3   vacancies, employed and the three supply components (employed looking
-       for another job, unemployed, out of the labour force but looked for
-       work this year) by major group, one block per quarter of this year
-  t4   chart data: total ratio, ratio in known occupations, vacancies by
-       quarter (about ten quarters)
-  t6, t8, ..., t18  chart data: ratio and vacancies by quarter for each of
-       the seven major occupation groups
+Inputs, all grids of the newest edition. Stems differ between the regular
+edition and the October-December edition that also covers the whole year
+(it inserts three annual tables after t3, so every chart moves), so each
+table is found by its title or header text, never by its stem:
+  occupations  "לוח ... בקבוצות נבחרות": vacancies and ratio by occupation
+       (major groups and selected detailed occupations), one column pair per
+       quarter for the last 5-8 quarters, plus the relative sampling error of
+       the latest ratio
+  supply  "לוח ... רכיבי היצע עבודה": vacancies, employed and the three
+       supply components (employed looking for another job, unemployed, out
+       of the labour force but looked for work this year) by major group, one
+       block per quarter of this year
+  total   chart data titled "סך הכל" with a שנה/רבעון header: total ratio,
+       ratio in known occupations, vacancies by quarter
+  groups  the same chart data for each of the seven major occupation groups
+  annual  year-end edition only: "מספר משרות פנויות והיחס בין היצע לביקוש
+       YYYY-YYYY", the yearly ratio and vacancies since 2012
   releases  the edition list (number, date, headline, link)
-
-The yearly edition (October-December plus the whole year) has a different
-table layout; source.json's title_regex leaves it out.
+The annual twins of the occupation and supply tables ("נתונים שנתיים"), the
+sub-group bar charts and the English tables are not read. A stem the newest
+edition lacks arrives empty and is skipped.
 
 Header rows and columns are found by label (govlib.cbs) and raise when
 missing; data rows are found by pattern, so a missing one shortens a series.
@@ -29,7 +35,7 @@ import re
 import pandas as pd
 from govlib import cbs, fmt
 
-GROUP_TABLES = ("t6", "t8", "t10", "t12", "t14", "t16", "t18")
+HEBREW = re.compile(r"[\u05d0-\u05ea]")
 # Short names for the seven major occupation groups (2011 classification).
 # An unknown name falls through unchanged.
 SHORT = {
@@ -93,7 +99,90 @@ def _signed(v):
     return ("+" if r > 0 else "\u2212") + fmt.num_he(abs(v), 1)
 
 
+# ── locating tables ──────────────────────────────────────────────────────
+
+
+def _head(rows, upto=8):
+    """The text above a table's data: its title and subtitle lines."""
+    return " ".join(c for r in rows[:upto] for c in r if c)
+
+
+def _chart_header(rows):
+    """Index of a chart-data table's שנה/רבעון header row, or None."""
+    for i, r in enumerate(rows[:10]):
+        if "שנה" in r and "רבעון" in r and "יחס בין היצע לביקוש" in r:
+            return i
+    return None
+
+
+def _kind(rows):
+    """What a Hebrew table holds: "occ", "supply", "total", "group",
+    "annual" or None (a table this page doesn't read)."""
+    head = _head(rows)
+    yearly = "נתונים שנתיים" in head
+    if head.find("לוח") >= 0 and not yearly:
+        if "בקבוצות נבחרות" in head:
+            return "occ"
+        if "רכיבי היצע עבודה" in head:
+            return "supply"
+        return None
+    h = _chart_header(rows)
+    if h is not None:
+        above = next((c for c in rows[h - 1] if c), "") if h > 0 else ""
+        return "total" if above == "סך הכל" else "group"
+    if "מספר משרות פנויות והיחס בין היצע לביקוש" in head:
+        return "annual"
+    return None
+
+
+def _tables(frames):
+    """{"occ", "supply", "total", "annual": (name, rows)} and "groups":
+    [(name, rows)], over every non-empty Hebrew table input in stem order
+    (first match wins; groups keep CBS's order, the order of the stems)."""
+    out = {"groups": []}
+    names = sorted((n for n in frames if re.fullmatch(r"t\d+", n)), key=lambda n: int(n[1:]))
+    for n in names:
+        df = frames[n]
+        if df.empty:
+            continue  # an optional stem this edition lacks
+        rows = cbs.grid(df, n)
+        first = next((c for c in rows[0] if c), "") if rows else ""
+        if not HEBREW.search(first):
+            continue  # the English twin of a table (its first line is English)
+        k = _kind(rows)
+        if k == "group":
+            out["groups"].append((n, rows))
+        elif k and k not in out:
+            out[k] = (n, rows)
+    for k in ("occ", "supply", "total"):
+        if k not in out:
+            raise ValueError(f"no {k} table in the newest edition")
+    return out
+
+
 # ── tables ───────────────────────────────────────────────────────────────
+
+
+def _annual(rows, name):
+    """Year-end edition: [{year, ratio, known, vac}] from the yearly chart."""
+    h = cbs.row_with(rows, "יחס בין היצע לביקוש", name=name)
+    ratio = cbs.col_after(rows[h], "יחס בין היצע לביקוש", 0)
+    known = cbs.col_after(rows[h], "במשלחי יד ידועים", 0, contains=True)
+    vac = cbs.col_after(rows[h], "משרות פנויות", 0)
+    ycol = cbs.best_col(rows[h + 1:], lambda v: bool(cbs.YEAR.match(v)))
+    if ycol is None:
+        raise ValueError(f"{name}: no year column")
+    out = []
+    for r in rows[h + 1:]:
+        y = cbs.cell(r, ycol)
+        if not cbs.YEAR.match(y):
+            continue
+        rec = {"year": int(y), "ratio": cbs.val(r, ratio),
+               "known": cbs.val(r, known), "vac": cbs.val(r, vac)}
+        if rec["ratio"] is not None:
+            out.append(rec)
+    out.sort(key=lambda r: r["year"])
+    return out
 
 
 def _series(rows, name, known=False):
@@ -121,18 +210,18 @@ def _series(rows, name, known=False):
     return out, title
 
 
-def _t2(rows):
+def _occupations(rows):
     """Occupations × quarters: [{code, name, level, q: {(y, q): (vac, ratio)}}],
     the quarter list, and the latest ratio's relative sampling error by code."""
-    h = cbs.row_with(rows, "מספר משרות פנויות", name="t2")
+    h = cbs.row_with(rows, "מספר משרות פנויות", name="occupation table")
     qrow = next((i for i in range(h - 1, -1, -1)
                  if sum(bool(QUARTER_HE.match(c)) for c in rows[i]) >= 2), None)
     if qrow is None:
-        raise ValueError("t2: quarter header row not found")
+        raise ValueError("occupation table: quarter header row not found")
     yrow = next((i for i in range(qrow - 1, -1, -1)
                  if any(cbs.YEAR.match(c) for c in rows[i])), None)
     if yrow is None:
-        raise ValueError("t2: year header row not found")
+        raise ValueError("occupation table: year header row not found")
     years = [(j, int(c)) for j, c in enumerate(rows[yrow]) if cbs.YEAR.match(c)]
     cols = []
     for j, c in enumerate(rows[h]):
@@ -142,10 +231,10 @@ def _t2(rows):
         qm = QUARTER_HE.match(cbs.cell(rows[qrow], j))
         yr = [y for yj, y in years if yj <= j]
         if not qm or qm.group(1) not in cbs.ROMAN or not yr:
-            raise ValueError(f"t2: no quarter/year above column {j}")
+            raise ValueError(f"occupation table: no quarter/year above column {j}")
         cols.append(((yr[-1], cbs.ROMAN[qm.group(1)]), j, rj))
     if not cols:
-        raise ValueError("t2: no quarter columns")
+        raise ValueError("occupation table: no quarter columns")
     try:
         err = cbs.col_after(rows[h], "טעות דגימה", 0, contains=True)
     except ValueError:
@@ -178,9 +267,9 @@ def _t2(rows):
     return occ, quarters
 
 
-def _t3(rows):
+def _supply(rows):
     """The newest quarter block: (period, {code: {...}}, total incl. unknown)."""
-    h = cbs.row_with(rows, "Number of job vacancies", name="t3", contains=True)
+    h = cbs.row_with(rows, "Number of job vacancies", name="supply table", contains=True)
     col = {"vac": cbs.col_after(rows[h], "Number of job vacancies", 0, contains=True),
            "emp": cbs.col_after(rows[h], "Employed persons", 0),
            "supply": cbs.col_after(rows[h], "Total supply", 0, contains=True),
@@ -197,10 +286,10 @@ def _t3(rows):
         qm = next((QUARTER_EN.search(c) for c in rows[i] if QUARTER_EN.search(c)), None)
         if qm and qm.group(1) in cbs.ROMAN and i > h:
             if year is None:
-                raise ValueError("t3: quarter block without a year")
+                raise ValueError("supply table: quarter block without a year")
             blocks.append((i, (year, cbs.ROMAN[qm.group(1)])))
     if not blocks:
-        raise ValueError("t3: no quarter block")
+        raise ValueError("supply table: no quarter block")
     for n in range(len(blocks) - 1, -1, -1):
         start, t = blocks[n]
         stop = blocks[n + 1][0] if n + 1 < len(blocks) else len(rows)
@@ -218,7 +307,7 @@ def _t3(rows):
                 total = rec
         if groups and total:
             return t, groups, total
-    raise ValueError("t3: no complete quarter block")
+    raise ValueError("supply table: no complete quarter block")
 
 
 # ── helpers ──────────────────────────────────────────────────────────────
@@ -239,24 +328,23 @@ def _code_key(code):
 
 
 def compute(frames):
-    rel = frames["releases"]
-    rel = rel[rel["RELEASE_DATE"] != ""].sort_values(["RELEASE_DATE", "RELEASE_NO"],
-                                                      kind="stable")
-    if rel.empty:
-        raise ValueError("releases: no edition listed")
-    latest_rel = rel.iloc[-1]
+    latest_rel = cbs.latest_release(frames["releases"])
+    tabs = _tables(frames)
 
-    total, _ = _series(cbs.grid(frames["t4"], "t4"), "t4", known=True)
+    tname, trows = tabs["total"]
+    total, _ = _series(trows, tname, known=True)
     total = [r for r in total if r["ratio"] is not None]
     if not total:
-        raise ValueError("t4: no quarterly rows")
-    groups = []
-    for t in GROUP_TABLES:
-        s, title = _series(cbs.grid(frames[t], t), t)
-        if s:
+        raise ValueError(f"{tname}: no quarterly rows")
+    groups, seen_groups = [], set()
+    for t, grows in tabs["groups"]:
+        s, title = _series(grows, t)
+        if s and title not in seen_groups:
+            seen_groups.add(title)
             groups.append({"name": title, "short": short(title), "s": s})
-    occ, quarters = _t2(cbs.grid(frames["t2"], "t2"))
-    t3_t, t3_groups, t3_total = _t3(cbs.grid(frames["t3"], "t3"))
+    occ, quarters = _occupations(tabs["occ"][1])
+    t3_t, t3_groups, t3_total = _supply(tabs["supply"][1])
+    annual = _annual(tabs["annual"][1], tabs["annual"][0]) if "annual" in tabs else []
 
     lt = total[-1]["t"]
     last = total[-1]
@@ -402,6 +490,18 @@ def compute(frames):
         tables["change"] = [[o["name"], _r1(o["q"][q2_prev][1]), _r1(o["q"][q2][1])]
                             for o in moved]
 
+    # ── whole years (year-end edition only) ──────────────────────────────
+    flags["annual"] = len(annual) >= 3
+    if flags["annual"]:
+        charts["annual"] = {"x": [str(r["year"]) for r in annual],
+                            "ratio": [_r2(r["ratio"]) for r in annual],
+                            "known": [_r2(r["known"]) for r in annual],
+                            "vac": [round(r["vac"]) if r["vac"] is not None else None
+                                    for r in annual]}
+        tables["annual"] = [[str(r["year"]), _r1(r["ratio"]), _r1(r["known"]),
+                             fmt.int_he(r["vac"]) if r["vac"] is not None else "–"]
+                            for r in reversed(annual)]
+
     # ── insights ─────────────────────────────────────────────────────────
     insights = []
 
@@ -409,6 +509,13 @@ def compute(frames):
         if text:
             insights.append({"id": iid, "text_he": text})
 
+    if flags["annual"]:
+        ya, yb = annual[-1], annual[-2]
+        if yb["year"] == ya["year"] - 1:
+            add("annual", f"בשנת {ya['year']} כולה היו בממוצע {_r1(ya['ratio'])} מחפשי עבודה "
+                          f"לכל משרה פנויה"
+                          + (f" ו-{fmt.int_he(ya['vac'])} משרות פנויות" if ya["vac"] else "")
+                          + f", לעומת {_r1(yb['ratio'])} בשנת {yb['year']}.")
     if t3_total["vac"]:
         r = t3_total["supply"] / t3_total["vac"]
         add("level", f"{_qin(t3_t)} היו {fmt.num_he(t3_total['supply'], 1)} אלף מחפשי "
@@ -529,6 +636,16 @@ def compute(frames):
                             f"השוק התהדק הכי הרבה."),
             "change_aria": f"שינוי ביחס היצע לביקוש לפי משלח יד, {_qlong(q2_prev)} מול {_qlong(q2)}",
             "change_caption": f"יחס היצע לביקוש לפי משלח יד, {_qlong(q2_prev)} מול {_qlong(q2)}",
+        })
+
+    if flags["annual"]:
+        a0, a1 = annual[0]["year"], annual[-1]["year"]
+        labels.update({
+            "annual_note": (f"ההודעה של הרבעון הרביעי מסכמת גם את השנה כולה. כאן הממוצע "
+                            f"השנתי של היחס בין היצע לביקוש ושל מספר המשרות הפנויות, "
+                            f"{a0} עד {a1}."),
+            "annual_aria": f"יחס היצע לביקוש ומשרות פנויות לפי שנה, {a0} עד {a1}",
+            "annual_caption": f"יחס היצע לביקוש ומשרות פנויות, ממוצע שנתי {a0} עד {a1}",
         })
 
     release = {"no": latest_rel["RELEASE_NO"], "title": latest_rel["TITLE"],

@@ -1,0 +1,94 @@
+{
+  "contract_version": 1,
+  "dataset_id": "cbs-knowledge-commercialization",
+  "recipe_version": 1,
+  "authored_at": "2026-11-17T10:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-03-26T00:00:00Z",
+    "rows": {
+      "t1": 13,
+      "t2": 13,
+      "t3": 13,
+      "t4": 26,
+      "t5": 5,
+      "t6": 5,
+      "t7": 5,
+      "t8": 7,
+      "t9": 0,
+      "t10": 0,
+      "t11": 0,
+      "releases": 4
+    }
+  },
+  "inputs": [
+    {
+      "name": "t1",
+      "by_id": "t1",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t2",
+      "by_id": "t2",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t3",
+      "by_id": "t3",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t4",
+      "by_id": "t4",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t5",
+      "by_id": "t5",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t6",
+      "by_id": "t6",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t7",
+      "by_id": "t7",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t8",
+      "by_id": "t8",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t9",
+      "by_id": "t9",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t10",
+      "by_id": "t10",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t11",
+      "by_id": "t11",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "releases",
+      "by_id": "releases",
+      "required_columns": [
+        "RELEASE_NO",
+        "RELEASE_DATE",
+        "TITLE",
+        "HEADLINE",
+        "PAGE_URL",
+        "REPORT_PDF_URL"
+      ]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": ["100"]
+}

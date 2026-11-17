@@ -1,0 +1,314 @@
+{% import "gov.j2" as gov %}
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+{{ gov.lede(model.labels.lede) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("external-link", "ההודעה האחרונה של הלמ\"ס") }}
+  <p class="m-0 text-sm text-subtle mb-2">{{ model.release.title }} · פורסמה {{ model.release.date }}</p>
+{%- if model.release.headline %}
+  <p class="m-0 mb-3 text-sm text-ink-deep">{{ model.release.headline }}</p>
+{%- endif %}
+  <p class="m-0 text-sm flex flex-wrap gap-4">
+    <a href="{{ model.release.url }}" target="_blank" rel="noopener">להודעה המלאה באתר הלמ"ס</a>
+{%- if model.release.pdf %}
+    <a href="{{ model.release.pdf }}" target="_blank" rel="noopener">לדוח המלא (PDF)</a>
+{%- endif %}
+  </p>
+</section>
+
+<div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
+{%- for key in ["jobs", "jobs_chg", "emp", "emp_chg", "chains"] %}
+{%- if model.kpis[key] is defined %}
+  {{ gov.kpi(model.kpis[key], model.labels[key ~ "_kpi"]) }}
+{%- endif %}
+{%- endfor %}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+{%- if model.flags.trend %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "משרות שכיר ומעסיקים בישראל לאורך השנים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.trend_note }}</p>
+  {{ gov.chart("chart-trend", model.labels.trend_aria, "h-72 md:h-80") }}
+  {{ gov.table("משרות שכיר ומעסיקים פעילים לפי שנה", ["שנה", "משרות שכיר (אלפים)", "מעסיקים פעילים"], model.tables.trend, ltr=(1, 2)) }}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "משרות שכיר לפי מחוז") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.jobs_dist_note }}</p>
+  {{ gov.chart("chart-jobs-dist", model.labels.jobs_dist_aria, "h-80 md:h-[460px]") }}
+  {{ gov.table("משרות שכיר באלפים לפי מחוז ושנה", model.labels.dist_cols, model.tables.jobs_dist, ltr=range(1, model.labels.dist_cols | length) | list) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "מעסיקים פעילים לפי מחוז") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.emp_dist_note }}</p>
+  {{ gov.chart("chart-emp-dist", model.labels.emp_dist_aria, "h-80 md:h-[460px]") }}
+  {{ gov.table("מעסיקים פעילים לפי מחוז ושנה", model.labels.emp_cols, model.tables.emp_dist, ltr=range(1, model.labels.emp_cols | length) | list) }}
+</section>
+
+{%- if model.flags.size %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "גודל המעסיק הממוצע בכל מחוז") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.size_note }}</p>
+  {{ gov.chart("chart-size", model.labels.size_aria, "h-72 md:h-80") }}
+  {{ gov.table("משרות שכיר למעסיק לפי מחוז", ["מחוז", "משרות שכיר למעסיק"], model.tables.size, ltr=(1,)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.growth %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", model.labels.growth_head) }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.growth_note }}</p>
+  {{ gov.chart("chart-growth", model.labels.growth_aria, "h-80 md:h-96") }}
+  {{ gov.table("שינוי באחוזים לפי מחוז", model.labels.growth_cols, model.tables.growth, ltr=(1, 2)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.jobs_ind %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "משרות שכיר לפי ענף כלכלי") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.jobs_ind_note }}</p>
+  {{ gov.chart("chart-jobs-ind", model.labels.jobs_ind_aria, "h-[620px]") }}
+  {{ gov.table("משרות שכיר באלפים לפי ענף כלכלי", model.labels.jobs_ind_cols, model.tables.jobs_ind, ltr=(1, 2, 3)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.ind_chg %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", model.labels.ind_chg_head) }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.ind_chg_note }}</p>
+  {{ gov.chart("chart-ind-chg", model.labels.ind_chg_aria, "h-[620px]") }}
+  {{ gov.table("שינוי במשרות השכיר לפי ענף כלכלי", model.labels.jobs_ind_cols, model.tables.jobs_ind, ltr=(1, 2, 3)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.emp_ind %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "מעסיקים פעילים לפי ענף כלכלי") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.emp_ind_note }}</p>
+  {{ gov.chart("chart-emp-ind", model.labels.emp_ind_aria, "h-[620px]") }}
+  {{ gov.table("מעסיקים פעילים לפי ענף כלכלי", model.labels.emp_ind_cols, model.tables.emp_ind, ltr=(1, 2, 3)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.chains %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "רשתות ארציות: כמה מהמשרות בכל ענף") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.chains_note }}</p>
+  {{ gov.chart("chart-chains", model.labels.chains_aria, "h-[620px]") }}
+  {{ gov.table("רשתות ארציות לפי ענף כלכלי", ["ענף", "רשתות", "סניפים", "משרות שכיר ברשתות (אלפים)", "חלק ממשרות הענף"], model.tables.chains, ltr=(1, 2, 3, 4)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.branches %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "פתיחות וסגירות של סניפים לפי מחוז") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.branches_note }}</p>
+  {{ gov.chart("chart-branches", model.labels.branches_aria, "h-80 md:h-96") }}
+  {{ gov.table("פתיחות וסגירות של סניפים לפי מחוז ושנה", model.labels.branch_cols, model.tables.branches, ltr=range(1, model.labels.branch_cols | length) | list) }}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("tag", "על הנתונים") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm text-subtle marker:text-brand">
+    <li>הנתונים מתוך ההודעה השנתית לתקשורת של הלשכה המרכזית לסטטיסטיקה, "דמוגרפיה של מעסיקים: אומדני משרות שכיר ומספר מעסיקים בפילוח גאוגרפי". האומדנים משלבים את מרשם העסקים עם מרשם הדירות והמבנים, כדי לשייך משרות ועסקים למיקום גאוגרפי.</li>
+    <li>האומדנים עוסקים במעסיקים בלבד: עסקים שהעסיקו עובדים שכירים. עצמאים ללא עובדים אינם נכללים, וההודעה על עסקים של עצמאים מתפרסמת בנפרד.</li>
+    <li>שמות הענפים והמחוזות מוצגים כפי שהם מופיעים בכל לוח, ולכן עשויים להיות מעט שונים בין הלוחות. שנות הפתיחות והסגירות של סניפים אינן זהות בהכרח.</li>
+    <li>הלוחות בהודעה משתנים משנה לשנה. העמוד מציג את הלוחות שמופיעים בהודעה האחרונה, ונתוני השנים הקודמות בה עשויים להיות מעודכנים לעומת הודעות קודמות.</li>
+  </ul>
+</section>
+
+<script>
+{%- if model.flags.trend %}
+  (function () {
+    const d = {{ model.charts.trend | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-trend"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[3]],
+      tooltip: { trigger: "axis" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: [
+        { type: "value", scale: true, name: "אלפי משרות", axisLabel: { formatter: (v) => v.toLocaleString("he-IL") } },
+        { type: "value", scale: true, name: "מעסיקים", splitLine: { show: false }, axisLabel: { formatter: (v) => (v / 1000).toLocaleString("he-IL") + " אלף" } }
+      ],
+      series: [
+        { type: "bar", name: "משרות שכיר (אלפים)", data: d.jobs, barMaxWidth: 48,
+          tooltip: { valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL", { maximumFractionDigits: 1 }) + " אלף" } },
+        { type: "line", name: "מעסיקים פעילים", yAxisIndex: 1, data: d.emp, lineStyle: { width: 3 },
+          tooltip: { valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL") } }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- for cid, key, unit, dec in [("chart-jobs-dist", "jobs_dist", " אלף משרות", 1), ("chart-emp-dist", "emp_dist", " מעסיקים", 0)] %}
+  (function () {
+    const d = {{ model.charts[key] | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const n = d.years.length;
+    const chart = echarts.init(document.getElementById({{ cid | tojson }}));
+    chart.setOption(window.GovEcharts.option({
+      color: d.years.map((y, k) => k === n - 1 ? pal[0] : pal[Math.min(9, 6 + (n - 2 - k))]),
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+        valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL", { maximumFractionDigits: {{ dec }} }) + {{ unit | tojson }} },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 32, bottom: 8, containLabel: true },
+      xAxis: { type: "value", splitNumber: 4, axisLabel: { formatter: (v) => v >= 10000 ? (v / 1000).toLocaleString("he-IL") + " אלף" : v.toLocaleString("he-IL") } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 90, overflow: "break" } },
+      series: d.years.map((y, k) => ({ type: "bar", name: y, data: d.series[k] }))
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endfor %}
+{%- if model.flags.size %}
+  (function () {
+    const d = {{ model.charts.size | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-size"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => Number(v).toLocaleString("he-IL", { maximumFractionDigits: 1 }) + " משרות למעסיק" },
+      grid: { left: 16, right: 48, top: 28, bottom: 8, containLabel: true },
+      xAxis: { type: "value", axisLabel: { show: false }, splitLine: { show: false } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 90, overflow: "break" } },
+      series: [{
+        type: "bar", data: d.values,
+        label: { show: true, position: "right", formatter: (p) => Number(p.value).toLocaleString("he-IL", { maximumFractionDigits: 1 }) },
+        markLine: d.national == null ? undefined : { symbol: "none", silent: true, lineStyle: { color: "#6c757d", type: "dashed" },
+          label: { formatter: "ממוצע ארצי", position: "start", color: "#6c757d" }, data: [{ xAxis: d.national }] }
+      }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.growth %}
+  (function () {
+    const d = {{ model.charts.growth | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-growth"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[3]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => v == null ? "" : (v > 0 ? "+" : "") + Number(v).toFixed(1) + "%" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 32, bottom: 8, containLabel: true },
+      xAxis: { type: "value", axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 90, overflow: "break" } },
+      series: [
+        { type: "bar", name: "משרות שכיר", data: d.jobs },
+        { type: "bar", name: "מעסיקים פעילים", data: d.emp }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.jobs_ind %}
+  (function () {
+    const d = {{ model.charts.jobs_ind | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-jobs-ind"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+        formatter: (ps) => { const p = ps[0]; const c = d.chg[p.dataIndex];
+          return echarts.format.encodeHTML(p.name) + "<br>" + Number(p.value).toLocaleString("he-IL", { maximumFractionDigits: 1 }) + " אלף משרות"
+            + (c == null ? "" : "<br>שינוי בשנה האחרונה: " + (c > 0 ? "+" : "") + Number(c).toFixed(1) + "%"); } },
+      grid: { left: 16, right: 56, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: "value", axisLabel: { show: false }, splitLine: { show: false } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 130, overflow: "break", fontSize: 11 } },
+      series: [{ type: "bar", data: d.values,
+        label: { show: true, position: "right", formatter: (p) => Number(p.value).toLocaleString("he-IL", { maximumFractionDigits: 0 }) } }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.ind_chg %}
+  (function () {
+    const d = {{ model.charts.ind_chg | tojson }};
+    const chart = echarts.init(document.getElementById("chart-ind-chg"));
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => (v > 0 ? "+" : "") + Number(v).toFixed(1) + "%" },
+      grid: { left: 16, right: 16, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: "value", axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", data: d.names, axisLabel: { width: 130, overflow: "break", fontSize: 11 } },
+      series: [{ type: "bar",
+        data: d.values.map((v) => ({ value: v, itemStyle: { color: v < 0 ? "#dc3545" : "#198754" } })) }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.emp_ind %}
+  (function () {
+    const d = {{ model.charts.emp_ind | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-emp-ind"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[2]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+        formatter: (ps) => { const p = ps[0]; const c = d.chg[p.dataIndex];
+          return echarts.format.encodeHTML(p.name) + "<br>" + Number(p.value).toLocaleString("he-IL") + " מעסיקים"
+            + (c == null ? "" : "<br>שינוי בשנה האחרונה: " + (c > 0 ? "+" : "") + Number(c).toFixed(1) + "%"); } },
+      grid: { left: 16, right: 64, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: "value", axisLabel: { show: false }, splitLine: { show: false } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 130, overflow: "break", fontSize: 11 } },
+      series: [{ type: "bar", data: d.values,
+        label: { show: true, position: "right", formatter: (p) => Number(p.value).toLocaleString("he-IL") } }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.chains %}
+  (function () {
+    const d = {{ model.charts.chains | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-chains"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+        formatter: (ps) => { const p = ps[0]; const b = d.branches[p.dataIndex];
+          return echarts.format.encodeHTML(p.name) + "<br>" + Number(p.value).toFixed(1) + "% מהמשרות ברשתות ארציות"
+            + (b == null ? "" : "<br>" + Number(b).toLocaleString("he-IL") + " סניפים"); } },
+      grid: { left: 16, right: 48, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 130, overflow: "break", fontSize: 11 } },
+      series: [{ type: "bar", data: d.values,
+        label: { show: true, position: "right", formatter: (p) => Number(p.value).toFixed(0) + "%" } }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.branches %}
+  (function () {
+    const d = {{ model.charts.branches | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const openC = [pal[3], pal[0]], closeC = ["#adb5bd", "#6c757d"];
+    let io = 0, ic = 0;
+    const nOpen = d.series.filter((s) => s.kind === "open").length;
+    const nClose = d.series.length - nOpen;
+    const series = d.series.map((s) => {
+      const c = s.kind === "open" ? openC[Math.max(0, openC.length - nOpen + io++)] || pal[0]
+                                  : closeC[Math.max(0, closeC.length - nClose + ic++)] || "#6c757d";
+      return { type: "bar", name: s.name, data: s.data, itemStyle: { color: c } };
+    });
+    const chart = echarts.init(document.getElementById("chart-branches"));
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL") + " סניפים" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 56, bottom: 8, containLabel: true },
+      xAxis: { type: "category", data: d.names, axisLabel: { interval: 0, width: 60, overflow: "break", fontSize: 11 } },
+      yAxis: { type: "value" },
+      series: series
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+</script>

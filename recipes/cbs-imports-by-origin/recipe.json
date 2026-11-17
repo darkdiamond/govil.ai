@@ -1,0 +1,79 @@
+{
+  "contract_version": 1,
+  "dataset_id": "cbs-imports-by-origin",
+  "recipe_version": 1,
+  "authored_at": "2026-11-17T12:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-05-28T00:00:00Z",
+    "rows": {
+      "t1": 146,
+      "t2": 146,
+      "t3": 146,
+      "t4": 146,
+      "t5": 146,
+      "t6": 146,
+      "releases": 4
+    }
+  },
+  "inputs": [
+    {
+      "name": "t1",
+      "by_id": "t1",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t2",
+      "by_id": "t2",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t3",
+      "by_id": "t3",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t4",
+      "by_id": "t4",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t5",
+      "by_id": "t5",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t6",
+      "by_id": "t6",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t7",
+      "by_id": "t7",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t8",
+      "by_id": "t8",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t9",
+      "by_id": "t9",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "releases",
+      "by_id": "releases",
+      "required_columns": [
+        "RELEASE_NO",
+        "RELEASE_DATE",
+        "TITLE",
+        "HEADLINE",
+        "PAGE_URL",
+        "REPORT_PDF_URL"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

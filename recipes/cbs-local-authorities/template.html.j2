@@ -1,0 +1,286 @@
+{% import "gov.j2" as gov %}
+{%- macro ledes(key) -%}
+{%- for t in model.ledes.get(key, []) %}
+  <p class="m-0 mb-2 text-ink-deep">{{ t }}</p>
+{%- endfor %}
+{%- endmacro %}
+{%- macro section(key, icon, title, h="h-72 md:h-80") -%}
+{%- if model.flags.get(key) %}
+<section class="card p-5 mb-6">
+  {{ gov.head(icon, title) }}
+  {{ ledes(key) }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels[key ~ "_note"] }}</p>
+  {{ gov.chart("chart-" ~ key, title ~ ": " ~ model.labels[key ~ "_note"], h) }}
+  {{ gov.table(title, model.labels[key ~ "_cols"], model.tables[key], ltr=range(1, model.labels[key ~ "_cols"] | length) | list) }}
+</section>
+{%- endif %}
+{%- endmacro %}
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+{{ gov.lede(model.labels.lede) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("external-link", "המהדורה האחרונה של הלמ\"ס") }}
+  <p class="m-0 text-sm text-subtle mb-2">{{ model.release.title }} · פורסמה {{ model.release.date }}</p>
+{%- if model.release.headline %}
+  <p class="m-0 mb-3 font-semibold text-ink-deep">{{ model.release.headline }}</p>
+{%- endif %}
+  <p class="m-0 text-sm flex flex-wrap gap-4">
+    <a href="{{ model.release.url }}" target="_blank" rel="noopener">להודעה המלאה באתר הלמ"ס</a>
+{%- if model.release.pdf %}
+    <a href="{{ model.release.pdf }}" target="_blank" rel="noopener">לפרסום המלא (PDF)</a>
+{%- endif %}
+  </p>
+</section>
+
+<div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
+{%- for key in ["muni", "life", "life_top", "receipts", "receipts_chg", "gov_share", "edu_pay"] %}
+{%- if model.kpis[key] is defined %}
+  {{ gov.kpi(model.kpis[key], model.labels[key ~ "_kpi"]) }}
+{%- endif %}
+{%- endfor %}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+{%- if model.flags.get("cities") %}
+<section class="card p-5 mb-6">
+  {{ gov.head("building-2", "השוואת הערים הגדולות") }}
+  {{ ledes("cities") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.cities_note }}</p>
+  <div id="city-metric" class="flex flex-wrap gap-2 mb-3" role="group" aria-label="בחירת מדד להשוואה">
+{%- for m in model.charts.cities.metrics %}
+    <button type="button" class="rounded-gov-pill border border-rule px-3 py-1 text-sm" data-k="{{ loop.index0 }}" aria-pressed="{{ 'true' if loop.first else 'false' }}">{{ m.label }}</button>
+{%- endfor %}
+  </div>
+  <p id="city-title" class="m-0 text-sm font-semibold text-ink-deep mb-2">{{ model.charts.cities.metrics[0].title }}</p>
+  {{ gov.chart("chart-cities", "דירוג הערים הגדולות לפי המדד שנבחר", "h-[900px] md:h-[960px]") }}
+  {{ gov.table("מדדים לכל עיר", model.labels.cities_cols, model.tables.cities, ltr=range(1, model.labels.cities_cols | length) | list) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.get("mig") %}
+<section class="card p-5 mb-6">
+  {{ gov.head("trending-up", "מאזן ההגירה הפנימית בערים הגדולות") }}
+  {{ ledes("mig") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.mig_note }}</p>
+  {{ gov.chart("chart-mig", "מאזן הגירה פנימית לכל 1,000 תושבים בערים הגדולות", "h-[520px] md:h-[560px]") }}
+  {{ gov.table("מאזן הגירה פנימית לכל 1,000 תושבים", ["עיר", "מאזן הגירה ל-1,000 תושבים"], model.tables.mig, ltr=(1,)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.get("flows") %}
+<section class="card p-5 mb-6">
+  {{ gov.head("map-pin", "מי עובר אל הערים הגדולות ומי עוזב אותן") }}
+  {{ ledes("flows") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.flows_note }}</p>
+  {{ gov.chart("chart-flows", "נכנסים ויוצאים בהגירה פנימית בערים הגדולות", "h-80 md:h-96") }}
+  {{ gov.table("נכנסים, יוצאים ומאזן", ["עיר", "נכנסים", "יוצאים", "מאזן"], model.tables.flows, ltr=(1, 2, 3)) }}
+  {{ gov.table("היישובים המובילים שמהם הגיעו ואליהם עזבו", ["עיר", "הגיעו בעיקר מ", "עזבו בעיקר אל"], model.tables.partners) }}
+</section>
+{%- endif %}
+
+{{ section("status", "chart-bar", "האוכלוסייה לפי סוג רשות", "h-72 md:h-80") }}
+{{ section("pop", "chart-bar", "האוכלוסייה לפי אשכולות", "h-72 md:h-80") }}
+{{ section("natural", "trending-up", "ריבוי טבעי לפי אשכול חברתי-כלכלי") }}
+{{ section("wage_se", "database", "שכר ממוצע לפי אשכול חברתי-כלכלי ומין") }}
+{{ section("wage_peri", "database", "שכר ממוצע לפי אשכול פריפריאליות ומין") }}
+{{ section("bagrut_cl", "circle-check", "זכאות לבגרות לפי אשכול") }}
+{{ section("edu", "chart-bar", "רמת ההשכלה לפי אשכול") }}
+{{ section("dropout", "triangle-alert", "נשירה מבתי הספר לפי אשכול") }}
+{{ section("rent_cl", "building-2", "דירות בשכירות לפי אשכול") }}
+{{ section("unemp", "database", "מקבלי דמי אבטלה לפי אשכול") }}
+{{ section("waste", "tag", "פסולת ומחזור לפי אשכול") }}
+{{ section("receipts", "trending-up", "תקבולי הרשויות לאורך השנים", "h-72 md:h-96") }}
+{{ section("sources", "list", "מקורות ההכנסה בתקציב הרגיל", "h-[420px] md:h-[460px]") }}
+{{ section("sourcesx", "list", "מקורות ההכנסה בתקציב הבלתי רגיל", "h-[420px] md:h-[460px]") }}
+{{ section("payments", "chart-bar", "תשלומי הרשויות לאורך השנים", "h-80 md:h-[460px]") }}
+{{ section("domains", "list", "על מה הרשויות מוציאות", "h-72 md:h-80") }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("tag", "על הנתונים") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm text-subtle marker:text-brand">
+    <li>המקור: ההודעה השנתית לתקשורת "הרשויות המקומיות בישראל" של הלשכה המרכזית לסטטיסטיקה (הלמ"ס). העמוד מציג את המהדורה האחרונה ומתעדכן כשמתפרסמת מהדורה חדשה.</li>
+    <li>אשכול חברתי-כלכלי: דירוג הרשויות מ-1 (הנמוך ביותר) עד 10 (הגבוה ביותר) לפי מאפייני התושבים. אשכול פריפריאליות: דירוג לפי המרחק ממרכזי הפעילות במשק, מ-1 (המרוחק ביותר) עד 10.</li>
+    <li>התקציב הרגיל ממן את השירותים השוטפים של הרשות (חינוך, רווחה, תברואה ועוד). התקציב הבלתי רגיל ממן פרויקטים של פיתוח ובנייה. הסכומים במחירים שוטפים, ללא ניכוי עליית המחירים.</li>
+    <li>כל מהדורה כוללת שנות נתונים שונות לכל נושא (למשל נתוני שכר והשכלה מוקדמים בשנה מנתוני האוכלוסייה), והשנה מצוינת ליד כל תרשים.</li>
+  </ul>
+</section>
+
+<script>
+  (function () {
+    const pal = window.GOVIL_PALETTE;
+    const charts = [];
+    const fmtv = (d) => (v) => v == null ? "" : (v < 0 ? "\u200e\u2212" : "") + Math.abs(Number(v)).toLocaleString("he-IL", { maximumFractionDigits: d });
+    const narrow = () => window.innerWidth < 640;
+    function mount(id) {
+      const el = document.getElementById(id);
+      if (!el) return null;
+      const c = echarts.init(el);
+      charts.push(c);
+      return c;
+    }
+    function bars(id, d, o) {
+      const c = mount(id);
+      if (!c) return;
+      o = o || {};
+      const f = fmtv(o.digits == null ? 1 : o.digits);
+      const unit = o.unit || "";
+      const cat = { type: "category", data: d.x, axisLabel: o.horizontal ? { width: 110, overflow: "truncate" } : { interval: 0, rotate: d.x.length > 6 ? 40 : 0 } };
+      const val = { type: "value", max: o.max, axisLabel: { formatter: (v) => f(v) + unit } };
+      if (o.horizontal) cat.inverse = true;
+      c.setOption(window.GovEcharts.option({
+        color: o.color || pal,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => v == null ? "" : f(v) + unit },
+        legend: d.series.length > 1 ? { top: 0, type: "scroll" } : undefined,
+        grid: { left: 16, right: 24, top: d.series.length > 1 ? 48 : 16, bottom: 16, containLabel: true },
+        xAxis: o.horizontal ? val : cat,
+        yAxis: o.horizontal ? cat : val,
+        series: d.series.map((s) => ({ type: "bar", name: s.name, data: s.data, stack: o.stack ? (s.stack || "all") : s.stack, barMaxWidth: 36 }))
+      }));
+    }
+{%- if model.flags.get("cities") %}
+    (function () {
+      const d = {{ model.charts.cities | tojson }};
+      const c = mount("chart-cities");
+      const title = document.getElementById("city-title");
+      const btns = Array.prototype.slice.call(document.querySelectorAll("#city-metric button"));
+      function show(k) {
+        const m = d.metrics[k];
+        const f = fmtv(1);
+        const u = m.unit === "%" ? "%" : "";
+        title.textContent = m.title;
+        btns.forEach((b, i) => {
+          b.setAttribute("aria-pressed", i === k ? "true" : "false");
+          b.style.background = i === k ? "#0068f5" : "";
+          b.style.color = i === k ? "#fff" : "";
+        });
+        const vals = m.y.filter((v) => v != null);
+        const lo = Math.min.apply(null, vals.concat(m.national == null ? [] : [m.national]));
+        c.setOption(window.GovEcharts.option({
+          color: [pal[0]],
+          tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => v == null ? "" : f(v) + (u || " " + m.unit) },
+          grid: { left: 16, right: 40, top: 16, bottom: 16, containLabel: true },
+          xAxis: { type: "value", min: m.unit === "שנים" ? Math.floor(lo - 1) : 0, axisLabel: { formatter: (v) => f(v) + u } },
+          yAxis: { type: "category", data: m.x, inverse: true, axisLabel: { interval: 0, width: narrow() ? 78 : 140, overflow: "truncate", fontSize: narrow() ? 11 : 12 } },
+          series: [{
+            type: "bar", name: m.label, barMaxWidth: 18,
+            data: m.y.map((v) => ({ value: v, itemStyle: { color: m.national != null && v < m.national ? pal[2] : pal[0] } })),
+            label: { show: true, position: "right", formatter: (p) => f(p.value) + u, fontSize: 11 },
+            markLine: m.national == null ? undefined : { symbol: "none", silent: true, lineStyle: { type: "dashed", color: "#0c3058" }, label: { formatter: "ממוצע ארצי " + f(m.national) + u, position: "start" }, data: [{ xAxis: m.national }] }
+          }]
+        }), true);
+      }
+      btns.forEach((b, i) => b.addEventListener("click", () => show(i)));
+      show(0);
+    })();
+{%- endif %}
+{%- if model.flags.get("mig") %}
+    (function () {
+      const d = {{ model.charts.mig | tojson }};
+      const c = mount("chart-mig");
+      const f = fmtv(1);
+      c.setOption(window.GovEcharts.option({
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => f(v) + " ל-1,000 תושבים" },
+        grid: { left: 16, right: 40, top: 16, bottom: 16, containLabel: true },
+        xAxis: { type: "value", axisLabel: { formatter: (v) => f(v) } },
+        yAxis: { type: "category", data: d.x, axisLabel: { interval: 0, width: narrow() ? 78 : 140, overflow: "truncate" } },
+        series: [{ type: "bar", name: "מאזן הגירה", barMaxWidth: 18,
+          data: d.y.map((v) => ({ value: v, itemStyle: { color: v < 0 ? pal[2] : pal[0] } })),
+          label: { show: true, position: "right", formatter: (p) => f(p.value), fontSize: 11 } }]
+      }));
+    })();
+{%- endif %}
+{%- if model.flags.get("flows") %}
+    (function () {
+      const d = {{ model.charts.flows | tojson }};
+      const c = mount("chart-flows");
+      const f = fmtv(0);
+      c.setOption(window.GovEcharts.option({
+        color: [pal[0], pal[2], pal[1]],
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => f(Math.abs(v)) },
+        legend: { top: 0 },
+        grid: { left: 16, right: 24, top: 48, bottom: 16, containLabel: true },
+        xAxis: { type: "value", axisLabel: { formatter: (v) => f(Math.abs(v)) } },
+        yAxis: { type: "category", data: d.x, axisLabel: { interval: 0 } },
+        series: [
+          { type: "bar", name: "נכנסים", stack: "f", data: d.in, barMaxWidth: 22 },
+          { type: "bar", name: "יוצאים", stack: "f", data: d.out, barMaxWidth: 22 },
+          { type: "scatter", name: "מאזן", data: d.net, symbolSize: 10, tooltip: { valueFormatter: (v) => f(v) } }
+        ]
+      }));
+    })();
+{%- endif %}
+{%- if model.flags.get("status") %}
+    bars("chart-status", {{ model.charts.status | tojson }}, { unit: "%", stack: true, max: 100 });
+{%- endif %}
+{%- if model.flags.get("pop") %}
+    bars("chart-pop", {{ model.charts["pop"] | tojson }}, { unit: "%" });
+{%- endif %}
+{%- if model.flags.get("natural") %}
+    bars("chart-natural", {{ model.charts.natural | tojson }}, {});
+{%- endif %}
+{%- if model.flags.get("wage_se") %}
+    bars("chart-wage_se", {{ model.charts.wage_se | tojson }}, { digits: 0, unit: " ₪" });
+{%- endif %}
+{%- if model.flags.get("wage_peri") %}
+    bars("chart-wage_peri", {{ model.charts.wage_peri | tojson }}, { digits: 0, unit: " ₪" });
+{%- endif %}
+{%- if model.flags.get("bagrut_cl") %}
+    bars("chart-bagrut_cl", {{ model.charts.bagrut_cl | tojson }}, { unit: "%" });
+{%- endif %}
+{%- if model.flags.get("edu") %}
+    bars("chart-edu", {{ model.charts.edu | tojson }}, { unit: "%", stack: true, max: 100 });
+{%- endif %}
+{%- if model.flags.get("dropout") %}
+    bars("chart-dropout", {{ model.charts.dropout | tojson }}, { unit: "%", digits: 2 });
+{%- endif %}
+{%- if model.flags.get("rent_cl") %}
+    bars("chart-rent_cl", {{ model.charts.rent_cl | tojson }}, { unit: "%" });
+{%- endif %}
+{%- if model.flags.get("unemp") %}
+    bars("chart-unemp", {{ model.charts.unemp | tojson }}, { unit: "%", digits: 2 });
+{%- endif %}
+{%- if model.flags.get("waste") %}
+    (function () {
+      const d = {{ model.charts.waste | tojson }};
+      const c = mount("chart-waste");
+      const series = [];
+      const yAxis = [];
+      if (d.waste) {
+        yAxis.push({ type: "value", name: "ק\"ג לנפש ליום" });
+        series.push({ type: "bar", name: "פסולת לנפש ליום (ק\"ג)", data: d.waste, barMaxWidth: 32, yAxisIndex: 0 });
+      }
+      if (d.recycle) {
+        yAxis.push({ type: "value", name: "% מחזור", max: 100, axisLabel: { formatter: "{value}%" } });
+        series.push({ type: "line", name: "פסולת ממוחזרת (%)", data: d.recycle, yAxisIndex: yAxis.length - 1 });
+      }
+      c.setOption(window.GovEcharts.option({
+        color: [pal[0], pal[1]],
+        tooltip: { trigger: "axis" },
+        legend: { top: 0 },
+        grid: { left: 16, right: 16, top: 56, bottom: 16, containLabel: true },
+        xAxis: { type: "category", data: d.x, axisLabel: { interval: 0, rotate: 40 } },
+        yAxis: yAxis,
+        series: series
+      }));
+    })();
+{%- endif %}
+{%- if model.flags.get("receipts") %}
+    bars("chart-receipts", {{ model.charts.receipts | tojson }}, { stack: true, unit: "" });
+{%- endif %}
+{%- if model.flags.get("sources") %}
+    bars("chart-sources", {{ model.charts.sources | tojson }}, { unit: "%", stack: true, horizontal: true, max: 100 });
+{%- endif %}
+{%- if model.flags.get("sourcesx") %}
+    bars("chart-sourcesx", {{ model.charts.sourcesx | tojson }}, { unit: "%", stack: true, horizontal: true, max: 100 });
+{%- endif %}
+{%- if model.flags.get("payments") %}
+    bars("chart-payments", {{ model.charts.payments | tojson }}, { stack: true, unit: "" });
+{%- endif %}
+{%- if model.flags.get("domains") %}
+    bars("chart-domains", {{ model.charts.domains | tojson }}, { unit: "%", horizontal: true });
+{%- endif %}
+    window.addEventListener("resize", () => charts.forEach((c) => c.resize()));
+  })();
+</script>

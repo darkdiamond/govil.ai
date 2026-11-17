@@ -1,0 +1,56 @@
+{
+  "contract_version": 1,
+  "dataset_id": "cbs-population-new-year",
+  "recipe_version": 1,
+  "authored_at": "2026-11-17T08:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2025-12-31T00:00:00Z",
+    "rows": {
+      "t1": 30,
+      "t2": 30,
+      "releases": 2
+    }
+  },
+  "inputs": [
+    {
+      "name": "t1",
+      "by_id": "t1",
+      "required_columns": [
+        "RELEASE_NO",
+        "RELEASE_DATE",
+        "SHEET_NO",
+        "ROW",
+        "C01",
+        "C02",
+        "C03"
+      ]
+    },
+    {
+      "name": "t2",
+      "by_id": "t2",
+      "required_columns": [
+        "RELEASE_NO",
+        "RELEASE_DATE",
+        "SHEET_NO",
+        "ROW",
+        "C01",
+        "C02",
+        "C03"
+      ]
+    },
+    {
+      "name": "releases",
+      "by_id": "releases",
+      "required_columns": [
+        "RELEASE_NO",
+        "RELEASE_DATE",
+        "TITLE",
+        "HEADLINE",
+        "PAGE_URL",
+        "REPORT_PDF_URL"
+      ]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": []
+}

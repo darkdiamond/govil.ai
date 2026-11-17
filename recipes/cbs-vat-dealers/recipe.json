@@ -1,0 +1,220 @@
+{
+  "contract_version": 1,
+  "dataset_id": "cbs-vat-dealers",
+  "recipe_version": 1,
+  "authored_at": "2026-11-17T12:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-07-29T00:00:00Z",
+    "rows": {
+      "t1a": 64,
+      "t1b": 63,
+      "t2a": 65,
+      "t2b": 65,
+      "t3a": 67,
+      "t3b": 67,
+      "t4a": 66,
+      "t4b": 66,
+      "t5a": 67,
+      "t5b": 67,
+      "t6a": 67,
+      "t6b": 67,
+      "t7a": 66,
+      "t7b": 66,
+      "t8a": 65,
+      "t8b": 65,
+      "t1": 0,
+      "t2": 0,
+      "t3": 0,
+      "t4": 0,
+      "t5": 0,
+      "t6": 0,
+      "t7": 0,
+      "t8": 0,
+      "t9": 26,
+      "t10": 185,
+      "t11": 185,
+      "t12": 185,
+      "t13": 185,
+      "t14": 0,
+      "t15": 0,
+      "t16": 0,
+      "releases": 7
+    }
+  },
+  "inputs": [
+    {
+      "name": "t1a",
+      "by_id": "t1a",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t1b",
+      "by_id": "t1b",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t2a",
+      "by_id": "t2a",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t2b",
+      "by_id": "t2b",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t3a",
+      "by_id": "t3a",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t3b",
+      "by_id": "t3b",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t4a",
+      "by_id": "t4a",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t4b",
+      "by_id": "t4b",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t5a",
+      "by_id": "t5a",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t5b",
+      "by_id": "t5b",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t6a",
+      "by_id": "t6a",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t6b",
+      "by_id": "t6b",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t7a",
+      "by_id": "t7a",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t7b",
+      "by_id": "t7b",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t8a",
+      "by_id": "t8a",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t8b",
+      "by_id": "t8b",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t1",
+      "by_id": "t1",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t2",
+      "by_id": "t2",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t3",
+      "by_id": "t3",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t4",
+      "by_id": "t4",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t5",
+      "by_id": "t5",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t6",
+      "by_id": "t6",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t7",
+      "by_id": "t7",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t8",
+      "by_id": "t8",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t9",
+      "by_id": "t9",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t10",
+      "by_id": "t10",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t11",
+      "by_id": "t11",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t12",
+      "by_id": "t12",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t13",
+      "by_id": "t13",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t14",
+      "by_id": "t14",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t15",
+      "by_id": "t15",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t16",
+      "by_id": "t16",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "releases",
+      "by_id": "releases",
+      "required_columns": [
+        "RELEASE_NO",
+        "RELEASE_DATE",
+        "TITLE",
+        "HEADLINE",
+        "PAGE_URL",
+        "REPORT_PDF_URL"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

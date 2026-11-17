@@ -175,16 +175,24 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
 
 ## CBS reports (cbs_releases provider)
 
-- **Yearly CBS reports (~50) have no pages.** Run `catalog --months 38` to find the ones
-  published in two or more years; skip holiday collections ("לרגל …"). The release-list window
-  (`LIST_WINDOW`) is now 1500 items (~3 years), enough for 2–3 editions of each; deploy the job
-  with it before merging a yearly recipe. (2026-11-05)
-- **Year-end CBS editions with a different table set are skipped.** `cbs-visitor-arrivals`
-  and `cbs-israelis-departures` skip the January "בשנת YYYY" edition, which replaces December's
-  and adds tables. `cbs-labour-supply-demand` skips the Oct–Dec "ושנת" edition (90 files). Each
-  page lags one period a year (the page says so). Fix: a second report config per recipe for
-  the year-end edition (its own table map), or have compute read either layout.
-  (2026-11-05)
+- **25 CBS reports still have no page.** 35 yearly reports are done (2026-11-17, PR #503). Left,
+  as recipe ids to use: yearly `cbs_releases` reports: `cbs-hotel-finances` (הכנסות, הוצאות ורווח
+  מלונות התיירות), `cbs-agriculture`, `cbs-dwellings-buildings`, `cbs-home-ownership`,
+  `cbs-academic-degrees`, `cbs-teaching-staff` (1 table), `cbs-education-attainment` (רמת
+  ההשכלה, רב שנתי), `cbs-pregnancy-termination`, `cbs-criminal-defendants` (עומדים לדין),
+  `cbs-criminal-convictions` (מורשעים בדין), `cbs-foreign-residents`,
+  `cbs-quality-of-life-cities`, `-districts`, `-gender-gaps`, `-jewish-arab-gaps`,
+  `cbs-vehicle-km` (נסועה), `cbs-driving-licences`, `cbs-public-transport-validations`,
+  `cbs-postdocs` (בָּתַר-דוקטורט, with niqqud). `cbs_index` pages: commercial construction
+  inputs (chapter ca), road and bridge inputs (d), agriculture inputs (e), bus inputs (f + fa),
+  industry export prices (ba; check overlap with `cbs-index-producer-prices` and
+  `cbs-trade-price-indices`), selected consumer prices (chapter a, subject 40). Find each
+  report's regex, chapter and tables with `catalog --months 38`. What the batch learned:
+  declare every stem plus 3 spare `optional` ones and find each table by its title (CBS
+  renumbers them); check the regex against the whole release list (sibling reports share
+  prefixes); `history_releases` > 1 when each edition holds one year; never a private
+  `cbs._*` helper (the guard rejects it); `seo.title`/`name` fixed strings; holiday collections
+  ("לרגל …", "לקט נתונים") stay out. (2026-11-05)
 - **`cbs-foreign-trade-by-country` lists t6 and t8 but never reads them.** They are the NIS
   twins of t5/t7, kept as downloads. Each is still fetched every run, and a missing stem fails
   the whole page's sync (item above). Drop them from `source.json` if the downloads aren't

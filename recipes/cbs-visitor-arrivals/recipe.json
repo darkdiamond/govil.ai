@@ -1,8 +1,8 @@
 {
   "contract_version": 1,
   "dataset_id": "cbs-visitor-arrivals",
-  "recipe_version": 1,
-  "authored_at": "2026-11-05T09:00:00Z",
+  "recipe_version": 2,
+  "authored_at": "2026-11-17T12:00:00Z",
   "authored_against": {
     "metadata_modified": "2026-11-04T11:00:00Z",
     "rows": {
@@ -18,48 +18,52 @@
     {
       "name": "t1",
       "by_id": "t1",
-      "required_columns": [
-        "RELEASE_DATE",
-        "SHEET_NO",
-        "ROW",
-        "C01",
-        "C08",
-        "C13"
-      ]
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
     },
     {
       "name": "t2",
       "by_id": "t2",
-      "required_columns": [
-        "RELEASE_DATE",
-        "SHEET_NO",
-        "ROW",
-        "C01",
-        "C12",
-        "C16"
-      ]
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
     },
     {
       "name": "t3",
       "by_id": "t3",
-      "required_columns": [
-        "RELEASE_DATE",
-        "SHEET_NO",
-        "ROW",
-        "C01",
-        "C15",
-        "C16"
-      ]
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
     },
     {
       "name": "t4",
       "by_id": "t4",
-      "required_columns": ["RELEASE_DATE", "SHEET_NO", "ROW", "C01", "C10"]
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
     },
     {
       "name": "t5",
       "by_id": "t5",
-      "required_columns": ["RELEASE_DATE", "SHEET_NO", "ROW", "C01", "C08"]
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t6",
+      "by_id": "t6",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t7",
+      "by_id": "t7",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t8",
+      "by_id": "t8",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t9",
+      "by_id": "t9",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t10",
+      "by_id": "t10",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
     },
     {
       "name": "releases",

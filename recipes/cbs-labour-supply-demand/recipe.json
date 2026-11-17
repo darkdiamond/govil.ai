@@ -1,167 +1,176 @@
 {
   "contract_version": 1,
   "dataset_id": "cbs-labour-supply-demand",
-  "recipe_version": 1,
-  "authored_at": "2026-11-05T12:00:00Z",
+  "recipe_version": 2,
+  "authored_at": "2026-11-17T12:00:00Z",
   "authored_against": {
     "metadata_modified": "2026-10-29T00:00:00Z",
     "rows": {
+      "t1": 41,
       "t2": 118,
       "t3": 35,
       "t4": 14,
+      "t5": 10,
       "t6": 14,
+      "t7": 5,
       "t8": 14,
+      "t9": 5,
       "t10": 14,
+      "t11": 5,
       "t12": 14,
+      "t13": 5,
       "t14": 14,
+      "t15": 5,
       "t16": 14,
+      "t17": 5,
       "t18": 14,
-      "releases": 4
+      "t19": 5,
+      "t20": 14,
+      "t21": 10,
+      "t22": 14,
+      "t23": 5,
+      "t24": 14,
+      "t25": 5,
+      "t26": 14,
+      "t27": 5,
+      "releases": 12
     }
   },
   "inputs": [
     {
+      "name": "t1",
+      "by_id": "t1",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
       "name": "t2",
       "by_id": "t2",
-      "required_columns": [
-        "RELEASE_NO",
-        "RELEASE_DATE",
-        "SHEET_NO",
-        "ROW",
-        "C01",
-        "C02",
-        "C03",
-        "C04",
-        "C05"
-      ]
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
     },
     {
       "name": "t3",
       "by_id": "t3",
-      "required_columns": [
-        "RELEASE_NO",
-        "RELEASE_DATE",
-        "SHEET_NO",
-        "ROW",
-        "C01",
-        "C02",
-        "C03",
-        "C04",
-        "C05"
-      ]
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
     },
     {
       "name": "t4",
       "by_id": "t4",
-      "required_columns": [
-        "RELEASE_NO",
-        "RELEASE_DATE",
-        "SHEET_NO",
-        "ROW",
-        "C01",
-        "C02",
-        "C03",
-        "C04",
-        "C05"
-      ]
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t5",
+      "by_id": "t5",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
     },
     {
       "name": "t6",
       "by_id": "t6",
-      "required_columns": [
-        "RELEASE_NO",
-        "RELEASE_DATE",
-        "SHEET_NO",
-        "ROW",
-        "C01",
-        "C02",
-        "C03",
-        "C04"
-      ]
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t7",
+      "by_id": "t7",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
     },
     {
       "name": "t8",
       "by_id": "t8",
-      "required_columns": [
-        "RELEASE_NO",
-        "RELEASE_DATE",
-        "SHEET_NO",
-        "ROW",
-        "C01",
-        "C02",
-        "C03",
-        "C04"
-      ]
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t9",
+      "by_id": "t9",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
     },
     {
       "name": "t10",
       "by_id": "t10",
-      "required_columns": [
-        "RELEASE_NO",
-        "RELEASE_DATE",
-        "SHEET_NO",
-        "ROW",
-        "C01",
-        "C02",
-        "C03",
-        "C04"
-      ]
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t11",
+      "by_id": "t11",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
     },
     {
       "name": "t12",
       "by_id": "t12",
-      "required_columns": [
-        "RELEASE_NO",
-        "RELEASE_DATE",
-        "SHEET_NO",
-        "ROW",
-        "C01",
-        "C02",
-        "C03",
-        "C04"
-      ]
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t13",
+      "by_id": "t13",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
     },
     {
       "name": "t14",
       "by_id": "t14",
-      "required_columns": [
-        "RELEASE_NO",
-        "RELEASE_DATE",
-        "SHEET_NO",
-        "ROW",
-        "C01",
-        "C02",
-        "C03",
-        "C04"
-      ]
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t15",
+      "by_id": "t15",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
     },
     {
       "name": "t16",
       "by_id": "t16",
-      "required_columns": [
-        "RELEASE_NO",
-        "RELEASE_DATE",
-        "SHEET_NO",
-        "ROW",
-        "C01",
-        "C02",
-        "C03",
-        "C04"
-      ]
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t17",
+      "by_id": "t17",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
     },
     {
       "name": "t18",
       "by_id": "t18",
-      "required_columns": [
-        "RELEASE_NO",
-        "RELEASE_DATE",
-        "SHEET_NO",
-        "ROW",
-        "C01",
-        "C02",
-        "C03",
-        "C04"
-      ]
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t19",
+      "by_id": "t19",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t20",
+      "by_id": "t20",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t21",
+      "by_id": "t21",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t22",
+      "by_id": "t22",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t23",
+      "by_id": "t23",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t24",
+      "by_id": "t24",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t25",
+      "by_id": "t25",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t26",
+      "by_id": "t26",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t27",
+      "by_id": "t27",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
     },
     {
       "name": "releases",

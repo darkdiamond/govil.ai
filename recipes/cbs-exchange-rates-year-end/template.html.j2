@@ -1,0 +1,205 @@
+{% import "gov.j2" as gov %}
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+{{ gov.lede(model.labels.lede) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("external-link", "ההודעה האחרונה של הלמ\"ס") }}
+  <p class="m-0 text-sm text-subtle mb-2">{{ model.release.title }} · פורסמה {{ model.release.date }}</p>
+{%- if model.release.headline %}
+  <p class="m-0 mb-3 font-semibold text-ink-deep">{{ model.release.headline }}</p>
+{%- endif %}
+  <p class="m-0 text-sm flex flex-wrap gap-4">
+    <a href="{{ model.release.url }}" target="_blank" rel="noopener">להודעה המלאה באתר הלמ"ס</a>
+{%- if model.release.pdf %}
+    <a href="{{ model.release.pdf }}" target="_blank" rel="noopener">לדוח המלא (PDF)</a>
+{%- endif %}
+  </p>
+</section>
+
+<div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
+{%- for key in ["usd_end", "eur_end", "usd_avg", "nis_usd"] %}
+{%- if model.kpis[key] is defined %}
+  {{ gov.kpi(model.kpis[key], model.labels[key ~ "_kpi"]) }}
+{%- endif %}
+{%- endfor %}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("trending-up", "שער הדולר והאירו בכל חודש") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.monthly_note }}</p>
+  {{ gov.chart("chart-monthly", model.labels.monthly_aria, "h-72 md:h-96") }}
+  {{ gov.table("שער ממוצע חודשי של הדולר והאירו (ש\"ח)", ["חודש", "דולר", "אירו"], model.tables.monthly, ltr=(1, 2)) }}
+</section>
+
+{%- if model.flags.yearend %}
+<section class="card p-5 mb-6">
+  {{ gov.head("calendar", "שער הדולר והאירו בסוף השנה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.yearend_note }}</p>
+  {{ gov.chart("chart-yearend", model.labels.yearend_aria, "h-64 md:h-80") }}
+  {{ gov.table("שערי סוף שנה (ש\"ח) והשינוי לעומת סוף השנה הקודמת", ["שנה", "דולר", "שינוי", "אירו", "שינוי"], model.tables.yearend, ltr=(1, 2, 3, 4)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.change %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "השינוי בשער הממוצע לפי מטבע") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.change_note }}</p>
+  {{ gov.chart("chart-change", model.labels.change_aria, "h-72 md:h-80") }}
+  {{ gov.table("השער הממוצע של כל מטבע בשקלים והשינוי בו", model.labels.change_cols, model.tables.change, ltr=(1, 2, 3, 4)) }}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "כל המטבעות לאורך השנים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.index_note }}</p>
+  {{ gov.chart("chart-index", model.labels.index_aria, "h-72 md:h-96") }}
+  {{ gov.table("שער ממוצע שנתי של כל מטבע (ש\"ח)", model.labels.index_cols, model.tables.index, ltr=range(1, model.labels.index_cols | length) | list) }}
+</section>
+
+{%- if model.flags.mom %}
+<section class="card p-5 mb-6">
+  {{ gov.head("trending-up", "התנודות מחודש לחודש") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.mom_note }}</p>
+  {{ gov.chart("chart-mom", model.labels.mom_aria, "h-64 md:h-80") }}
+  {{ gov.table("שינוי חודשי בשער הממוצע", ["חודש", "דולר", "אירו"], model.tables.mom, ltr=(1, 2)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.dollar %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "הדולר מול מטבעות העולם") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.dollar_note }}</p>
+  {{ gov.chart("chart-dollar", model.labels.dollar_aria, "h-72 md:h-80") }}
+  {{ gov.table("שינוי בשער הדולר מול כל מטבע", ["מטבע", "שינוי בשער הדולר"], model.tables.dollar, ltr=(1,)) }}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("tag", "על הנתונים") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm text-subtle marker:text-brand">
+    <li>הנתונים מתוך ההודעה השנתית לתקשורת של הלשכה המרכזית לסטטיסטיקה על שערי מטבעות החוץ בסוף השנה. מקור השערים: בנק ישראל (השערים היציגים).</li>
+    <li>השער הוא מחיר יחידת מטבע אחת בשקלים חדשים, ולמטבעות שהשער שלהם נקבע לכמה יחידות (כמו היין היפני) הכמות מצוינת בסוגריים. שער ממוצע הוא ממוצע השערים היציגים בתקופה, ושער סוף תקופה הוא השער ביום המסחר האחרון שלה.</li>
+    <li>העמוד משלב את ההודעות של השנים האחרונות. כשכמה הודעות מפרסמות את אותה תקופה, מוצג הנתון מההודעה החדשה ביותר. אחוזי השינוי מחושבים מהשערים.</li>
+  </ul>
+</section>
+
+<script>
+  (function () {
+    const d = {{ model.charts.monthly | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-monthly"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[2]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toFixed(3) + " ש\"ח" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: d.x, boundaryGap: false },
+      yAxis: { type: "value", scale: true, axisLabel: { formatter: (v) => Number(v).toFixed(2) } },
+      dataZoom: [{ type: "inside" }, { type: "slider", height: 18, bottom: 8 }],
+      series: [
+        { type: "line", name: "דולר", data: d.usd, showSymbol: false, lineStyle: { width: 3 } },
+        { type: "line", name: "אירו", data: d.eur, showSymbol: false, lineStyle: { width: 2 } }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- if model.flags.yearend %}
+  (function () {
+    const d = {{ model.charts.yearend | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-yearend"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[2]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toFixed(3) + " ש\"ח" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", scale: true, axisLabel: { formatter: (v) => Number(v).toFixed(2) } },
+      series: [
+        { type: "bar", name: "דולר", data: d.usd, label: { show: true, position: "top", formatter: (p) => Number(p.value).toFixed(2) } },
+        { type: "bar", name: "אירו", data: d.eur, label: { show: true, position: "top", formatter: (p) => p.value == null ? "" : Number(p.value).toFixed(2) } }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.change %}
+  (function () {
+    const d = {{ model.charts.change | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const fmt = (v) => { const r = Math.abs(v).toFixed(1); return "\u2066" + (Number(r) === 0 ? "" : v > 0 ? "+" : "\u2212") + r + "%\u2069"; };
+    const chart = echarts.init(document.getElementById("chart-change"));
+    chart.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => fmt(v) },
+      grid: { left: 56, right: 16, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: "value", max: (e) => e.max > 0 ? e.max + (e.max - Math.min(e.min, 0)) * 0.35 : 0, axisLabel: { formatter: (v) => "\u2066" + Math.round(v * 10) / 10 + "%\u2069" } },
+      yAxis: { type: "category", position: "right", data: d.names, axisLine: { onZero: false }, axisTick: { show: false }, axisLabel: { width: 100, overflow: "break" } },
+      series: [{
+        type: "bar",
+        data: d.values.map((v) => ({ value: v, itemStyle: { color: v < 0 ? pal[0] : pal[3] } })),
+        label: { show: true, position: "outside", formatter: (p) => fmt(p.value) }
+      }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+  (function () {
+    const d = {{ model.charts.index | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-index"));
+    chart.setOption(window.GovEcharts.option({
+      color: pal,
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toFixed(1) },
+      legend: { top: 0, type: "scroll" },
+      grid: { left: 16, right: 16, top: 48, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", scale: true },
+      series: d.series.map((s) => ({ type: "line", name: s.name, data: s.data, symbolSize: 6 }))
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- if model.flags.mom %}
+  (function () {
+    const d = {{ model.charts.mom | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const fmt = (v) => { if (v == null) return ""; const r = Math.abs(v).toFixed(1); return "\u2066" + (Number(r) === 0 ? "" : v > 0 ? "+" : "\u2212") + r + "%\u2069"; };
+    const chart = echarts.init(document.getElementById("chart-mom"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[2]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => fmt(v) },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", axisLabel: { formatter: (v) => v + "%" } },
+      series: [
+        { type: "bar", name: "דולר", data: d.usd },
+        { type: "bar", name: "אירו", data: d.eur }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.dollar %}
+  (function () {
+    const d = {{ model.charts.dollar | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const fmt = (v) => { const r = Math.abs(v).toFixed(1); return "\u2066" + (Number(r) === 0 ? "" : v > 0 ? "+" : "\u2212") + r + "%\u2069"; };
+    const chart = echarts.init(document.getElementById("chart-dollar"));
+    chart.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => fmt(v) },
+      grid: { left: 56, right: 16, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: "value", max: (e) => e.max > 0 ? e.max + (e.max - Math.min(e.min, 0)) * 0.35 : 0, axisLabel: { formatter: (v) => "\u2066" + Math.round(v * 10) / 10 + "%\u2069" } },
+      yAxis: { type: "category", position: "right", data: d.names, axisLine: { onZero: false }, axisTick: { show: false }, axisLabel: { width: 100, overflow: "break" } },
+      series: [{
+        type: "bar",
+        data: d.values.map((v, i) => ({ value: v, itemStyle: { color: d.nis[i] ? pal[0] : pal[6] } })),
+        label: { show: true, position: "outside", formatter: (p) => fmt(p.value) }
+      }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+</script>

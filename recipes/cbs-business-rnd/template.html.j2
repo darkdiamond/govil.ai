@@ -1,0 +1,538 @@
+{% import "gov.j2" as gov %}
+{%- macro callout(key) -%}
+{%- if model.callouts[key] is defined %}
+  <p class="m-0 mb-3 text-sm font-semibold text-ink-deep">{{ model.callouts[key] }}</p>
+{%- endif %}
+{%- endmacro %}
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+{{ gov.lede(model.labels.lede) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("external-link", "ההודעה האחרונה של הלמ\"ס") }}
+  <p class="m-0 text-sm text-subtle mb-2">{{ model.release.title }} · פורסמה {{ model.release.date }}</p>
+{%- if model.release.headline %}
+  <p class="m-0 mb-3 font-semibold text-ink-deep">{{ model.release.headline }}</p>
+{%- endif %}
+  <p class="m-0 text-sm flex flex-wrap gap-4">
+    <a href="{{ model.release.url }}" target="_blank" rel="noopener">להודעה המלאה באתר הלמ"ס</a>
+{%- if model.release.pdf %}
+    <a href="{{ model.release.pdf }}" target="_blank" rel="noopener">לדוח המלא (PDF)</a>
+{%- endif %}
+  </p>
+</section>
+
+<div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
+{%- for key in ["total", "change", "gdp", "jobs", "fte", "women"] %}
+{%- if model.kpis[key] is defined %}
+  {{ gov.kpi(model.kpis[key], model.labels[key ~ "_kpi"]) }}
+{%- endif %}
+{%- endfor %}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+{%- if model.flags.real %}
+<section class="card p-5 mb-6">
+  {{ gov.head("trending-up", "הצמיחה במחירים קבועים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.real_note }}</p>
+  {{ callout("real") }}
+  {{ gov.chart("chart-real", model.labels.real_aria, "h-72 md:h-80") }}
+  {{ gov.table("ההוצאה למו\"פ פנימי במחירים קבועים לפי שנה", ["שנה", model.labels.real_col], model.tables.real, ltr=(1,)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.gdp %}
+<section class="card p-5 mb-6">
+  {{ gov.head("trending-up", "ההוצאה למו\"פ כאחוז מהתמ\"ג") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.gdp_note }}</p>
+  {{ gov.chart("chart-gdp", model.labels.gdp_aria, "h-72 md:h-80") }}
+  {{ gov.table("ההוצאה למו\"פ פנימי במגזר העסקי כאחוז מהתמ\"ג", ["שנה", "אחוז מהתמ\"ג", "מיליארד ₪, מחירים שוטפים"], model.tables.gdp, ltr=(1, 2)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.oecd %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "ישראל מול מדינות OECD") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.oecd_note }}</p>
+  {{ gov.chart("chart-oecd", model.labels.oecd_aria, "h-[560px]") }}
+  {{ gov.table("הוצאה למו\"פ במגזר העסקי כאחוז מהתמ\"ג לפי מדינה", ["מדינה", "אחוז מהתמ\"ג"], model.tables.oecd, ltr=(1,)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.structure %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "על מה מוציאים: סוגי ההוצאה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.structure_note }}</p>
+{%- if model.labels.structure_lede is defined %}
+  <p class="m-0 mb-3 text-sm font-semibold text-ink-deep">{{ model.labels.structure_lede }}</p>
+{%- endif %}
+  {{ gov.chart("chart-structure", model.labels.structure_aria, "h-64 md:h-72") }}
+  {{ gov.table("ההוצאה למו\"פ לפי סוג הוצאה", ["סוג ההוצאה", "מיליארד ₪", "חלק מסך ההוצאה"], model.tables.structure, ltr=(1, 2)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.types %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "חברות ישראליות, חברות זרות, מרכזי מו\"פ וחברות הזנק") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.types_note }}</p>
+  {{ callout("foreign") }}{{ callout("centres") }}
+  {{ gov.chart("chart-types", model.labels.types_aria, "h-72 md:h-80") }}
+  {{ gov.table("ההוצאה למו\"פ לפי סוג חברה", model.labels.types_cols, model.tables.types, ltr=range(1, model.labels.types_cols | length) | list) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.size %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "לפי גודל החברה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.size_note }}</p>
+  {{ callout("big") }}
+  {{ gov.chart("chart-size", model.labels.size_aria, "h-72 md:h-80") }}
+  {{ gov.table("ההוצאה למו\"פ לפי גודל החברה", ["משרות בחברה", "מיליארד ₪", "חלק מסך ההוצאה", "עלות עבודה למשרה מלאה (אלפי ₪)"], model.tables.size, ltr=(0, 1, 2, 3)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.ind %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "לפי ענף כלכלי") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.ind_note }}</p>
+  {{ gov.chart("chart-ind", model.labels.ind_aria, "h-[480px]") }}
+  {{ gov.table("ההוצאה למו\"פ פנימי לפי ענף כלכלי", ["ענף", "מו\"פ פנימי (מיליארד ₪)", "חלק מהמו\"פ הפנימי", "משרות במו\"פ (אלפים)", "מימון מרשות החדשנות (מיליוני ₪)"], model.tables.ind, ltr=(1, 2, 3, 4)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.fields %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "תחומי הפעילות של המו\"פ") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.fields_note }}</p>
+  {{ callout("software") }}
+  {{ gov.chart("chart-fields", model.labels.fields_aria, "h-[520px]") }}
+  {{ gov.table("הוצאות שוטפות למו\"פ פנימי לפי תחום פעילות", ["תחום", "מיליארד ₪", "חלק מההוצאות השוטפות"], model.tables.fields, ltr=(1, 2)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.tech %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "בינה מלאכותית, ננוטכנולוגיה וביוטכנולוגיה") }}
+  <p class="m-0 text-sm text-subtle mb-3">איזה חלק מההוצאות השוטפות למו"פ פנימי מוקדש לכל סוג טכנולוגיה, בכל המגזר העסקי ובענפים העיקריים, באחוזים.</p>
+  {{ callout("ai") }}
+  {{ gov.chart("chart-tech", model.labels.tech_aria, "h-80 md:h-96") }}
+  {{ gov.table("הוצאות שוטפות למו\"פ פנימי לפי סוג טכנולוגיה (אחוזים)", model.labels.tech_cols, model.tables.tech, ltr=range(1, model.labels.tech_cols | length) | list) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.rtype %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "מחקר בסיסי, מחקר יישומי ופיתוח") }}
+  <p class="m-0 text-sm text-subtle mb-3">ההוצאות השוטפות למו"פ פנימי לפי סוג המחקר, בכל סוג חברה, באחוזים.</p>
+  {{ callout("dev") }}
+  {{ gov.chart("chart-rtype", model.labels.rtype_aria, "h-72 md:h-80") }}
+  {{ gov.table("הוצאות שוטפות למו\"פ פנימי לפי סוג מחקר (אחוזים)", ["סוג חברה", "מחקר בסיסי", "מחקר יישומי", "פעילות פיתוח"], model.tables.rtype, ltr=(1, 2, 3)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.fin %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "מי מממן את המו\"פ") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.fin_note }}</p>
+  {{ gov.chart("chart-fin", model.labels.fin_aria, "h-80 md:h-96") }}
+  {{ gov.table("מקורות המימון של ההוצאה למו\"פ", ["מקור המימון", "מיליארד ₪", "חלק מסך המימון"], model.tables.fin, ltr=(1, 2)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.finint %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "כמה מהמו\"פ ממומן מבפנים") }}
+  <p class="m-0 text-sm text-subtle mb-3">החלק של ההוצאה למו"פ שמומן מתוך החברה עצמה או מקבוצת החברות שלה, לפי סוג חברה וענף. השאר מגיע ממשקיעים, מקרנות ומהמדינה.</p>
+  {{ gov.chart("chart-finint", model.labels.finint_aria, "h-80 md:h-96") }}
+  {{ gov.table("חלק המימון הפנימי בהוצאה למו\"פ", ["סוג חברה או ענף", "מימון פנימי"], model.tables.finint, ltr=(1,)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.sales %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "מכירות של מו\"פ") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.sales_note }}</p>
+  {{ callout("sales") }}
+  {{ gov.chart("chart-sales", model.labels.sales_aria, "h-80 md:h-96") }}
+  {{ gov.table("הכנסות ממכירות ומכירות מו\"פ (מיליארד ₪)", ["ענף או סוג חברה", "הכנסות ממכירות", "מזה יצוא", "הכנסות ממכירות מו\"פ", "מזה לחו\"ל"], model.tables.sales, ltr=(1, 2, 3, 4)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.jobs %}
+<section class="card p-5 mb-6">
+  {{ gov.head("building-2", "מי עובד במו\"פ") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.jobs_note }}</p>
+  {{ gov.chart("chart-jobs", model.labels.jobs_aria, "h-64 md:h-72") }}
+  {{ gov.table("משרות במו\"פ לפי השכלה", ["השכלה", "משרות (אלפים)", "חלק מהמשרות"], model.tables.jobs, ltr=(1, 2)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.women %}
+<section class="card p-5 mb-6">
+  {{ gov.head("building-2", "נשים במו\"פ") }}
+  <p class="m-0 text-sm text-subtle mb-3">החלק של הנשים במשרות המו"פ, בכל המגזר העסקי, לפי סוג חברה ולפי ענף.</p>
+  {{ gov.chart("chart-women", model.labels.women_aria, "h-80 md:h-96") }}
+  {{ gov.table("חלק הנשים במשרות המו\"פ", ["קבוצה", "חלק הנשים"], model.tables.women, ltr=(1,)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.district %}
+<section class="card p-5 mb-6">
+  {{ gov.head("map-pin", "עלות משרת מו\"פ לפי מחוז") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.district_note }}</p>
+  {{ callout("district") }}
+  {{ gov.chart("chart-district", model.labels.district_aria, "h-64 md:h-72") }}
+  {{ gov.table("עלות העבודה השנתית למשרה מלאה במו\"פ לפי מחוז (אלפי ₪)", ["מחוז", "אלפי ₪"], model.tables.district, ltr=(1,)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.staff %}
+<section class="card p-5 mb-6">
+  {{ gov.head("building-2", "עובדי מו\"פ ביחס לכוח העבודה: השוואה בין-לאומית") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.staff_note }}</p>
+  {{ callout("staff") }}
+  {{ gov.chart("chart-staff", model.labels.staff_aria, "h-[520px]") }}
+  {{ gov.table("עובדי מו\"פ במגזר העסקי לכל 100,000 בכוח העבודה", ["מדינה", "חוקרים", "שאר עובדי המו\"פ", "סך הכול"], model.tables.staff, ltr=(1, 2, 3)) }}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("tag", "על הנתונים") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm text-subtle marker:text-brand">
+    <li>הנתונים מתוך ההודעה השנתית לתקשורת של הלשכה המרכזית לסטטיסטיקה על ההוצאה למחקר ופיתוח במגזר העסקי, המבוססת על סקר של חברות העוסקות במו"פ. ההודעה מתפרסמת כשנה וחצי אחרי שנת הנתונים, והנתון של השנה הקודמת בה מעודכן.</li>
+    <li>"מו"פ פנימי" הוא המו"פ שהחברה מבצעת בעצמה, כולל השקעות בנכסים קבועים. "מו"פ חיצוני" הוא מו"פ שהחברה רוכשת מגורמים אחרים. הסכומים במחירים שוטפים, אלא אם צוין אחרת.</li>
+    <li>נתונים שטעות הדגימה שלהם גבוהה מאוד אינם מתפרסמים בהודעה; בעמוד הם מוצגים כחסרים ("–") או לא מוצגים.</li>
+    <li>הלוחות והתרשימים בהודעה משתנים משנה לשנה. העמוד מציג את מה שמופיע בהודעה האחרונה.</li>
+  </ul>
+</section>
+
+<script>
+  (function () {
+    window.__rnd = {
+      bn: (v) => v == null ? "" : Number(v).toLocaleString("he-IL", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + " מיליארד ₪",
+      pc: (v) => v == null ? "" : Number(v).toFixed(1) + "%"
+    };
+  })();
+{%- if model.flags.real %}
+  (function () {
+    const d = {{ model.charts.real | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-real"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0]],
+      tooltip: { trigger: "axis", valueFormatter: window.__rnd.bn },
+      grid: { left: 16, right: 16, top: 24, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", scale: true },
+      series: [{ type: "line", name: "מו\"פ פנימי, מחירים קבועים", data: d.y, symbolSize: 7, lineStyle: { width: 3 }, areaStyle: { opacity: 0.08 } }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.gdp %}
+  (function () {
+    const d = {{ model.charts.gdp | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-gdp"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[6], pal[0]],
+      tooltip: { trigger: "axis" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: [
+        { type: "value", splitLine: { show: false } },
+        { type: "value", axisLabel: { formatter: "{value}%" } }
+      ],
+      series: [
+        { type: "bar", name: "מו\"פ פנימי (מיליארד ₪)", data: d.rd, tooltip: { valueFormatter: window.__rnd.bn } },
+        { type: "line", name: "אחוז מהתמ\"ג", yAxisIndex: 1, data: d.share, symbolSize: 7, lineStyle: { width: 3 },
+          tooltip: { valueFormatter: (v) => v == null ? "" : Number(v).toFixed(2) + "%" } }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.oecd %}
+  (function () {
+    const d = {{ model.charts.oecd | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-oecd"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[6]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: window.__rnd.pc },
+      grid: { left: 16, right: 48, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: "value", axisLabel: { show: false }, splitLine: { show: false } },
+      yAxis: { type: "category", data: d.names, axisLabel: { width: 100, overflow: "truncate" } },
+      series: [{
+        type: "bar",
+        data: d.values.map((v, i) => d.names[i].indexOf("ישראל") === 0 ? { value: v, itemStyle: { color: pal[0] } }
+          : d.names[i] === "OECD" ? { value: v, itemStyle: { color: pal[1] } } : v),
+        label: { show: true, position: "right", formatter: (p) => Number(p.value).toFixed(1) + "%" }
+      }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.structure %}
+  (function () {
+    const d = {{ model.charts.structure | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-structure"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: window.__rnd.bn },
+      grid: { left: 16, right: 48, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: "value", axisLabel: { show: false }, splitLine: { show: false } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 130, overflow: "break" } },
+      series: [{ type: "bar", data: d.values, label: { show: true, position: "right", formatter: (p) => Number(p.value).toFixed(1) } }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.types %}
+  (function () {
+    const d = {{ model.charts.types | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const series = [];
+    if (d.prev) series.push({ type: "bar", name: d.py, data: d.prev });
+    series.push({ type: "bar", name: d.y, data: d.cur, label: { show: true, position: "right", formatter: (p) => p.value == null ? "" : Number(p.value).toFixed(1) } });
+    const chart = echarts.init(document.getElementById("chart-types"));
+    chart.setOption(window.GovEcharts.option({
+      color: d.prev ? [pal[6], pal[0]] : [pal[0]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: window.__rnd.bn },
+      legend: { top: 0 },
+      grid: { left: 16, right: 48, top: 32, bottom: 8, containLabel: true },
+      xAxis: { type: "value", axisLabel: { show: false }, splitLine: { show: false } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 100, overflow: "break" } },
+      series: series
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.size %}
+  (function () {
+    const d = {{ model.charts.size | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-size"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[1]],
+      tooltip: { trigger: "axis" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.names, axisLabel: { interval: 0, fontSize: 10 } },
+      yAxis: [
+        { type: "value", splitLine: { show: false } },
+        { type: "value" }
+      ],
+      series: [
+        { type: "bar", name: "הוצאה למו\"פ (מיליארד ₪)", data: d.values, tooltip: { valueFormatter: window.__rnd.bn } },
+        { type: "line", name: "עלות למשרה מלאה (אלפי ₪)", yAxisIndex: 1, data: d.fte, symbolSize: 7,
+          tooltip: { valueFormatter: (v) => v == null ? "" : Math.round(v).toLocaleString("he-IL") + " אלף ₪" } }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.ind %}
+  (function () {
+    const d = {{ model.charts.ind | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-ind"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: window.__rnd.bn },
+      grid: { left: 16, right: 48, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: "value", axisLabel: { show: false }, splitLine: { show: false } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 130, overflow: "break", fontSize: 11 } },
+      series: [{ type: "bar", data: d.values, label: { show: true, position: "right", formatter: (p) => Number(p.value).toFixed(1) } }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.fields %}
+  (function () {
+    const d = {{ model.charts.fields | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const n = d.names.length;
+    const chart = echarts.init(document.getElementById("chart-fields"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: window.__rnd.bn },
+      grid: { left: 16, right: 48, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: "value", axisLabel: { show: false }, splitLine: { show: false } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 130, overflow: "break", fontSize: 11 } },
+      series: [{
+        type: "bar",
+        data: d.values.map((v, i) => d.other && i === n - 1 ? { value: v, itemStyle: { color: pal[6] } } : v),
+        label: { show: true, position: "right", formatter: (p) => Number(p.value).toFixed(1) }
+      }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.tech %}
+  (function () {
+    const d = {{ model.charts.tech | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-tech"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[2], pal[1], pal[5], pal[7], pal[3], pal[8], pal[6]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: window.__rnd.pc },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 72, bottom: 8, containLabel: true },
+      xAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", data: d.rows, inverse: true, axisLabel: { width: 100, overflow: "break", fontSize: 11 } },
+      series: d.techs.map((t, k) => ({ type: "bar", stack: "a", name: t, data: d.series[k] }))
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.rtype %}
+  (function () {
+    const d = {{ model.charts.rtype | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-rtype"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[1], pal[2], pal[0]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: window.__rnd.pc },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 8, containLabel: true },
+      xAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 100, overflow: "break" } },
+      series: [
+        { type: "bar", stack: "a", name: "מחקר בסיסי", data: d.basic },
+        { type: "bar", stack: "a", name: "מחקר יישומי", data: d.applied },
+        { type: "bar", stack: "a", name: "פעילות פיתוח", data: d.dev }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.fin %}
+  (function () {
+    const d = {{ model.charts.fin | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-fin"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: window.__rnd.bn },
+      grid: { left: 16, right: 48, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: "value", axisLabel: { show: false }, splitLine: { show: false } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 130, overflow: "break", fontSize: 11 } },
+      series: [{ type: "bar", data: d.values, label: { show: true, position: "right", formatter: (p) => Number(p.value).toFixed(1) } }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.finint %}
+  (function () {
+    const d = {{ model.charts.finint | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-finint"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: window.__rnd.pc },
+      grid: { left: 16, right: 48, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: "value", max: 100, axisLabel: { show: false }, splitLine: { show: false } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 130, overflow: "break", fontSize: 11 } },
+      series: [{ type: "bar", data: d.values, label: { show: true, position: "right", formatter: (p) => Number(p.value).toFixed(0) + "%" } }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.sales %}
+  (function () {
+    const d = {{ model.charts.sales | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-sales"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[6]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: window.__rnd.bn },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 32, bottom: 8, containLabel: true },
+      xAxis: { type: "value" },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 120, overflow: "break", fontSize: 11 } },
+      series: [
+        { type: "bar", name: "הכנסות ממכירות מו\"פ", data: d.rd },
+        { type: "bar", name: "מזה מכירות לחו\"ל", data: d.rdx }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.jobs %}
+  (function () {
+    const d = {{ model.charts.jobs | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-jobs"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => v == null ? "" : Number(v).toFixed(1) + " אלף משרות" },
+      grid: { left: 16, right: 48, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: "value", axisLabel: { show: false }, splitLine: { show: false } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 120, overflow: "break" } },
+      series: [{ type: "bar", data: d.values, label: { show: true, position: "right", formatter: (p) => Number(p.value).toFixed(1) } }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.women %}
+  (function () {
+    const d = {{ model.charts.women | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-women"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[2]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: window.__rnd.pc },
+      grid: { left: 16, right: 48, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: "value", axisLabel: { show: false }, splitLine: { show: false } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 130, overflow: "break", fontSize: 11 } },
+      series: [{
+        type: "bar",
+        data: d.values.map((v, i) => i === 0 ? { value: v, itemStyle: { color: pal[0] } } : v),
+        label: { show: true, position: "right", formatter: (p) => Number(p.value).toFixed(1) + "%" }
+      }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.district %}
+  (function () {
+    const d = {{ model.charts.district | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const series = { type: "bar", data: d.values, label: { show: true, position: "right", formatter: (p) => Math.round(p.value).toLocaleString("he-IL") } };
+    const chart = echarts.init(document.getElementById("chart-district"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => v == null ? "" : Math.round(v).toLocaleString("he-IL") + " אלף ₪" },
+      grid: { left: 16, right: 48, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: "value", axisLabel: { show: false }, splitLine: { show: false } },
+      yAxis: { type: "category", data: d.names, inverse: true },
+      series: [series]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.staff %}
+  (function () {
+    const d = {{ model.charts.staff | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-staff"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[6]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => v == null ? "" : Math.round(v).toLocaleString("he-IL") },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 32, bottom: 8, containLabel: true },
+      xAxis: { type: "value" },
+      yAxis: { type: "category", data: d.names, axisLabel: { width: 100, overflow: "truncate" } },
+      series: [
+        { type: "bar", stack: "a", name: "חוקרים", data: d.res },
+        { type: "bar", stack: "a", name: "שאר עובדי המו\"פ", data: d.oth }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+</script>

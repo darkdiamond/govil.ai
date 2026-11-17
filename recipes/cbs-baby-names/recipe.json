@@ -1,0 +1,181 @@
+{
+  "contract_version": 1,
+  "dataset_id": "cbs-baby-names",
+  "recipe_version": 1,
+  "authored_at": "2026-11-17T09:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2025-12-08T00:00:00Z",
+    "rows": {
+      "t1": 29982,
+      "t2": 1098,
+      "t3": 1076,
+      "t4": 786,
+      "t5": 78,
+      "t6": 126,
+      "t7": 118,
+      "t8": 2441,
+      "t9": 10275,
+      "releases": 3
+    }
+  },
+  "inputs": [
+    {
+      "name": "t1",
+      "by_id": "t1",
+      "required_columns": [
+        "RELEASE_NO",
+        "RELEASE_DATE",
+        "SHEET_NO",
+        "SHEET",
+        "ROW",
+        "C01"
+      ]
+    },
+    {
+      "name": "t2",
+      "by_id": "t2",
+      "required_columns": [
+        "RELEASE_NO",
+        "RELEASE_DATE",
+        "SHEET_NO",
+        "SHEET",
+        "ROW",
+        "C01"
+      ]
+    },
+    {
+      "name": "t3",
+      "by_id": "t3",
+      "required_columns": [
+        "RELEASE_NO",
+        "RELEASE_DATE",
+        "SHEET_NO",
+        "SHEET",
+        "ROW",
+        "C01"
+      ]
+    },
+    {
+      "name": "t4",
+      "by_id": "t4",
+      "required_columns": [
+        "RELEASE_NO",
+        "RELEASE_DATE",
+        "SHEET_NO",
+        "SHEET",
+        "ROW",
+        "C01"
+      ]
+    },
+    {
+      "name": "t5",
+      "by_id": "t5",
+      "required_columns": [
+        "RELEASE_NO",
+        "RELEASE_DATE",
+        "SHEET_NO",
+        "SHEET",
+        "ROW",
+        "C01"
+      ]
+    },
+    {
+      "name": "t6",
+      "by_id": "t6",
+      "required_columns": [
+        "RELEASE_NO",
+        "RELEASE_DATE",
+        "SHEET_NO",
+        "SHEET",
+        "ROW",
+        "C01"
+      ]
+    },
+    {
+      "name": "t7",
+      "by_id": "t7",
+      "required_columns": [
+        "RELEASE_NO",
+        "RELEASE_DATE",
+        "SHEET_NO",
+        "SHEET",
+        "ROW",
+        "C01"
+      ]
+    },
+    {
+      "name": "t8",
+      "by_id": "t8",
+      "required_columns": [
+        "RELEASE_NO",
+        "RELEASE_DATE",
+        "SHEET_NO",
+        "SHEET",
+        "ROW",
+        "C01"
+      ]
+    },
+    {
+      "name": "t9",
+      "by_id": "t9",
+      "required_columns": [
+        "RELEASE_NO",
+        "RELEASE_DATE",
+        "SHEET_NO",
+        "SHEET",
+        "ROW",
+        "C01"
+      ]
+    },
+    {
+      "name": "t10",
+      "by_id": "t10",
+      "required_columns": [
+        "RELEASE_NO",
+        "RELEASE_DATE",
+        "SHEET_NO",
+        "SHEET",
+        "ROW",
+        "C01"
+      ]
+    },
+    {
+      "name": "t11",
+      "by_id": "t11",
+      "required_columns": [
+        "RELEASE_NO",
+        "RELEASE_DATE",
+        "SHEET_NO",
+        "SHEET",
+        "ROW",
+        "C01"
+      ]
+    },
+    {
+      "name": "t12",
+      "by_id": "t12",
+      "required_columns": [
+        "RELEASE_NO",
+        "RELEASE_DATE",
+        "SHEET_NO",
+        "SHEET",
+        "ROW",
+        "C01"
+      ]
+    },
+    {
+      "name": "releases",
+      "by_id": "releases",
+      "required_columns": [
+        "RELEASE_NO",
+        "RELEASE_DATE",
+        "TITLE",
+        "HEADLINE",
+        "PAGE_URL",
+        "REPORT_PDF_URL"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

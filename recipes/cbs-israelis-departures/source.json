@@ -12,17 +12,66 @@
   "source_url": "https://www.cbs.gov.il/he/mediarelease/Pages/default.aspx",
   "config": {
     "report": {
-      "title_regex": "^יציאות ישראלים לחו\"ל ב(?!שנת)",
+      "title_regex": "^יציאות ישראלים לחו\"ל ב\\S+ \\d{4}$",
       "chapter": "28",
       "interval": "חודשי"
     },
     "history_releases": 1,
     "resources": [
-      { "id": "t1", "name": "לוח 1", "table": "t1" },
-      { "id": "t2", "name": "לוח 2", "table": "t2" },
-      { "id": "t3", "name": "לוח 3", "table": "t3" },
-      { "id": "t4", "name": "לוח 4", "table": "t4" },
-      { "id": "t5", "name": "לוח 5", "table": "t5" },
+      {
+        "id": "t1",
+        "name": "יציאות לפי שנה וחודש, בסך הכול ובדרך האוויר (לוח 1)",
+        "table": "t1",
+        "optional": true
+      },
+      {
+        "id": "t2",
+        "name": "יציאות לפי גיל ומין (לוח 2)",
+        "table": "t2",
+        "optional": true
+      },
+      {
+        "id": "t3",
+        "name": "יציאות של ישראלים המתגוררים בחו\"ל (לוח 3)",
+        "table": "t3",
+        "optional": true
+      },
+      {
+        "id": "t4",
+        "name": "יציאות לפי דרך ומעבר גבול (לוח 4)",
+        "table": "t4",
+        "optional": true
+      },
+      {
+        "id": "t5",
+        "name": "יציאות בדרך האוויר לפי חודש; בהודעה השנתית: יציאות לפי שנה מאז 2010 (לוח 5)",
+        "table": "t5",
+        "optional": true
+      },
+      {
+        "id": "t6",
+        "name": "בהודעה השנתית: יציאות בדרך האוויר לפי חודש (לוח 6)",
+        "table": "t6",
+        "optional": true
+      },
+      {
+        "id": "t7",
+        "name": "לוח 7, אם פורסם",
+        "table": "t7",
+        "optional": true
+      },
+      {
+        "id": "t8",
+        "name": "לוח 8, אם פורסם",
+        "table": "t8",
+        "optional": true
+      },
+      {
+        "id": "t9",
+        "name": "לוח 9, אם פורסם",
+        "table": "t9",
+        "optional": true
+      },
       {
         "id": "releases",
         "name": "ההודעות החודשיות לתקשורת",

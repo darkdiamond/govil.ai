@@ -1,7 +1,7 @@
 {
   "contract_version": 1,
   "dataset_id": "cbs-israelis-departures",
-  "recipe_version": 1,
+  "recipe_version": 2,
   "authored_at": "2026-11-05T12:00:00Z",
   "authored_against": {
     "metadata_modified": "2026-11-04T11:00:00Z",
@@ -23,9 +23,7 @@
         "RELEASE_DATE",
         "SHEET_NO",
         "ROW",
-        "C01",
-        "C12",
-        "C16"
+        "C01"
       ]
     },
     {
@@ -36,9 +34,7 @@
         "RELEASE_DATE",
         "SHEET_NO",
         "ROW",
-        "C01",
-        "C12",
-        "C14"
+        "C01"
       ]
     },
     {
@@ -49,9 +45,7 @@
         "RELEASE_DATE",
         "SHEET_NO",
         "ROW",
-        "C01",
-        "C05",
-        "C07"
+        "C01"
       ]
     },
     {
@@ -62,8 +56,7 @@
         "RELEASE_DATE",
         "SHEET_NO",
         "ROW",
-        "C01",
-        "C11"
+        "C01"
       ]
     },
     {
@@ -74,8 +67,51 @@
         "RELEASE_DATE",
         "SHEET_NO",
         "ROW",
-        "C01",
-        "C08"
+        "C01"
+      ]
+    },
+    {
+      "name": "t6",
+      "by_id": "t6",
+      "required_columns": [
+        "RELEASE_NO",
+        "RELEASE_DATE",
+        "SHEET_NO",
+        "ROW",
+        "C01"
+      ]
+    },
+    {
+      "name": "t7",
+      "by_id": "t7",
+      "required_columns": [
+        "RELEASE_NO",
+        "RELEASE_DATE",
+        "SHEET_NO",
+        "ROW",
+        "C01"
+      ]
+    },
+    {
+      "name": "t8",
+      "by_id": "t8",
+      "required_columns": [
+        "RELEASE_NO",
+        "RELEASE_DATE",
+        "SHEET_NO",
+        "ROW",
+        "C01"
+      ]
+    },
+    {
+      "name": "t9",
+      "by_id": "t9",
+      "required_columns": [
+        "RELEASE_NO",
+        "RELEASE_DATE",
+        "SHEET_NO",
+        "ROW",
+        "C01"
       ]
     },
     {
