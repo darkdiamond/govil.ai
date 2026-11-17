@@ -1,0 +1,248 @@
+{% import "gov.j2" as gov %}
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+{{ gov.lede(model.labels.lede) }}
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור תרגום של שם מחלקה, מרפאה או מכון ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המונחון: שם היחידה בעברית, סוג היחידה, או התרגום לערבית, לאנגלית או לרוסית.</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+  {{ gov.kpi(model.kpis.entries, model.labels.entries_kpi) }}
+  {{ gov.kpi(model.kpis.names, model.labels.names_kpi) }}
+  {{ gov.kpi(model.kpis.types, model.labels.types_kpi) }}
+  {{ gov.kpi(model.kpis.kids, model.labels.kids_kpi) }}
+  {{ gov.kpi(model.kpis.full, model.labels.full_kpi) }}
+  {{ gov.kpi(model.kpis.agree, model.labels.agree_kpi) }}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "רשומות לפי סוג יחידה") }}
+  <p class="text-sm text-subtle mb-3">{{ model.labels.type_lede }}</p>
+  {{ gov.chart("chart-type", model.labels.type_aria, h="h-80 md:h-[420px]") }}
+  {{ gov.table(model.labels.type_aria, ["סוג יחידה", "רשומות", "שיעור"], model.tables.by_type, ltr=(1, 2)) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "תרגום מונחי מחלקות ומרפאות: המילה המייצגת כל סוג") }}
+  <p class="text-sm text-subtle mb-3">{{ model.labels.terms_lede }}</p>
+  {% if model.flags.terms %}
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <caption class="sr-only">{{ model.labels.terms_lede }}</caption>
+      <thead><tr><th scope="col">סוג יחידה</th><th scope="col">רשומות</th><th scope="col">אנגלית</th><th scope="col">ערבית</th><th scope="col">רוסית</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.terms %}
+        <tr><th scope="row">{{ r[0] }}</th><td dir="ltr">{{ r[1] }}</td><td dir="ltr">{{ r[2] }}</td><td>{{ r[3] }}</td><td dir="ltr">{{ r[4] }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "תחומים: המילה הפותחת את שם היחידה") }}
+  <p class="text-sm text-subtle mb-3">{{ model.labels.family_lede }}</p>
+  {{ gov.chart("chart-family", model.labels.family_aria, h="h-80 md:h-[460px]") }}
+  {{ gov.table(model.labels.family_aria, ["מילה פותחת", "שמות"], model.tables.families, ltr=(1,)) }}
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ gov.head("database", "יחידות לילדים בכל סוג") }}
+    <p class="text-sm text-subtle mb-3">{{ model.labels.kids_lede }}</p>
+    {{ gov.chart("chart-kids", model.labels.kids_aria, h="h-80 md:h-[420px]") }}
+    {{ gov.table(model.labels.kids_aria, ["סוג יחידה", "לילדים", "סך הכול", "שיעור"], model.tables.kids, ltr=(1, 2, 3)) }}
+  </section>
+  <section class="card p-5">
+    {{ gov.head("database", "שם אחד, כמה סוגי יחידות") }}
+    <p class="text-sm text-subtle mb-3">{{ model.labels.reuse_lede }}</p>
+    {{ gov.chart("chart-reuse", model.labels.reuse_aria, h="h-64 md:h-80") }}
+    {{ gov.table(model.labels.reuse_aria, ["מספר סוגים", "שמות"], model.tables.reuse, ltr=(0, 1)) }}
+    {% if model.flags.reuse_top %}
+    <h3 class="text-base font-semibold text-ink-deep mt-4 mb-2">{{ model.labels.reuse_table }}</h3>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <caption class="sr-only">{{ model.labels.reuse_table }}</caption>
+        <thead><tr><th scope="col">שם היחידה</th><th scope="col">סוגים</th><th scope="col">משמש כ</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.reuse_top %}
+          <tr><th scope="row">{{ r[0] }}</th><td dir="ltr">{{ r[1] }}</td><td>{{ r[2] }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "אורך השם בכל שפה") }}
+  <p class="text-sm text-subtle mb-3">{{ model.labels.length_lede }}</p>
+  {{ gov.chart("chart-length", model.labels.length_aria, h="h-64 md:h-80") }}
+  {{ gov.table(model.labels.length_aria, ["שפה", "קצר ביותר", "רבעון תחתון", "חציון", "רבעון עליון", "ארוך ביותר"], model.tables.lengths, ltr=(1, 2, 3, 4, 5)) }}
+</section>
+
+{% if model.flags.series %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "יחידות ממוספרות באותיות") }}
+  <p class="text-sm text-subtle mb-3">{{ model.labels.series_lede }}</p>
+  {{ gov.chart("chart-series", model.labels.series_aria, h="h-80 md:h-[420px]") }}
+  {{ gov.table(model.labels.series_aria, ["שם הסדרה", "אותיות"], model.tables.series, ltr=(1,)) }}
+</section>
+{% endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "שתי עמודות הסוג: התאמה וסתירות") }}
+  <p class="text-sm text-subtle mb-3">{{ model.labels.agree_lede }}</p>
+  <div id="chart-agree" class="h-[420px] md:h-[460px]" role="img" data-fallback="explorer" aria-label="{{ model.labels.agree_aria }}"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("triangle-alert", "בדיקות עקביות של המונחון") }}
+  <p class="text-sm text-subtle mb-3">{{ model.labels.quality_lede }}</p>
+  <table class="w-full text-sm">
+    <caption class="sr-only">בדיקות עקביות של המונחון</caption>
+    <thead><tr><th scope="col">בדיקה</th><th scope="col">רשומות</th></tr></thead>
+    <tbody>
+{%- for r in model.tables.quality %}
+      <tr><th scope="row">{{ r[0] }}</th><td dir="ltr">{{ r[1] }}</td></tr>
+{%- endfor %}
+    </tbody>
+  </table>
+</section>
+
+<script>
+  (function () {
+    const d = {{ model.charts.by_type | tojson }};
+    const el = document.getElementById("chart-type");
+    const chart = echarts.init(el);
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v.toLocaleString("he-IL") + " רשומות"; } },
+      grid: { left: 16, right: 40, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "category", data: d.labels, inverse: true, axisLabel: { width: 130, overflow: "break" } },
+      series: [{ type: "bar", data: d.values, label: { show: true, position: "right", color: "#0c3058" } }]
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+</script>
+<script>
+  (function () {
+    const d = {{ model.charts.families | tojson }};
+    const chart = echarts.init(document.getElementById("chart-family"));
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v.toLocaleString("he-IL") + " שמות"; } },
+      grid: { left: 16, right: 40, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "category", data: d.labels, inverse: true, axisLabel: { width: 130, overflow: "break" } },
+      series: [{ type: "bar", data: d.values, label: { show: true, position: "right", color: "#0c3058" } }]
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+</script>
+<script>
+  (function () {
+    const d = {{ model.charts.kids | tojson }};
+    const chart = echarts.init(document.getElementById("chart-kids"));
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { top: 0, data: ["לילדים", "אחרות"] },
+      grid: { left: 16, right: 16, top: 32, bottom: 8, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "category", data: d.labels, inverse: true, axisLabel: { width: 110, overflow: "break" } },
+      series: [
+        { name: "לילדים", type: "bar", stack: "t", data: d.kids },
+        { name: "אחרות", type: "bar", stack: "t", data: d.other, itemStyle: { color: "#c3cfe7" } }
+      ]
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+</script>
+<script>
+  (function () {
+    const d = {{ model.charts.reuse | tojson }};
+    const chart = echarts.init(document.getElementById("chart-reuse"));
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v.toLocaleString("he-IL") + " שמות"; } },
+      grid: { left: 16, right: 16, top: 24, bottom: 32, containLabel: true },
+      xAxis: { type: "category", data: d.labels, name: "מספר סוגים", nameLocation: "middle", nameGap: 26 },
+      yAxis: { type: "value" },
+      series: [{ type: "bar", data: d.values, label: { show: true, position: "top" } }]
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+</script>
+<script>
+  (function () {
+    const d = {{ model.charts.lengths | tojson }};
+    const chart = echarts.init(document.getElementById("chart-length"));
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: {
+        trigger: "item",
+        formatter: function (p) {
+          const v = p.data.slice(-5);
+          return echarts.format.encodeHTML(p.name) + "<br>חציון: " + v[2] + " תווים<br>רבעונים: " + v[1] + " עד " + v[3] + "<br>טווח: " + v[0] + " עד " + v[4];
+        }
+      },
+      grid: { left: 16, right: 16, top: 16, bottom: 8, containLabel: true },
+      xAxis: { type: "category", data: d.langs },
+      yAxis: { type: "value", name: "תווים" },
+      series: [{ type: "boxplot", data: d.box, itemStyle: { color: "#dbe8fb", borderColor: "#0068f5" } }]
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+</script>
+{% if model.flags.series %}
+<script>
+  (function () {
+    const d = {{ model.charts.series | tojson }};
+    const chart = echarts.init(document.getElementById("chart-series"));
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v.toLocaleString("he-IL") + " אותיות"; } },
+      grid: { left: 16, right: 40, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: "value", minInterval: 1, splitNumber: 3 },
+      yAxis: { type: "category", data: d.labels, inverse: true, axisLabel: { width: 130, overflow: "break" } },
+      series: [{ type: "bar", data: d.values, label: { show: true, position: "right", color: "#0c3058" } }]
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+</script>
+{% endif %}
+<script>
+  (function () {
+    const d = {{ model.charts.agree | tojson }};
+    const chart = echarts.init(document.getElementById("chart-agree"));
+    chart.setOption(window.GovEcharts.option({
+      tooltip: {
+        position: "top",
+        formatter: function (p) {
+          return "שם הסוג: " + echarts.format.encodeHTML(d.y[p.data[1]]) + "<br>עמודת סוג: " + echarts.format.encodeHTML(d.x[p.data[0]]) + "<br>" + p.data[2].toLocaleString("he-IL") + " רשומות";
+        }
+      },
+      grid: { left: 8, right: 8, top: 8, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { rotate: 45, interval: 0 }, splitArea: { show: true } },
+      yAxis: { type: "category", data: d.y, inverse: true, splitArea: { show: true } },
+      visualMap: {
+        min: 1, max: d.max, show: false, type: "piecewise",
+        pieces: [{ min: 1, max: 9 }, { min: 10, max: 99 }, { min: 100 }],
+        inRange: { color: ["#dbe8fb", "#0068f5", "#0b3668"] }
+      },
+      series: [{ type: "heatmap", data: d.cells, label: { show: true, fontFamily: "Rubik", fontSize: 10 } }]
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+</script>

@@ -1,0 +1,189 @@
+{% import "gov.j2" as gov %}<h1>{{ model.agent_data.seo.name }}</h1>
+
+{{ gov.lede(model.labels.lede) }}
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור בית מרקחת לקנביס רפואי לפי עיר או שם ←</span>
+    <span class="block text-sm text-subtle">{{ model.labels.lookup_sub }}</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  {{ gov.kpi(model.kpis.total, model.labels.total_kpi) }}
+  {{ gov.kpi(model.kpis.cities, model.labels.cities_kpi) }}
+  {{ gov.kpi(model.kpis.lead_share, model.labels.lead_kpi) }}
+  {{ gov.kpi(model.kpis.top5, model.labels.top5_kpi) }}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("map-pin", "בתי מרקחת לקנביס רפואי לפי עיר") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.cities_note }}</p>
+  {{ gov.chart("chart-cities", model.labels.cities_aria, "h-[460px] md:h-[520px]") }}
+  {{ gov.table(model.labels.cities_aria, ["יישוב", "בתי מרקחת", "שיעור מהרשימה"], model.tables.cities, ltr=(1, 2)) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("chart-bar", "כמה בתי מרקחת מורשים יש בכל יישוב") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.spread_note }}</p>
+  {{ gov.chart("chart-spread", model.labels.spread_aria, "h-64 md:h-80") }}
+  {{ gov.table(model.labels.spread_aria, ["בתי מרקחת ביישוב", "יישובים", "בתי מרקחת בסך הכול"], model.tables.spread, ltr=(1, 2)) }}
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ gov.head("tag", "רשתות הפארם ובתי מרקחת עצמאיים") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.chains_note }}</p>
+    {{ gov.chart("chart-chains", model.labels.chains_aria, "h-72 md:h-80") }}
+    {{ gov.table(model.labels.chains_aria, ["רשת", "בתי מרקחת", "שיעור מהרשימה"], model.tables.chains, ltr=(1, 2)) }}
+  </section>
+
+  <section class="card p-5">
+    {{ gov.head("list", "משלוח קנביס רפואי עד הבית") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.delivery_note }}</p>
+    {{ gov.chart("chart-delivery", model.labels.delivery_aria, "h-72 md:h-80") }}
+    {{ gov.table(model.labels.delivery_aria, ["מידע על משלוח", "בתי מרקחת", "שיעור מהרשימה"], model.tables.delivery, ltr=(1, 2)) }}
+{%- if model.flags.deliv_list %}
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">{{ model.labels.deliv_list_summary }}</summary>
+      <div class="overflow-x-auto">
+        <table class="mt-2 w-full text-sm">
+          <caption class="sr-only">{{ model.labels.deliv_list_summary }}</caption>
+          <thead><tr><th scope="col">בית מרקחת</th><th scope="col">יישוב</th><th scope="col">הערה</th></tr></thead>
+          <tbody>
+{%- for r in model.tables.deliv_list %}
+            <tr><th scope="row" class="font-normal">{{ r[0] }}</th><td>{{ r[1] }}</td><td>{{ r[2] }}</td></tr>
+{%- endfor %}
+          </tbody>
+        </table>
+      </div>
+    </details>
+{%- endif %}
+  </section>
+</div>
+
+{%- if model.flags.sp %}
+<section class="card p-5 mb-6">
+  {{ gov.head("building-2", "משקל הרשת הגדולה בערים הגדולות") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.sp_note }}</p>
+  {{ gov.chart("chart-sp", model.labels.sp_aria, "h-80 md:h-[460px]") }}
+  {{ gov.table(model.labels.sp_aria, ["יישוב", model.charts.sp.chain, "בתי מרקחת אחרים", "שיעור הרשת"], model.tables.sp, ltr=(1, 2, 3)) }}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("triangle-alert", "על הנתונים") }}
+  <p class="m-0 text-sm text-subtle">{{ model.labels.quality_note }}</p>
+</section>
+
+<script>
+  (function () {
+    var d = {{ model.charts.cities | tojson }};
+    var el = document.getElementById("chart-cities");
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+        formatter: function (ps) { return echarts.format.encodeHTML(ps[0].name) + ": " + ps[0].value + " בתי מרקחת"; } },
+      grid: { left: 16, right: 40, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: "value", minInterval: 1 },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 110, overflow: "truncate" } },
+      series: [{
+        type: "bar", name: "בתי מרקחת",
+        data: d.values.map(function (v, i) { return { value: v, itemStyle: { color: d.names[i] === d.other ? "#9fb3cf" : "#0068f5" } }; }),
+        label: { show: true, position: "right" }
+      }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.spread | tojson }};
+    var el = document.getElementById("chart-spread");
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: ["#0068f5", "#0b3668"],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0, data: ["יישובים", "בתי מרקחת בסך הכול"] },
+      grid: { left: 16, right: 16, top: 24, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: d.names, axisLabel: { interval: 0, width: 70, overflow: "break" } },
+      yAxis: { type: "value", minInterval: 1 },
+      series: [
+        { type: "bar", name: "יישובים", data: d.cities, label: { show: true, position: "top" } },
+        { type: "bar", name: "בתי מרקחת בסך הכול", data: d.pharm, label: { show: true, position: "top" } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.chains | tojson }};
+    var el = document.getElementById("chart-chains");
+    var c = echarts.init(el);
+    var pal = window.GOVIL_PALETTE;
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "item", formatter: function (p) { return echarts.format.encodeHTML(p.name) + ": " + p.value + " בתי מרקחת (" + p.percent + "%)"; } },
+      legend: { bottom: 0, type: "scroll" },
+      series: [{
+        type: "pie", radius: ["38%", "64%"], center: ["50%", "44%"],
+        data: d.names.map(function (nm, i) {
+          return { name: nm, value: d.values[i], itemStyle: { color: nm === d.other ? "#9fb3cf" : pal[i % pal.length] } };
+        }),
+        label: { formatter: function (p) { return p.percent >= 5 ? Math.round(p.percent) + "%" : ""; } }
+      }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.delivery | tojson }};
+    var el = document.getElementById("chart-delivery");
+    var c = echarts.init(el);
+    var cols = ["#198754", "#0dcaf0", "#0b3668", "#9fb3cf"];
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 40, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: "value", minInterval: 1 },
+      yAxis: { type: "category", data: d.names, inverse: true },
+      series: [{
+        type: "bar", name: "בתי מרקחת",
+        data: d.values.map(function (v, i) { return { value: v, itemStyle: { color: cols[i % cols.length] } }; }),
+        label: { show: true, position: "right" }
+      }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+{%- if model.flags.sp %}
+<script>
+  (function () {
+    var d = {{ model.charts.sp | tojson }};
+    var el = document.getElementById("chart-sp");
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0, data: [d.chain, "בתי מרקחת אחרים"] },
+      grid: { left: 16, right: 32, top: 8, bottom: 40, containLabel: true },
+      xAxis: { type: "value", minInterval: 1 },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 110, overflow: "truncate" } },
+      series: [
+        { type: "bar", name: d.chain, stack: "all", data: d["in"], itemStyle: { color: "#0068f5" },
+          label: { show: true, position: "inside", color: "#ffffff", formatter: function (p) { return p.value > 0 ? p.value : ""; } } },
+        { type: "bar", name: "בתי מרקחת אחרים", stack: "all", data: d.out, itemStyle: { color: "#9fb3cf" },
+          label: { show: true, position: "inside", color: "#0c3058", formatter: function (p) { return p.value > 0 ? p.value : ""; } } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}

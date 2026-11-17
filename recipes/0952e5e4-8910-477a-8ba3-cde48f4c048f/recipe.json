@@ -1,0 +1,25 @@
+{
+  "contract_version": 1,
+  "dataset_id": "0952e5e4-8910-477a-8ba3-cde48f4c048f",
+  "recipe_version": 1,
+  "authored_at": "2026-11-17T12:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-11-17T08:28:47.787161+00:00",
+    "rows": { "main": 424 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "f635f611-5b6d-4b21-9cd3-ce7b14da6c11",
+      "required_columns": [
+        "pharmacy_name",
+        "pharmacy_delivery",
+        "pharmacy_street",
+        "pharmacy_city",
+        "pharmacy_notes"
+      ]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": []
+}

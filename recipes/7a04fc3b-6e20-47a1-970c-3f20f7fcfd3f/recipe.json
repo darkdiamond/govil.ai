@@ -1,0 +1,27 @@
+{
+  "contract_version": 1,
+  "dataset_id": "7a04fc3b-6e20-47a1-970c-3f20f7fcfd3f",
+  "recipe_version": 1,
+  "authored_at": "2026-11-17T09:50:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-11-17T06:45:18.736647+00:00",
+    "rows": { "main": 1823 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "32355e02-f72a-4b9a-a327-1e12b5ea83f1",
+      "required_columns": [
+        "unit_name",
+        "unit_type",
+        "unit_type_name",
+        "arb",
+        "eng",
+        "rus",
+        "סוג"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}
