@@ -179,13 +179,18 @@ def fetch_page(url: str, *, client: httpx.Client | None = None, resolve=socket.g
             if not allowed_source(url):
                 raise FetchRefused("not on the source allowlist (NEWS_SOURCE_DOMAINS)")
             addr = _check_url(url, resolve)
-            if clock() > deadline:
+            remaining = deadline - clock()
+            if remaining <= 0:
                 raise FetchRefused("fetch took longer than the time limit")
             # Connect to the vetted address; TLS SNI, certificate verification
-            # and the Host header still use the hostname.
+            # and the Host header still use the hostname. Every network
+            # operation of this hop (connect, TLS, headers, each read) is capped
+            # by what is left of the total, so a slow header or handshake can't
+            # outlive the deadline by a whole TIMEOUT.
             target = httpx.URL(url)
             with client.stream("GET", target.copy_with(host=addr), headers={"Host": target.netloc.decode("ascii")},
-                               extensions={"sni_hostname": target.host}) as r:
+                               extensions={"sni_hostname": target.host},
+                               timeout=httpx.Timeout(min(TIMEOUT, max(0.001, remaining)))) as r:
                 if r.status_code in (301, 302, 303, 307, 308) and r.headers.get("location"):
                     url = urljoin(url, r.headers["location"])
                     continue

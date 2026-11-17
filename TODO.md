@@ -251,25 +251,11 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
   now says www.gov.il fetches fail. Fix: ask gov.il (the digital office) to allow an identified client, or find an official
   API or feed for the pages we want to cite. (2026-11-11)
 
-- **`fetch.py` bounds slow response headers only per read.** The fetch's total deadline is
-  checked between operations, so a very slow response header or TLS handshake is bounded only
-  by the per-read timeout, not by the 60s total. That needs a server on an allowlisted site, and
-  the job's task timeout caps it. Fix: a per-hop timeout of
-  `min(TIMEOUT, remaining)`, or a watchdog that closes the connection at the deadline.
-  (2026-11-11)
-
 - **Watch the stricter number gate's reject rate.** Since 2026-11-11 the gate also fails
   quantities in words ("חמש מאות דירות", "פי שלושה", "חצי מהתושבים", a bare "מיליון שקלים") and
   thresholds or clock times in words. Compare `admin list --rejected` for the two weeks after
   the deploy with the two before; if stories die on phrasing the writer can't tokenize,
   loosen that rule in `ledger.spelled_numbers`. (2026-11-11)
-
-- **Mortgage briefs run out of tool calls.** Both `boi-mortgage-rates` event briefs between
-  2026-11-09 and 11-15 were rejected as `tool_budget` (25 calls) before a first submission, so
-  a monthly headline release got no article. The writer explores the many mortgage tracks one
-  query at a time. Fix: read the two rejects' `tools` log (`admin list --rejected`) and either
-  seed the brief with the mortgage page's headline facts or raise `NEWS_MAX_TOOL_CALLS` for
-  release briefs only. (2026-11-16)
 
 - **Measure the softer editor and the critic's memory.** From 2026-11-16 the editor treats
   each release's headline number as a story by default and has no "each story must be
