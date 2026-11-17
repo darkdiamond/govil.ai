@@ -190,18 +190,20 @@ def _write_overlay_manifest(root: Path, base: Manifest) -> None:
         shutil.rmtree(scratch, ignore_errors=True)
 
 
-def _write_sentinel(root: Path) -> Path:
+def _write_sentinel(root: Path) -> bool:
+    """Create the rescan sentinel if it is missing. True when it had to."""
     sentinel = root / "datasets" / RESCAN_SENTINEL
     sentinel.parent.mkdir(parents=True, exist_ok=True)
-    if not sentinel.is_file():
-        sentinel.write_text("<!-- preview: touched to make nuxt dev rescan Tailwind's content -->\n",
-                            encoding="utf-8")
-    return sentinel
+    if sentinel.is_file():
+        return False
+    sentinel.write_text("<!-- preview: touched to make nuxt dev rescan Tailwind's content -->\n",
+                        encoding="utf-8")
+    return True
 
 
-def _rescan_tailwind(root: Path) -> bool:
+def _rescan_tailwind(root: Path) -> None:
     """Make a running dev server compile the classes of a content.html it has
-    never seen. True when it touched the sentinel.
+    never seen.
 
     Vite turns Tailwind's content glob into a watch list of the files that
     matched it at the last CSS compile, so a content.html created after that
@@ -211,12 +213,20 @@ def _rescan_tailwind(root: Path) -> bool:
     Touching the sentinel, which the server watches from its start,
     recompiles the stylesheet; that rescans the glob and watches the new file
     from then on. (Touching tailwind.config.ts also works, but rebuilds Nitro
-    too, and a page requested meanwhile on a fresh server hangs.)"""
+    too, and a page requested meanwhile on a fresh server hangs.)
+
+    A sentinel created only now (a server started before it existed, or
+    datasets/ cleared while it runs) is in no watch list yet, so touching it
+    would do nothing: say so instead of failing silently."""
     info = _read_server(root)
     if not info or not _is_ours(info):
-        return False  # a server started later compiles every staged body
-    os.utime(_write_sentinel(root))
-    return True
+        return  # a server started later compiles every staged body
+    if _write_sentinel(root):
+        print("preview: the running dev server isn't watching "
+              f"datasets/{RESCAN_SENTINEL}, so classes new to this page may be missing "
+              "until `preview stop` and a restart", file=sys.stderr)
+        return
+    os.utime(root / "datasets" / RESCAN_SENTINEL)
 
 
 def stage(dataset_id: str, page, raw: dict, *, recipes_root: Path = author.RECIPES_ROOT,

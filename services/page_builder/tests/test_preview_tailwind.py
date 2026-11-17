@@ -30,17 +30,19 @@ def _page(cls: str):
                                  warnings=[])
 
 
-def _server(monkeypatch, running: bool) -> list:
+def _server(monkeypatch, running: bool, root=None) -> list:
     touched = []
     monkeypatch.setattr(preview, "_read_server", lambda root: {"pid": 1, "port": 3100} if running else None)
     monkeypatch.setattr(preview, "_is_ours", lambda info: running)
     real = os.utime
     monkeypatch.setattr(preview.os, "utime", lambda p, *a, **k: (touched.append(p), real(p, *a, **k)))
+    if running and root is not None:
+        preview._write_sentinel(root)  # as _ensure_server does before starting it
     return touched
 
 
 def test_new_body_touches_the_sentinel_of_a_running_server(root, monkeypatch):
-    touched = _server(monkeypatch, running=True)
+    touched = _server(monkeypatch, running=True, root=root)
     preview.stage(DS, _page("h-[30rem]"), {}, root=root)
     sentinel = root / "datasets" / preview.RESCAN_SENTINEL
     assert touched == [sentinel] and sentinel.is_file()
@@ -49,7 +51,7 @@ def test_new_body_touches_the_sentinel_of_a_running_server(root, monkeypatch):
 
 
 def test_rewrite_of_a_staged_body_does_not_touch(root, monkeypatch):
-    touched = _server(monkeypatch, running=True)
+    touched = _server(monkeypatch, running=True, root=root)
     preview.stage(DS, _page("h-[30rem]"), {}, root=root)
     preview.stage(DS, _page("h-[32rem]"), {}, root=root)  # a watched file: Vite recompiles
     assert len(touched) == 1
@@ -61,8 +63,16 @@ def test_no_server_no_touch(root, monkeypatch):
     assert touched == []  # the server that starts later compiles every body
 
 
+def test_sentinel_created_after_the_server_started_warns(root, monkeypatch, capsys):
+    touched = _server(monkeypatch, running=True)  # no sentinel: a server older than it
+    preview.stage(DS, _page("h-[30rem]"), {}, root=root)
+    assert touched == []  # a file no watch list holds: touching it does nothing
+    assert (root / "datasets" / preview.RESCAN_SENTINEL).is_file()
+    assert "preview stop" in capsys.readouterr().err
+
+
 def test_sentinel_is_not_a_dataset(root, monkeypatch, capsys):
-    _server(monkeypatch, running=True)
+    _server(monkeypatch, running=True, root=root)
     preview.stage(DS, _page("h-[30rem]"), {}, root=root)
     assert (root / "datasets" / preview.RESCAN_SENTINEL).is_file()
     preview.status(root)
