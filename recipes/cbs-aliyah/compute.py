@@ -407,7 +407,7 @@ def _occupations(rows):
 
 def _extras(frames):
     found = {}
-    for k in ("t8", "t9", "t10", "t11", "t12"):
+    for k in ("t8", "t9", "t10", "t11", "t12", "t13", "t14", "t15"):  # t13..t15: spare slots
         df = frames.get(k)
         if df is None or df.empty:
             continue

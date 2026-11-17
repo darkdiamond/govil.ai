@@ -41,7 +41,7 @@ DEFINITE = {
     ("girls", "druze"): "הבנות הדרוזיות", ("boys", "druze"): "הבנים הדרוזים",
 }
 SEX_HE = {"girls": "בנות", "boys": "בנים"}
-TABLES = [f"t{i}" for i in range(1, 10)]
+TABLES = [f"t{i}" for i in range(1, 13)]  # t10..t12: spare slots for a bigger edition
 BIRTH_YEAR = re.compile(r"(?:ילידי|ילידות)\s+((?:19|20)\d\d)(?!\s*-\s*\d)")
 HEB = re.compile("[א-ת]")
 

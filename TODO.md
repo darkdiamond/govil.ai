@@ -185,15 +185,6 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
   convicted, foreign residents, VAT dealer openings and closings. Several renumber their tables
   every edition, so read tables by title (as `cbs-motor-vehicles` and `cbs-local-authorities`
   do), not by stem. (2026-11-05)
-- **CBS recipes that read tables by title have no spare table slots.** `cbs-local-authorities`
-  (t1..t36), `cbs-motor-vehicles` (t1..t13), `cbs-baby-names` (t1..t9) and `cbs-aliyah`
-  (t8..t12) declare exactly as many stems as the newest edition has. If the next edition adds
-  a table, the last one is never downloaded and its section silently drops (motor-vehicles
-  fails loudly only when a required chart moves past t13). Spare `optional` stems would fix
-  it, but `CbsReleasesProvider.facts` lists an absent optional table as an "HTML" download
-  pointing at the release page, so each spare shows a meaningless row under the page. Fix:
-  leave absent optional tables out of the resources list (builder redeploy), then add ~3 spare
-  stems to these recipes. (2026-11-17)
 - **CBS price-index chapters with no page.** `cbs_index catalog` chapters with no recipe:
   construction inputs for commercial buildings and offices (ca), road and bridge works (d),
   agriculture (e), buses and minibuses (f/fa), industry export prices (ba), and the 118

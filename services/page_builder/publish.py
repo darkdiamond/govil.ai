@@ -70,6 +70,14 @@ DATASET_SUCCESSORS_PATH = Path(__file__).with_name("dataset_successors.json")
 
 # ---- record assembly --------------------------------------------------------
 
+def _absent_optional(r: dict) -> bool:
+    """A provider table marked optional that the newest edition doesn't carry
+    (a CBS recipe's spare table slot): the sync stores it with 0 rows and the
+    release page as its URL. It stays in Firestore, where the refresh resolves
+    the recipe's inputs, but it is not a download."""
+    return bool((r.get("params") or {}).get("optional")) and not r.get("rows")
+
+
 def _resources_from_source(src: SourceRecord) -> list[ResourceEntry]:
     return [
         ResourceEntry(
@@ -82,7 +90,7 @@ def _resources_from_source(src: SourceRecord) -> list[ResourceEntry]:
             datastore_active=r.get("datastore_active"),
         )
         for r in src.resources
-        if r.get("url")
+        if r.get("url") and not _absent_optional(r)
     ]
 
 

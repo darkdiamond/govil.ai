@@ -707,3 +707,26 @@ def test_one_retired_series_does_not_make_a_dataset_gone(boi):
     boi.answers["/BR/1.0/"] = FakeResp(200, BR_CSV.encode())
     boi.answers["/EXR/1.0/"] = FakeResp(404, b"<html>", "text/html")
     assert boi.probe_available([a, b]) == "unknown"
+
+
+def test_publisher_lists_no_download_for_an_absent_optional_table():
+    from services.page_builder.publish import dataset_meta_from_source
+    from services.shared.firestore import SourceRecord
+
+    page = "https://www.cbs.gov.il/he/mediarelease/Pages/2026/x.aspx"
+    src = SourceRecord(
+        id="cbs-x", title="דוח", slug="x", provider="cbs_releases",
+        resources=[
+            {"id": "t1", "name": "לוח 1", "format": "XLSX", "url": "https://www.cbs.gov.il/t1.xlsx",
+             "rows": 30, "params": {"table": "t1"}},
+            {"id": "t2", "name": "לוח 2", "format": "XLSX", "url": "https://www.cbs.gov.il/t2.xlsx",
+             "rows": 12, "params": {"table": "t2", "optional": True}},
+            {"id": "t3", "name": "לוח 3", "format": "HTML", "url": page,
+             "rows": 0, "params": {"table": "t3", "optional": True}},
+            {"id": "releases", "name": "פרסומים", "format": "HTML", "url": page,
+             "rows": 3, "params": {"kind": "releases"}},
+        ],
+    )
+    meta = dataset_meta_from_source(src)
+    assert [r.id for r in meta.resources] == ["t1", "t2", "releases"]
+    assert meta.formats == ["HTML", "XLSX"]

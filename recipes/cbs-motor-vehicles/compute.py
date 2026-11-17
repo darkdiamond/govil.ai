@@ -2,7 +2,7 @@
 
 The release is a set of chart-data sheets ("תרשים N - ..."), and their
 NUMBERS MOVE between editions (the hybrid/EV chart was t2 in 2024 and t3 in
-2025-2026; motorization t8, t9, t11). So every table input (t1..t13, all
+2025-2026; motorization t8, t9, t11). So every table input (t1..t16, three of them spare slots, all
 optional) is read with `cbs.grid`, and each chart is found by its TITLE
 text, not by its stem:
 

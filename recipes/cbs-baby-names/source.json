@@ -68,6 +68,24 @@
         "optional": true
       },
       {
+        "id": "t10",
+        "name": "השמות הפרטיים: לוח 10 בהודעה",
+        "table": "t10",
+        "optional": true
+      },
+      {
+        "id": "t11",
+        "name": "השמות הפרטיים: לוח 11 בהודעה",
+        "table": "t11",
+        "optional": true
+      },
+      {
+        "id": "t12",
+        "name": "השמות הפרטיים: לוח 12 בהודעה",
+        "table": "t12",
+        "optional": true
+      },
+      {
         "id": "releases",
         "name": "ההודעות השנתיות לתקשורת",
         "kind": "releases"

@@ -443,6 +443,39 @@
       ]
     },
     {
+      "name": "t37",
+      "by_id": "t37",
+      "required_columns": [
+        "RELEASE_NO",
+        "RELEASE_DATE",
+        "SHEET_NO",
+        "ROW",
+        "C01"
+      ]
+    },
+    {
+      "name": "t38",
+      "by_id": "t38",
+      "required_columns": [
+        "RELEASE_NO",
+        "RELEASE_DATE",
+        "SHEET_NO",
+        "ROW",
+        "C01"
+      ]
+    },
+    {
+      "name": "t39",
+      "by_id": "t39",
+      "required_columns": [
+        "RELEASE_NO",
+        "RELEASE_DATE",
+        "SHEET_NO",
+        "ROW",
+        "C01"
+      ]
+    },
+    {
       "name": "releases",
       "by_id": "releases",
       "required_columns": [
