@@ -24,12 +24,6 @@ This repo is public: describe a security gap by what to change, never by how to 
   percentiles, cells over a threshold) plus an optional coarse grid. Pillow opens these files;
   ship a TIFF reader in the builder image and redeploy before authoring. (2026-11-09)
 
-- **The preview's Tailwind misses classes added after the dev server started.** A chart height
-  like `h-[30rem]` that no page had when `preview` started renders at 0px until
-  `preview stop` and a restart. Production builds are unaffected (they scan every body at
-  once), but authors waste fix rounds on it. Fix: have `preview` restart the dev server, or
-  touch the Tailwind config, when a newly rendered body adds unseen classes. (2026-11-09)
-
 - **Two live pages for the "חברה ורווחה" journal.** 1ba21c94 (legacy agent page) and e4c3e3d0
   (recipe) are both active on data.gov.il and split the "חברה ורווחה" impressions (56 vs 14 a
   week, both at position 7.3). Neither can 301 to the other while both exist upstream. Fix: if

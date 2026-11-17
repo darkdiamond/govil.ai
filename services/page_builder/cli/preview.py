@@ -70,6 +70,10 @@ PORTS = range(3100, 3200)        # clear of `npm run dev`'s 3000
 SERVER_READY_TIMEOUT_S = 240
 START_ATTEMPTS = 3
 WATCH_INTERVAL_S = 0.5
+# Matched by the preview's Tailwind content glob (`datasets/**/*.html`), so the
+# dev server's stylesheet depends on it from its first compile; see
+# _rescan_tailwind. A file, not a dataset dir: the manifest and `status` skip it.
+RESCAN_SENTINEL = "_tailwind-rescan.html"
 
 
 # ── staging ──────────────────────────────────────────────────────────────
@@ -186,6 +190,35 @@ def _write_overlay_manifest(root: Path, base: Manifest) -> None:
         shutil.rmtree(scratch, ignore_errors=True)
 
 
+def _write_sentinel(root: Path) -> Path:
+    sentinel = root / "datasets" / RESCAN_SENTINEL
+    sentinel.parent.mkdir(parents=True, exist_ok=True)
+    if not sentinel.is_file():
+        sentinel.write_text("<!-- preview: touched to make nuxt dev rescan Tailwind's content -->\n",
+                            encoding="utf-8")
+    return sentinel
+
+
+def _rescan_tailwind(root: Path) -> bool:
+    """Make a running dev server compile the classes of a content.html it has
+    never seen. True when it touched the sentinel.
+
+    Vite turns Tailwind's content glob into a watch list of the files that
+    matched it at the last CSS compile, so a content.html created after that
+    (a second dataset, or the first one staged into an empty overlay) isn't
+    watched, and classes only it uses never reach the CSS (an `h-[30rem]`
+    chart renders 0px tall). A rewrite of a watched file recompiles by itself.
+    Touching the sentinel, which the server watches from its start,
+    recompiles the stylesheet; that rescans the glob and watches the new file
+    from then on. (Touching tailwind.config.ts also works, but rebuilds Nitro
+    too, and a page requested meanwhile on a fresh server hangs.)"""
+    info = _read_server(root)
+    if not info or not _is_ours(info):
+        return False  # a server started later compiles every staged body
+    os.utime(_write_sentinel(root))
+    return True
+
+
 def stage(dataset_id: str, page, raw: dict, *, recipes_root: Path = author.RECIPES_ROOT,
           root: Path | None = None) -> Path:
     """Write one rendered page into the preview overlay the way the publisher
@@ -200,6 +233,7 @@ def stage(dataset_id: str, page, raw: dict, *, recipes_root: Path = author.RECIP
     live = next((e for e in base.datasets if e.id == dataset_id), None)
     meta.page_slug = live.page_slug if live and live.page_slug else _build_page_slugs({dataset_id: meta})[dataset_id]
 
+    new_body = not (out / "content.html").exists()
     (out / "content.html").write_text(page.content_html, encoding="utf-8")
     (out / "agent_data.json").write_text(
         json.dumps(page.agent_data, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -211,6 +245,8 @@ def stage(dataset_id: str, page, raw: dict, *, recipes_root: Path = author.RECIP
     with open(root / ".lock", "w") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
         _write_overlay_manifest(root, base)
+        if new_body:
+            _rescan_tailwind(root)
         (root / "stamp").write_text(str(time.time_ns()), encoding="utf-8")
     return out
 
@@ -375,6 +411,7 @@ def _ensure_server(root: Path) -> dict:
     # `npm run dev`'s predev: viz libs into public/lib/ (gitignored, per checkout).
     subprocess.run(["node", "scripts/copy-libs.mjs"], cwd=FRONTEND, check=True,
                    stdout=subprocess.DEVNULL)
+    _write_sentinel(root)  # before the first CSS compile, so it is watched
     if not _read_stamp(root):  # the identity the readiness check compares
         (root / "stamp").write_text(str(time.time_ns()), encoding="utf-8")
     for _ in range(START_ATTEMPTS):
@@ -480,7 +517,7 @@ def status(root: Path | None = None) -> int:
     info = running_server(root)
     print(f"server: http://{HOST}:{info['port']}/ (pid {info['pid']})" if info
           else "server: not running")
-    staged = sorted(d.name for d in (root / "datasets").iterdir()) if (root / "datasets").is_dir() else []
+    staged = sorted(d.name for d in (root / "datasets").iterdir() if d.is_dir()) if (root / "datasets").is_dir() else []
     for did in staged:
         print(did)
         for line in _urls(did, info and info["port"], root):
