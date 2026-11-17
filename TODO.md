@@ -251,6 +251,13 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
   now says www.gov.il fetches fail. Fix: ask gov.il (the digital office) to allow an identified client, or find an official
   API or feed for the pages we want to cite. (2026-11-11)
 
+- **`fetch.py` can still pass its 60s total within one hop.** Each hop's httpx timeout is
+  `min(TIMEOUT, remaining)` taken when the hop starts, but httpx applies it to every operation
+  separately (connect, TLS, header read, each body read), and DNS resolution in `_check_url` is
+  not bounded at all, so one slow hop can still run several timeouts past the deadline (the
+  first hop exactly as before the cap). The job's task timeout caps it. Fix: a watchdog that
+  closes the connection at the deadline, and a bounded resolver. (2026-11-18)
+
 - **Watch the stricter number gate's reject rate.** Since 2026-11-11 the gate also fails
   quantities in words ("חמש מאות דירות", "פי שלושה", "חצי מהתושבים", a bare "מיליון שקלים") and
   thresholds or clock times in words. Compare `admin list --rejected` for the two weeks after
