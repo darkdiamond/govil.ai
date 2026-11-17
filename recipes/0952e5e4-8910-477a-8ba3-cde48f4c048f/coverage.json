@@ -1,0 +1,8 @@
+{
+  "main.pharmacy_name": "chart-chains, chart-sp, kpi:lead_share, insight:lead_chain, insight:sp_city, insight:mall, table:deliv_list — chain from the name's prefix after a leading 'בית מרקחת' is stripped, plus the Be (Shufersal) token anywhere; unknown names fall to independents; pharmacies are businesses, named only in the delivery list",
+  "main.pharmacy_delivery": "chart-delivery, insight:delivery — yes/no/empty; empty for about 70% of rows; four exclusive buckets (field yes, note offers delivery, field no, not stated)",
+  "main.pharmacy_street": "insight:mall — only used to detect a mall in the address; full addresses stay in the explorer",
+  "main.pharmacy_city": "chart-cities, chart-spread, chart-sp, kpi:cities, kpi:top5, insight:lead_city, insight:concentration, insight:sp_city — hyphens to spaces, קרית to קריית, explicit alias map (geresh, doubled letters, renamed towns); neighbourhoods as listed",
+  "main.pharmacy_notes": "chart-delivery, insight:delivery, insight:mall, table:deliv_list — free text; 'משלוח' counts as a delivery offer unless a negation (אין/ללא/לא/בלי) precedes it within two words; 'קניון' marks a mall location",
+  "main.map": "skip: HTML anchor to an external Google Maps directions link, no coordinates"
+}

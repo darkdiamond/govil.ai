@@ -1,0 +1,9 @@
+{
+  "main.unit_name": "chart-type, chart-family, chart-kids, chart-reuse, chart-length, chart-series, kpi:entries, kpi:names, kpi:kids, insight:family, insight:reuse, insight:kids, insight:series, insight:dups — Hebrew unit name: opening word, children's units, reuse across types, lettered series, length, duplicates",
+  "main.unit_type": "insight:lead_type — numeric type code; used only for the code-consistency check in the quality table",
+  "main.unit_type_name": "chart-type, chart-agree, chart-kids, chart-reuse, kpi:types, kpi:agree, insight:lead_type, insight:agree — primary unit type",
+  "main.arb": "chart-length, kpi:full, insight:script, insight:dups — Arabic rendering: length, top type word, script and duplicate checks",
+  "main.eng": "chart-length, kpi:full, insight:script, insight:dups — English rendering: length, top type word, shared translations",
+  "main.rus": "chart-length, kpi:full, insight:script, insight:length — Russian rendering: length, top type word",
+  "main.סוג": "chart-agree, kpi:agree, insight:agree — second type column, compared against unit_type_name"
+}
