@@ -4,7 +4,7 @@ This file is loaded automatically. Read it before touching code.
 
 ## Work in a worktree, never in the main checkout
 
-Several sessions (yours, the user's, the 07:00/12:00/17:00 authoring routine) work in this repo at once,
+Several sessions (yours, the user's, the 06:37/11:37/16:37 authoring routine) work in this repo at once,
 and the main checkout (`/home/zilbert/workdir/govdata`) holds the user's uncommitted work.
 Branch switches and stray edits there clobber another session's work.
 
@@ -166,7 +166,8 @@ landing pages. Six layers:
    `agent/system-prompt.md` — the retired cloud agent's prompt, kept as
    the design reference (no longer shipped in the image).
    **Routine, three times a day:** a local Claude Code routine on the user's machine
-   (bridge environment, **07:00, 12:00 and 17:00 Israel time**, one hour after
+   (bridge environment, **06:37, 11:37 and 16:37 Israel time**, scheduled task
+   `trig_01J1zwYMCbCtSXY8yFGeJ23e`, ~37 min after
    each authoring-queue run) runs `/solve-authoring-issues`
    (`.claude/skills/solve-authoring-issues/SKILL.md`): reads open
    `[author] … (<id8>)` issues (`(<provider id>)` for a provider source)

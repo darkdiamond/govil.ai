@@ -1,6 +1,6 @@
 ---
 name: solve-authoring-issues
-description: Authoring batch — work through the open `needs-authoring` GitHub issues the refresh job opened, author (or fix) a recipe for each with the author-dataset workflow, code-review the batch, open ONE pull request, and merge it when the mechanical automerge guard passes. Run by the local Claude Code routine three times a day (07:00, 12:00 and 17:00 Israel time); also fine to run by hand.
+description: Authoring batch — work through the open `needs-authoring` GitHub issues the refresh job opened, author (or fix) a recipe for each with the author-dataset workflow, code-review the batch, open ONE pull request, and merge it when the mechanical automerge guard passes. Run by the local Claude Code routine three times a day (06:37, 11:37 and 16:37 Israel time); also fine to run by hand.
 ---
 
 # /solve-authoring-issues [max=10]
