@@ -280,6 +280,30 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
   release story that runs; if routine-release copy turns formulaic, tighten the editor's
   headline list. (2026-11-16)
 
+## Search
+
+- **Hidden idle topic chips stay keyboard-reachable on phones.** Before anything is typed, the
+  homepage spotlight hides topic chips 4-6 below `sm` (`max-sm:hidden` in
+  `HomeSpotlight.vue`), but they stay in the option list, so a phone with a hardware keyboard
+  can arrow onto a `display:none` option (and `aria-activedescendant` points at it). Fix: let
+  `useSiteSearch` take the idle chip count from a `matchMedia` ref instead of hiding with CSS.
+  (2026-11-17)
+
+- **The match-bolding markup is copied six times.** The `<template v-for="s in segments">
+<strong v-if="s.match">` block appears 4 times in `HomeSpotlight.vue` and twice in
+  `SearchSuggestions.vue`, and both copy the scroll-highlight-into-view watcher and the
+  loading/failed panels. A change to how matches are marked has to touch every copy. Fix: a
+  `components/search/SearchMark.vue` and a scroll helper in `useSiteSearch`. (2026-11-17)
+
+- **The homepage placeholder animation runs while off-screen.** `HomeSearch.vue`'s typing loop
+  re-renders every 35-85ms for the whole visit, even with the masthead scrolled away. Fix:
+  pause it with an IntersectionObserver on the box. (2026-11-17)
+
+- **`/` can steal focus from the open header search.** The homepage's global `/` shortcut
+  ignores only fields, so with the header popover open and focus on one of its result links,
+  `/` jumps to the homepage box and leaves the popover open. Fix: skip the shortcut while focus
+  is inside a `[role=dialog]`. (2026-11-17)
+
 ## Site copy
 
 - **Several pages still say an AI agent writes every dataset page.** Since 2026-10-29 dataset
