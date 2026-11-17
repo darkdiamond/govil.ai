@@ -1,0 +1,270 @@
+{% import "gov.j2" as gov %}
+{%- macro lede(key) -%}
+{%- if model.ledes.get(key) %}
+  <p class="m-0 mb-2 text-ink-deep">{{ model.ledes[key] }}</p>
+{%- endif %}
+{%- endmacro %}
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+{{ gov.lede(model.labels.lede) }}
+
+<a href="#lookup" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">כמה דירות יש ביישוב שלכם? ←</span>
+    <span class="block text-sm text-subtle">טבלת מספר הדירות בכל עירייה ומועצה מקומית, עם השינוי לעומת השנה הקודמת</span>
+  </span>
+</a>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("external-link", "המהדורה האחרונה של הלמ\"ס") }}
+  <p class="m-0 text-sm text-subtle mb-2">{{ model.release.title }} · פורסמה {{ model.release.date }}</p>
+{%- if model.release.headline %}
+  <p class="m-0 mb-3 text-ink-deep">{{ model.release.headline }}</p>
+{%- endif %}
+  <p class="m-0 text-sm flex flex-wrap gap-4">
+    <a href="{{ model.release.url }}" target="_blank" rel="noopener">להודעה המלאה באתר הלמ"ס</a>
+{%- if model.release.pdf %}
+    <a href="{{ model.release.pdf }}" target="_blank" rel="noopener">לפרסום המלא (PDF)</a>
+{%- endif %}
+  </p>
+</section>
+
+<div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
+{%- for key in ["total", "added", "yoy", "growth", "ppd", "small"] %}
+{%- if model.kpis[key] is defined %}
+  {{ gov.kpi(model.kpis[key], model.labels[key ~ "_kpi"]) }}
+{%- endif %}
+{%- endfor %}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+{%- if model.flags.get("trend") %}
+<section class="card p-5 mb-6">
+  {{ gov.head("trending-up", "מלאי הדירות בישראל לאורך השנים") }}
+  {{ lede("trend") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.trend_note }}</p>
+  {{ gov.chart("chart-trend", "מלאי הדירות למגורים ותוספת הדירות בכל שנה", "h-72 md:h-96") }}
+  {{ gov.table("מלאי הדירות ותוספת שנתית", ["שנה", "דירות למגורים", "נוספו בשנה"], model.tables.trend, ltr=(0, 1, 2)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.get("top") %}
+<section class="card p-5 mb-6">
+  {{ gov.head("building-2", "היישובים עם הכי הרבה דירות") }}
+  {{ lede("top") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.top_note }}</p>
+  {{ gov.chart("chart-top", model.labels.top_note, "h-[460px] md:h-[520px]") }}
+  {{ gov.table(model.labels.top_note, ["יישוב", "דירות", "מכלל הדירות"], model.tables.top, ltr=(1, 2)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.get("growth") %}
+<section class="card p-5 mb-6">
+  {{ gov.head("chart-bar", "איפה מלאי הדירות גדל הכי מהר") }}
+  {{ lede("growth") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.growth_note }}</p>
+  {{ gov.chart("chart-growth", "אחוז הגידול במספר הדירות ביישובים שגדלו הכי מהר", "h-[460px] md:h-[520px]") }}
+  {{ gov.table("היישובים שבהם מלאי הדירות גדל הכי מהר", model.labels.growth_cols, model.tables.growth, ltr=(1, 2, 3)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.get("districts") %}
+<section class="card p-5 mb-6">
+  {{ gov.head("map-pin", "דירות ואוכלוסייה לפי מחוז") }}
+  {{ lede("districts") }}
+  <p class="m-0 text-sm text-subtle mb-3">חלקו של כל מחוז מסך הדירות למגורים ומסך האוכלוסייה, באחוזים</p>
+  {{ gov.chart("chart-districts", "חלקו של כל מחוז בדירות ובאוכלוסייה", "h-80 md:h-96") }}
+  {{ gov.table("דירות ואוכלוסייה לפי מחוז", ["מחוז", "מהאוכלוסייה", "דירות", "מהדירות", "נפשות לדירה"], model.tables.districts, ltr=(1, 2, 3, 4)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.get("ratio") %}
+<section class="card p-5 mb-6">
+  {{ gov.head("chart-bar", "כמה נפשות גרות בכל דירה") }}
+  {{ lede("ratio") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.ratio_note }}</p>
+  {{ gov.chart("chart-ratio", model.labels.ratio_note, "h-[900px] md:h-[960px]") }}
+  {{ gov.table(model.labels.ratio_note, model.labels.ratio_cols, model.tables.ratio, ltr=(1, 2, 3)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.get("sizes") %}
+<section class="card p-5 mb-6">
+  {{ gov.head("building-2", "גודל הבניינים: כמה דירות בכל מבנה") }}
+  {{ lede("sizes") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.sizes_note }}</p>
+  {{ gov.chart("chart-sizes", "מספר המבנים למגורים לפי מספר הדירות במבנה", "h-72 md:h-80") }}
+  {{ gov.table("מבנים לפי מספר הדירות במבנה", ["דירות במבנה", "מבנים", "מכלל המבנים"], model.tables.sizes, ltr=(1, 2)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.get("size_cities") %}
+<section class="card p-5 mb-6">
+  {{ gov.head("chart-bar", "בתים צמודי קרקע ומגדלים בערים הגדולות") }}
+  {{ lede("size_cities") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.size_cities_note }}</p>
+  {{ gov.chart("chart-size-cities", model.labels.size_cities_note, "h-[560px] md:h-[600px]") }}
+  {{ gov.table(model.labels.size_cities_note, model.labels.size_cols, model.tables.size_cities, ltr=range(1, model.labels.size_cols | length) | list) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.get("regional") %}
+<section class="card p-5 mb-6">
+  {{ gov.head("map-pin", "דירות במועצות האזוריות") }}
+  {{ lede("regional") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.regional_note }}</p>
+  {{ gov.chart("chart-regional", "מספר הדירות במועצות האזוריות הגדולות", "h-[460px] md:h-[520px]") }}
+  {{ gov.table("דירות במועצות האזוריות", model.labels.regional_cols, model.tables.regional, ltr=(1, 2, 3)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.get("lookup") %}
+<section id="lookup" class="card p-5 mb-6">
+  {{ gov.head("search", "מספר הדירות בכל יישוב") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.lookup_note }}</p>
+  <details open>
+    <summary class="text-sm text-subtle">הצג או הסתר את הטבלה</summary>
+    <div class="overflow-x-auto mt-2" style="max-height: 32rem; overflow-y: auto;">
+      <table class="w-full text-sm">
+        <caption class="sr-only">{{ model.labels.lookup_note }}</caption>
+        <thead><tr>{% for c in model.labels.lookup_cols %}<th scope="col">{{ c }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in model.tables.lookup %}
+          <tr><th scope="row">{{ r[0] }}</th><td dir="ltr">{{ r[1] }}</td><td dir="ltr">{{ r[2] }}</td><td dir="ltr">{{ r[3] }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("info", "על הנתונים") }}
+  <p class="m-0 mb-2 text-sm text-subtle">הנתונים מבוססים על מרשם הדירות והמבנים של הלמ"ס, שנבנה מנתוני הארנונה שהרשויות המקומיות מעבירות פעם בשנה. הם מתארים את מלאי הדירות הקיים, ולא התחלות בנייה או עסקאות מכר. שינוי בסיווג נכסים או בספק המחשוב של רשות יכול להזיז את המספרים של יישוב משנה לשנה.</p>
+{%- if model.labels.cbs_note %}
+  <p class="m-0 text-sm text-subtle">הערת הלמ"ס למהדורה זו: {{ model.labels.cbs_note }}</p>
+{%- endif %}
+</section>
+
+<script>
+  (function () {
+    const pal = window.GOVIL_PALETTE;
+    const charts = [];
+    const fmtv = (d) => (v) => v == null ? "" : (v < 0 ? "‎−" : "") + Math.abs(Number(v)).toLocaleString("he-IL", { maximumFractionDigits: d });
+    const narrow = () => window.innerWidth < 640;
+    function mount(id) {
+      const el = document.getElementById(id);
+      if (!el) return null;
+      const c = echarts.init(el);
+      charts.push(c);
+      return c;
+    }
+    function hbar(id, d, o) {
+      const c = mount(id);
+      if (!c) return;
+      o = o || {};
+      const f = fmtv(o.digits == null ? 0 : o.digits);
+      const u = o.unit || "";
+      c.setOption(window.GovEcharts.option({
+        color: [o.color || pal[0]],
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => f(v) + u },
+        grid: { left: 16, right: 48, top: 16, bottom: 16, containLabel: true },
+        xAxis: { type: "value", axisLabel: { formatter: (v) => f(v) + u, hideOverlap: true } },
+        yAxis: { type: "category", data: d.x, inverse: true, axisLabel: { interval: 0, width: narrow() ? 84 : 140, overflow: "truncate", fontSize: narrow() ? 11 : 12 } },
+        series: [{
+          type: "bar", name: o.name || "", data: d.y, barMaxWidth: 18,
+          label: { show: !narrow() || o.digits != null, position: "right", formatter: (p) => f(p.value) + u, fontSize: 11 },
+          markLine: d.national == null ? undefined : { symbol: "none", silent: true, lineStyle: { type: "dashed", color: "#0c3058" }, label: { show: false }, data: [{ xAxis: d.national }] }
+        }]
+      }));
+    }
+{%- if model.flags.get("trend") %}
+    (function () {
+      const d = {{ model.charts.trend | tojson }};
+      const c = mount("chart-trend");
+      const f = fmtv(0);
+      c.setOption(window.GovEcharts.option({
+        color: [pal[0], pal[1]],
+        tooltip: { trigger: "axis", valueFormatter: (v) => f(v) },
+        legend: { top: 0, data: ["דירות למגורים", "נוספו בשנה"] },
+        grid: { left: 16, right: 16, top: 48, bottom: 16, containLabel: true },
+        xAxis: { type: "category", data: d.x, axisLabel: { hideOverlap: true } },
+        yAxis: [
+          { type: "value", scale: true, axisLabel: { formatter: (v) => (v / 1e6).toLocaleString("he-IL", { maximumFractionDigits: 2 }) + " מ׳" } },
+          { type: "value", splitLine: { show: false }, axisLabel: { formatter: (v) => (v / 1000).toLocaleString("he-IL") + " אלף" } }
+        ],
+        series: [
+          { type: "line", name: "דירות למגורים", data: d.total, smooth: false, symbolSize: 6, lineStyle: { width: 3 } },
+          { type: "bar", name: "נוספו בשנה", data: d.added, yAxisIndex: 1, barMaxWidth: 22, itemStyle: { opacity: 0.6 } }
+        ]
+      }));
+    })();
+{%- endif %}
+{%- if model.flags.get("top") %}
+    hbar("chart-top", {{ model.charts.top | tojson }}, { name: "דירות" });
+{%- endif %}
+{%- if model.flags.get("growth") %}
+    hbar("chart-growth", {{ model.charts.growth | tojson }}, { name: "גידול", unit: "%", digits: 1, color: pal[1] });
+{%- endif %}
+{%- if model.flags.get("districts") %}
+    (function () {
+      const d = {{ model.charts.districts | tojson }};
+      const c = mount("chart-districts");
+      const f = fmtv(1);
+      c.setOption(window.GovEcharts.option({
+        color: [pal[0], pal[2]],
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => f(v) + "%" },
+        legend: { top: 0, data: ["מהדירות", "מהאוכלוסייה"] },
+        grid: { left: 16, right: 24, top: 48, bottom: 16, containLabel: true },
+        xAxis: { type: "value", axisLabel: { formatter: (v) => f(v) + "%" } },
+        yAxis: { type: "category", data: d.x, inverse: true, axisLabel: { interval: 0, width: narrow() ? 90 : 150, overflow: "truncate", fontSize: narrow() ? 11 : 12 } },
+        series: [
+          { type: "bar", name: "מהדירות", data: d.dw, barMaxWidth: 14 },
+          { type: "bar", name: "מהאוכלוסייה", data: d.pop, barMaxWidth: 14 }
+        ]
+      }));
+    })();
+{%- endif %}
+{%- if model.flags.get("ratio") %}
+    hbar("chart-ratio", {{ model.charts.ratio | tojson }}, { name: "נפשות לדירה", digits: 2, color: pal[3] });
+{%- endif %}
+{%- if model.flags.get("sizes") %}
+    (function () {
+      const d = {{ model.charts.sizes | tojson }};
+      const c = mount("chart-sizes");
+      const f = fmtv(0);
+      c.setOption(window.GovEcharts.option({
+        color: [pal[0]],
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: (ps) => { const p = ps[0]; return echarts.format.encodeHTML(p.name) + " דירות במבנה: " + f(p.value) + " מבנים (" + d.share[p.dataIndex].toLocaleString("he-IL") + "%)"; } },
+        grid: { left: 16, right: 16, top: 24, bottom: 16, containLabel: true },
+        xAxis: { type: "category", data: d.x, name: "דירות במבנה", nameLocation: "middle", nameGap: 28 },
+        yAxis: { type: "value", axisLabel: { formatter: (v) => f(v) } },
+        series: [{ type: "bar", name: "מבנים", data: d.y, barMaxWidth: 40, label: { show: true, position: "top", fontSize: 11, formatter: (p) => d.share[p.dataIndex].toLocaleString("he-IL") + "%" } }]
+      }));
+    })();
+{%- endif %}
+{%- if model.flags.get("size_cities") %}
+    (function () {
+      const d = {{ model.charts.size_cities | tojson }};
+      const c = mount("chart-size-cities");
+      const f = fmtv(1);
+      c.setOption(window.GovEcharts.option({
+        color: pal,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => f(v) + "%" },
+        legend: { top: 0, type: "scroll" },
+        grid: { left: 16, right: 16, top: 48, bottom: 16, containLabel: true },
+        xAxis: { type: "value", max: 100, axisLabel: { formatter: (v) => v + "%" } },
+        yAxis: { type: "category", data: d.x, inverse: true, axisLabel: { interval: 0, width: narrow() ? 84 : 140, overflow: "truncate", fontSize: narrow() ? 11 : 12 } },
+        series: d.series.map((s) => ({ type: "bar", name: s.name, data: s.data, stack: "all", barMaxWidth: 22 }))
+      }));
+    })();
+{%- endif %}
+{%- if model.flags.get("regional") %}
+    hbar("chart-regional", {{ model.charts.regional | tojson }}, { name: "דירות", color: pal[4] });
+{%- endif %}
+    window.addEventListener("resize", () => charts.forEach((c) => c.resize()));
+  })();
+</script>

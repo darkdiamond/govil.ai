@@ -1,0 +1,165 @@
+{% import "gov.j2" as gov %}
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+{{ gov.lede(model.labels.lede) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("external-link", "ההודעה האחרונה של הלמ\"ס") }}
+  <p class="m-0 text-sm text-subtle mb-2">{{ model.release.title }} · פורסמה {{ model.release.date }}</p>
+  <p class="m-0 text-sm flex flex-wrap gap-4">
+    <a href="{{ model.release.url }}" target="_blank" rel="noopener">להודעה המלאה באתר הלמ"ס</a>
+{%- if model.release.pdf %}
+    <a href="{{ model.release.pdf }}" target="_blank" rel="noopener">לדוח המלא (PDF)</a>
+{%- endif %}
+  </p>
+</section>
+
+<div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
+  {{ gov.kpi(model.kpis.indicators, model.labels.indicators_kpi) }}
+{%- if model.kpis.men is defined %}
+  {{ gov.kpi(model.kpis.men, "מהמדדים: מצב הגברים טוב יותר (" ~ model.labels.year ~ ")") }}
+  {{ gov.kpi(model.kpis.women, "מהמדדים: מצב הנשים טוב יותר (" ~ model.labels.year ~ ")") }}
+  {{ gov.kpi(model.kpis.eq, "מהמדדים: אין פער של ממש (" ~ model.labels.year ~ ")") }}
+{%- endif %}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("info", "איך קוראים את היחס") }}
+  <p class="m-0 text-sm text-subtle leading-relaxed">{{ model.labels.ratio_note }}</p>
+</section>
+
+{%- if model.flags.get("summary") %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "כיוון הפער בכל תחום") }}
+  <p class="m-0 text-sm text-subtle mb-3">באיזה חלק מהמדדים בכל תחום מצב הגברים טוב יותר, מצב הנשים טוב יותר, או שאין פער של ממש, לפי סיווג הלמ"ס, שנת הדיווח האחרונה ({{ model.labels.year }}). התחומים ממוינים לפי חלק המדדים שבהם מצב הנשים טוב יותר.</p>
+  {{ gov.chart("chart-summary", model.labels.summary_aria, "h-80 md:h-96") }}
+  {{ gov.table("חלוקת המדדים בכל תחום לפי כיוון הפער", ["תחום", "מצב גברים טוב יותר", "אין פער של ממש", "מצב נשים טוב יותר"], model.tables.summary, ltr=(1, 2, 3)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.get("gaps") %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "הפערים הגדולים ביותר") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.gaps_note }}</p>
+  {{ gov.chart("chart-gaps", model.labels.gaps_aria, "h-[640px] md:h-[460px]") }}
+  {{ gov.table("המדדים עם הפער הגדול ביותר בין גברים לנשים", ["מדד", "תחום", "יחס נשים לגברים"], model.tables.gaps, ltr=(2,)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.get("trends") %}
+{%- for t in model.charts.trends %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", t.title) }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ t.lede }}</p>
+  {{ gov.chart("chart-trend-" ~ t.key, t.aria, "h-[420px] md:h-[460px]") }}
+  {{ gov.table("היחס בין נשים לגברים לפי שנה: " ~ t.domain, t.cols, t.rows, ltr=range(0, t.cols | length) | list) }}
+</section>
+{%- endfor %}
+{%- endif %}
+
+{%- if model.flags.get("domains") %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "כל המדדים: גברים ונשים בכל תחום") }}
+  <p class="m-0 text-sm text-subtle mb-3">הערך של גברים ושל נשים בכל מדד, והיחס ביניהם, בשנת הדיווח האחרונה ({{ model.labels.year }}). רוב המדדים הם אחוזים מהאוכלוסייה הרלוונטית; מדד ביחידה אחרת מציין אותה בשמו, ושיעורי תאונות, רצח ותחלואה הם ביחס לגודל האוכלוסייה, כפי שפורסמו.</p>
+{%- for d in model.tables.domains %}
+  <details class="mt-2">
+    <summary class="text-sm font-semibold text-ink-deep">{{ d.name }}</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ d.name }}: גברים ונשים</caption>
+      <thead><tr><th scope="col">מדד</th><th scope="col">יחס</th><th scope="col">גברים</th><th scope="col">נשים</th><th scope="col">סך הכל</th></tr></thead>
+      <tbody>
+{%- for r in d.rows %}
+        <tr><th scope="row">{{ r[0] }}</th><td dir="ltr">{{ r[1] }}</td><td dir="ltr">{{ r[2] }}</td><td dir="ltr">{{ r[3] }}</td><td dir="ltr">{{ r[4] }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+{%- endfor %}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("tag", "על הנתונים") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm text-subtle marker:text-brand">
+    <li>הנתונים מתוך ההודעה השנתית לתקשורת "פערים בין גברים לנשים במדדי איכות חיים בישראל" של הלשכה המרכזית לסטטיסטיקה (הלמ"ס), שנת דיווח {{ model.labels.year }}. העמוד מתעדכן עם כל הודעה חדשה.</li>
+    <li>"שנת הדיווח האחרונה" היא השנה האחרונה שיש לגביה נתון בכל מדד, ולא תמיד אותה שנה בכל המדדים. קווי המגמה מציגים את הסדרות שהלמ"ס פרסמה, וייתכנו בהן שנים חסרות.</li>
+    <li>בתרשים הפערים הגדולים העמוד אינו מציג יחס בין {{ model.labels.near_low }} ל-{{ model.labels.near_high }}, כקרוב לשוויון. זהו כלל של העמוד ולא של הלמ"ס. סיווג "אין פער של ממש" בתרשים התחומים ובסיכום הוא של הלמ"ס.</li>
+    <li>חלק מהמדדים מבוססים על סקרים מדגמיים, ולהפרשים קטנים עשויה להיות טעות דגימה. הנתונים מתארים פערים ואינם מסבירים את סיבותיהם.</li>
+  </ul>
+</section>
+
+{%- if model.flags.get("summary") %}
+<script>
+  (function () {
+    const el = document.getElementById("chart-summary");
+    if (!el) return;
+    const d = {{ model.charts.summary | tojson }};
+    const chart = echarts.init(el);
+    const pct = (v) => v == null ? "–" : v.toFixed(1) + "%";
+    chart.setOption(window.GovEcharts.option({
+      color: ["#0b3668", "#c3cfe7", "#0068f5"],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: pct },
+      legend: { top: 0 },
+      grid: { left: 16, right: 24, top: el.clientWidth < 500 ? 64 : 40, bottom: 16, containLabel: true },
+      xAxis: { type: "value", max: 100, interval: 25, axisLabel: { formatter: (v) => v + "%", hideOverlap: true } },
+      yAxis: { type: "category", inverse: true, data: d.x, axisLabel: { width: 120, overflow: "break" } },
+      series: [["men", "מצב גברים טוב יותר"], ["eq", "אין פער של ממש"], ["women", "מצב נשים טוב יותר"]].map((p) => ({ type: "bar", stack: "s", name: p[1], data: d[p[0]], barMaxWidth: 26 }))
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+</script>
+{%- endif %}
+
+{%- if model.flags.get("gaps") %}
+<script>
+  (function () {
+    const el = document.getElementById("chart-gaps");
+    if (!el) return;
+    const d = {{ model.charts.gaps | tojson }};
+    const chart = echarts.init(el);
+    const r2 = (v) => (Math.round(Math.pow(2, v) * 100) / 100).toString();
+    chart.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "item", formatter: (p) => echarts.format.encodeHTML(d.x[p.dataIndex]) + "<br>" + echarts.format.encodeHTML(d.domain[p.dataIndex]) + "<br>יחס נשים לגברים: " + d.y[p.dataIndex] },
+      grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
+      xAxis: { type: "value", min: (v) => Math.min(-1, Math.floor(v.min)), max: (v) => Math.max(1, Math.ceil(v.max)), interval: 1, axisLabel: { formatter: r2, hideOverlap: true } },
+      yAxis: { type: "category", inverse: true, data: d.x, axisLabel: { width: el.clientWidth < 500 ? 110 : 220, overflow: "break", fontSize: 11, lineHeight: 13 } },
+      series: [{
+        type: "bar", barMaxWidth: 20,
+        data: d.y.map((v) => ({ value: Math.log2(v), itemStyle: { color: v > 1 ? "#0068f5" : "#0b3668" }, label: { position: v > 1 ? "left" : "right" } })),
+        label: { show: true, formatter: (p) => String(d.y[p.dataIndex]), color: "#0c3058", fontSize: 11 },
+        markLine: { silent: true, symbol: "none", lineStyle: { color: "#6c757d", type: "dashed" }, label: { show: false }, data: [{ xAxis: 0 }] }
+      }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+</script>
+{%- endif %}
+
+{%- if model.flags.get("trends") %}
+<script>
+  (function () {
+    const trends = {{ model.charts.trends | map(attribute="chart") | list | tojson }};
+    const keys = {{ model.charts.trends | map(attribute="key") | list | tojson }};
+    const pal = ["#0068f5", "#0b3668", "#6c9fd8", "#198754", "#dc3545", "#ffc107", "#6c757d", "#0dcaf0"];
+    keys.forEach((k, i) => {
+      const el = document.getElementById("chart-trend-" + k);
+      if (!el) return;
+      const d = trends[i];
+      const chart = echarts.init(el);
+      chart.setOption(window.GovEcharts.option({
+        color: pal,
+        tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "–" : v.toFixed(2) },
+        legend: { type: "scroll", bottom: 0, textStyle: { width: 220, overflow: "truncate" } },
+        grid: { left: 16, right: 24, top: 24, bottom: 56, containLabel: true },
+        xAxis: { type: "category", data: d.x, boundaryGap: false, axisLabel: { hideOverlap: true } },
+        yAxis: { type: "log", logBase: 2, scale: true, axisLabel: { formatter: (v) => (Math.round(v * 100) / 100).toString() } },
+        series: d.series.map((s, j) => Object.assign({ type: "line", name: s.name, data: s.data, connectNulls: true, symbolSize: 5 },
+          j === 0 ? { markLine: { silent: true, symbol: "none", lineStyle: { color: "#6c757d", type: "dashed" }, label: { formatter: "שוויון", position: "insideStartTop" }, data: [{ yAxis: 1 }] } } : {}))
+      }));
+      window.addEventListener("resize", () => chart.resize());
+    });
+  })();
+</script>
+{%- endif %}

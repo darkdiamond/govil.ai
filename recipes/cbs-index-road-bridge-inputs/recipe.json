@@ -1,0 +1,83 @@
+{
+  "contract_version": 1,
+  "dataset_id": "cbs-index-road-bridge-inputs",
+  "recipe_version": 1,
+  "authored_at": "2026-11-17T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-11-17T00:00:00Z",
+    "rows": {
+      "main": 2172,
+      "materials": 1848,
+      "chapters": 1848,
+      "selected": 1232
+    }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "main",
+      "required_columns": [
+        "CODE",
+        "NAME_HE",
+        "FREQ",
+        "DATE",
+        "VALUE",
+        "BASE_DESC",
+        "PERCENT",
+        "PERCENT_YEAR",
+        "VALUE_CHAINED",
+        "CHAIN_BASE"
+      ]
+    },
+    {
+      "name": "materials",
+      "by_id": "materials",
+      "required_columns": [
+        "CODE",
+        "NAME_HE",
+        "FREQ",
+        "DATE",
+        "VALUE",
+        "BASE_DESC",
+        "PERCENT",
+        "PERCENT_YEAR",
+        "VALUE_CHAINED",
+        "CHAIN_BASE"
+      ]
+    },
+    {
+      "name": "chapters",
+      "by_id": "chapters",
+      "required_columns": [
+        "CODE",
+        "NAME_HE",
+        "FREQ",
+        "DATE",
+        "VALUE",
+        "BASE_DESC",
+        "PERCENT",
+        "PERCENT_YEAR",
+        "VALUE_CHAINED",
+        "CHAIN_BASE"
+      ]
+    },
+    {
+      "name": "selected",
+      "by_id": "selected",
+      "required_columns": [
+        "CODE",
+        "NAME_HE",
+        "FREQ",
+        "DATE",
+        "VALUE",
+        "BASE_DESC",
+        "PERCENT",
+        "PERCENT_YEAR",
+        "VALUE_CHAINED",
+        "CHAIN_BASE"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

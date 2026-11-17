@@ -1,0 +1,319 @@
+{% import "gov.j2" as gov %}
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+{{ gov.lede(model.labels.lede) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("external-link", "ההודעה האחרונה של הלמ\"ס") }}
+  <p class="m-0 text-sm text-subtle mb-2">{{ model.release.title }} · פורסמה {{ model.release.date }}</p>
+{%- if model.release.headline %}
+  <p class="m-0 mb-3 text-ink-deep">{{ model.release.headline }}</p>
+{%- endif %}
+  <p class="m-0 text-sm flex flex-wrap gap-4">
+    <a href="{{ model.release.url }}" target="_blank" rel="noopener">להודעה המלאה באתר הלמ"ס</a>
+{%- if model.release.pdf %}
+    <a href="{{ model.release.pdf }}" target="_blank" rel="noopener">לדוח המלא (PDF)</a>
+{%- endif %}
+  </p>
+</section>
+
+<div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
+{%- if model.kpis.count is defined %}
+  {{ gov.kpi(model.kpis.count, "פניות לוועדות בשנת " ~ model.labels.latest_year) }}
+{%- endif %}
+{%- if model.kpis.rate is defined %}
+  {{ gov.kpi(model.kpis.rate, "פניות ל-1,000 נשים בשנת " ~ model.labels.latest_year) }}
+{%- endif %}
+{%- if model.kpis.ratio is defined %}
+  {{ gov.kpi(model.kpis.ratio, "פניות לכל 100 הריונות ידועים (" ~ model.labels.ratio_year ~ ")") }}
+{%- endif %}
+{%- if model.kpis.approved is defined %}
+  {{ gov.kpi(model.kpis.approved, "מהפניות אושרו (" ~ model.labels.approved_year ~ ")") }}
+{%- endif %}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("trending-up", "מספר הפניות ושיעורן לאורך השנים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.trend_note }}</p>
+  {{ gov.chart("chart-trend", model.labels.trend_aria, "h-72 md:h-96") }}
+  {{ gov.table("פניות לוועדות להפסקת היריון לפי שנה", ["שנה", "שיעור ל-1,000 נשים", "מספר פניות"], model.tables.trend, ltr=(1, 2)) }}
+</section>
+
+{%- if model.flags.get("ratio") %}
+<section class="card p-5 mb-6">
+  {{ gov.head("trending-up", "פניות לכל 100 הריונות ידועים") }}
+  <p class="m-0 text-sm text-subtle mb-3">יחס הפניות לוועדות להריונות הידועים בכל שנה, כפי שהלמ"ס מחשבת אותו, בסך הכל ולפי קבוצת אוכלוסייה. הפילוח לפי קבוצה מתפרסם לשנים האחרונות בלבד.</p>
+  {{ gov.chart("chart-ratio", model.labels.ratio_aria, "h-72 md:h-96") }}
+  {{ gov.table("פניות ל-100 הריונות ידועים לפי שנה וקבוצת אוכלוסייה", model.labels.ratio_cols, model.tables.ratio, ltr=range(1, model.labels.ratio_cols | length) | list) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.get("approved") %}
+<section class="card p-5 mb-6">
+  {{ gov.head("circle-check", "אחוז הפניות שאושרו") }}
+  <p class="m-0 text-sm text-subtle mb-3">אחוז הבקשות שהוועדות אישרו מתוך כלל הפניות בכל שנה. ציר האחוזים אינו מתחיל באפס.</p>
+  {{ gov.chart("chart-approved", model.labels.approved_aria, "h-64 md:h-80") }}
+  {{ gov.table("אחוז האישורים מסך הפניות לפי שנה", ["שנה", "אחוז אישורים"], model.tables.approved, ltr=(1,)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.get("religion") %}
+<section class="card p-5 mb-6">
+  {{ gov.head("chart-bar", "שיעור הפניות לפי דת") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.religion_note }}</p>
+  {{ gov.chart("chart-religion", model.labels.religion_aria, "h-72 md:h-96") }}
+  {{ gov.table("שיעור הפניות ל-1,000 נשים לפי דת ושנה", model.labels.religion_cols, model.tables.religion, ltr=range(1, model.labels.religion_cols | length) | list) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.get("age") %}
+<section class="card p-5 mb-6">
+  {{ gov.head("chart-bar", "שיעור הפניות לפי גיל וקבוצת אוכלוסייה") }}
+  <p class="m-0 text-sm text-subtle mb-3">שיעור הפניות ל-1,000 נשים בכל קבוצת גיל, בשנת {{ model.labels.age_year }}.</p>
+  {{ gov.chart("chart-age", model.labels.age_aria, "h-72 md:h-96") }}
+  {{ gov.table("שיעור הפניות ל-1,000 נשים לפי גיל וקבוצת אוכלוסייה", model.labels.age_cols, model.tables.age, ltr=range(0, model.labels.age_cols | length) | list) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.get("marital") or model.flags.get("marital_g") %}
+<section class="card p-5 mb-6">
+  {{ gov.head("chart-bar", "מצב משפחתי של הפונות") }}
+{%- if model.flags.get("marital") %}
+  <p class="m-0 text-sm text-subtle mb-3">אחוז הנשואות והרווקות מבין כלל הפונות בכל שנה. היתר גרושות, אלמנות או במצב משפחתי לא ידוע.</p>
+  {{ gov.chart("chart-marital", model.labels.marital_aria, "h-64 md:h-80") }}
+  {{ gov.table("אחוז הנשואות והרווקות מבין הפונות לפי שנה", ["שנה", "נשואות", "רווקות"], model.tables.marital, ltr=(1, 2)) }}
+{%- endif %}
+{%- if model.flags.get("marital_g") %}
+  <p class="m-0 text-sm text-subtle mt-5 mb-3">אחוז הנשואות והרווקות מבין הפונות בכל קבוצת אוכלוסייה, בשנת {{ model.labels.marital_g_year }}.</p>
+  {{ gov.chart("chart-marital-g", "אחוז הנשואות והרווקות מבין הפונות לפי קבוצת אוכלוסייה, " ~ model.labels.marital_g_year, "h-64 md:h-72") }}
+  {{ gov.table("אחוז הנשואות והרווקות מבין הפונות לפי קבוצת אוכלוסייה", ["קבוצה", "נשואות", "רווקות"], model.tables.marital_g, ltr=(1, 2)) }}
+{%- endif %}
+</section>
+{%- endif %}
+
+{%- if model.flags.get("grounds") or model.flags.get("grounds_g") %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "אישורים לפי סעיף החוק") }}
+  <p class="m-0 text-sm text-subtle mb-3">חוק העונשין מונה את העילות שבגינן ועדה רשאית לאשר הפסקת היריון: גיל האישה, היריון מחוץ לנישואין (או מקשר אסור), מום בעובר וסיכון לבריאות האישה. התרשים מציג את חלקו של כל סעיף מסך האישורים.</p>
+{%- if model.flags.get("grounds") %}
+  {{ gov.chart("chart-grounds", model.labels.grounds_aria, "h-72 md:h-96") }}
+  {{ gov.table("אחוז האישורים לפי סעיף החוק ושנה", model.labels.grounds_cols, model.tables.grounds, ltr=range(1, model.labels.grounds_cols | length) | list) }}
+{%- endif %}
+{%- if model.flags.get("grounds_g") %}
+  <p class="m-0 text-sm text-subtle mt-5 mb-3">התפלגות האישורים לפי סעיף החוק בכל קבוצת אוכלוסייה, בשנת {{ model.labels.grounds_g_year }}.</p>
+  {{ gov.chart("chart-grounds-g", "התפלגות האישורים לפי סעיף החוק וקבוצת אוכלוסייה, " ~ model.labels.grounds_g_year, "h-64 md:h-72") }}
+  {{ gov.table("אחוז האישורים לפי סעיף החוק וקבוצת אוכלוסייה", model.labels.grounds_g_cols, model.tables.grounds_g, ltr=range(1, model.labels.grounds_g_cols | length) | list) }}
+{%- endif %}
+</section>
+{%- endif %}
+
+{%- if model.flags.get("grounds_w") or model.flags.get("weeks") %}
+<section class="card p-5 mb-6">
+  {{ gov.head("calendar", "שבוע ההיריון") }}
+{%- if model.flags.get("grounds_w") %}
+  <p class="m-0 text-sm text-subtle mb-3">התפלגות האישורים לפי סעיף החוק בכל טווח של שבועות היריון, בשנת {{ model.labels.grounds_w_year }}.</p>
+  {{ gov.chart("chart-grounds-w", model.labels.grounds_w_aria, "h-64 md:h-72") }}
+  {{ gov.table("אחוז האישורים לפי סעיף החוק ושבוע היריון", model.labels.grounds_w_cols, model.tables.grounds_w, ltr=range(0, model.labels.grounds_w_cols | length) | list) }}
+{%- endif %}
+{%- if model.flags.get("weeks") %}
+  <p class="m-0 text-sm text-subtle mt-5 mb-3">אחוז הפניות לפי שבוע ההיריון בעת הפנייה, בקרב יהודיות ומוסלמיות, בשנים {{ model.labels.weeks_years }}.</p>
+  {{ gov.chart("chart-weeks", "אחוז הפניות לפי שבוע היריון ודת, " ~ model.labels.weeks_years, "h-64 md:h-72") }}
+  {{ gov.table("אחוז הפניות לפי שבוע היריון ודת", model.labels.weeks_cols, model.tables.weeks, ltr=range(1, model.labels.weeks_cols | length) | list) }}
+{%- endif %}
+</section>
+{%- endif %}
+
+{%- if model.flags.get("edu") %}
+<section class="card p-5 mb-6">
+  {{ gov.head("chart-bar", "שיעור הפניות לפי השכלה") }}
+  <p class="m-0 text-sm text-subtle mb-3">שיעור הפניות ל-1,000 נשים {{ model.labels.edu_ages }} לפי התעודה הגבוהה ביותר, בשנת {{ model.labels.edu_year }}.</p>
+  {{ gov.chart("chart-edu", "שיעור הפניות ל-1,000 נשים לפי השכלה וקבוצת אוכלוסייה, " ~ model.labels.edu_year, "h-64 md:h-80") }}
+  {{ gov.table("שיעור הפניות ל-1,000 נשים לפי השכלה וקבוצת אוכלוסייה", model.labels.edu_cols, model.tables.edu, ltr=range(1, model.labels.edu_cols | length) | list) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.get("intl") %}
+<section class="card p-5 mb-6">
+  {{ gov.head("map-pin", "השוואה בין־לאומית") }}
+  <p class="m-0 text-sm text-subtle mb-3">שיעור הפסקות ההיריון ל-1,000 נשים במדינות שבהודעת הלמ"ס, בשנה האחרונה שפורסמה לכל מדינה. טווח הגילים שעליו מחושב השיעור שונה בין המדינות, ולכן ההשוואה משוערת.</p>
+  {{ gov.chart("chart-intl", model.labels.intl_aria, "h-[460px]") }}
+  {{ gov.table("שיעור הפסקות היריון ל-1,000 נשים לפי מדינה", ["מדינה", "שיעור ל-1,000 נשים", "שנה"], model.tables.intl, ltr=(1, 2)) }}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("tag", "על הנתונים") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm text-subtle marker:text-brand">
+    <li>הנתונים מתוך ההודעה השנתית לתקשורת "פניות לוועדות להפסקת היריון" של הלשכה המרכזית לסטטיסטיקה (הלמ"ס), והם מבוססים על טופסי הבקשה שהוועדות לאישור הפסקת היריון מעבירות ללמ"ס. הם מתייחסים לפניות לוועדות בלבד.</li>
+    <li>השיעורים מחושבים ל-1,000 נשים בגילי הפוריות, כפי שהלמ"ס מפרסמת אותם.</li>
+    <li>בתרשימים לפי קבוצת אוכלוסייה, "אחרות" הן נוצריות לא ערביות ונשים ללא סיווג דת.</li>
+    <li>סדר התרשימים בהודעה משתנה משנה לשנה. העמוד מציג את התרשימים שבהודעה האחרונה, ותרשים שלא הופיע בה אינו מוצג.</li>
+  </ul>
+</section>
+
+<script>
+  (function () {
+    const pal = window.GOVIL_PALETTE;
+    const nf = (d) => (v) => v == null ? "–" : Number(v).toLocaleString("he-IL", { minimumFractionDigits: d, maximumFractionDigits: d });
+    const pf = (v) => v == null ? "–" : v.toFixed(1) + "%";
+    function mount(id) {
+      const el = document.getElementById(id);
+      if (!el) return null;
+      const chart = echarts.init(el);
+      window.addEventListener("resize", () => chart.resize());
+      return chart;
+    }
+    function lines(id, x, series, o) {
+      const chart = mount(id);
+      if (!chart) return;
+      o = o || {};
+      chart.setOption(window.GovEcharts.option({
+        color: o.colors || [pal[0], pal[2], pal[1], pal[5], pal[6], pal[3]],
+        tooltip: { trigger: "axis", valueFormatter: o.fmt || nf(1) },
+        legend: series.length > 1 ? { top: 0, type: "scroll" } : undefined,
+        grid: { left: 16, right: 24, top: series.length > 1 ? 48 : 24, bottom: 48, containLabel: true },
+        xAxis: { type: "category", data: x, boundaryGap: false },
+        yAxis: { type: "value", scale: !!o.scale, max: o.max, splitNumber: 4, interval: o.max === 100 ? 25 : undefined,
+                 axisLabel: { formatter: o.pct ? (v) => v + "%" : undefined, hideOverlap: true } },
+        dataZoom: x.length > 20 ? [{ type: "inside" }, { type: "slider", height: 16, bottom: 8 }] : undefined,
+        series: series.map((s, i) => ({ type: "line", name: s.name, data: s.data, connectNulls: false,
+          showSymbol: false, lineWidth: 2, stack: o.stack, areaStyle: o.stack ? { opacity: 0.85 } : undefined,
+          lineStyle: { width: s.bold ? 3 : 2 } }))
+      }));
+    }
+    function bars(id, x, series, o) {
+      const chart = mount(id);
+      if (!chart) return;
+      o = o || {};
+      const cat = { type: "category", data: x, inverse: !!o.horizontal,
+                    axisLabel: o.horizontal ? { width: 120, overflow: "break" } : { interval: 0, rotate: chart.getWidth() < 520 && x.length > 4 ? 40 : 0 } };
+      const val = { type: "value", max: o.max, splitNumber: 4, interval: o.max === 100 ? 25 : undefined,
+                    axisLabel: { formatter: o.pct ? (v) => v + "%" : undefined, hideOverlap: true } };
+      chart.setOption(window.GovEcharts.option({
+        color: o.colors || [pal[0], pal[2], pal[1], pal[6]],
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: o.fmt || nf(1) },
+        legend: series.length > 1 ? { top: 0, type: "scroll" } : undefined,
+        grid: { left: 16, right: 24, top: series.length > 1 ? 48 : 16, bottom: 16, containLabel: true },
+        xAxis: o.horizontal ? val : cat,
+        yAxis: o.horizontal ? cat : val,
+        series: series.map((s) => ({ type: "bar", name: s.name, data: s.data, stack: o.stack, barMaxWidth: 32 }))
+      }));
+    }
+
+    (function () {
+      const d = {{ model.charts.trend | tojson }};
+      const chart = mount("chart-trend");
+      if (!chart) return;
+      const hasCount = d.count.some((v) => v != null);
+      const series = [{ type: "line", name: "שיעור ל-1,000 נשים", data: d.rate, yAxisIndex: hasCount ? 1 : 0,
+                        showSymbol: false, lineStyle: { width: 3 }, color: pal[1],
+                        tooltip: { valueFormatter: nf(1) } }];
+      if (hasCount) series.unshift({ type: "bar", name: "מספר פניות", data: d.count, color: pal[6],
+                                     barMaxWidth: 18, tooltip: { valueFormatter: nf(0) } });
+      chart.setOption(window.GovEcharts.option({
+        tooltip: { trigger: "axis" },
+        legend: { top: 0 },
+        grid: { left: 16, right: 16, top: 48, bottom: 48, containLabel: true },
+        xAxis: { type: "category", data: d.x },
+        yAxis: hasCount
+          ? [{ type: "value", name: "פניות", splitNumber: 4, axisLabel: { hideOverlap: true } },
+             { type: "value", name: "ל-1,000", splitNumber: 4, splitLine: { show: false } }]
+          : [{ type: "value", name: "ל-1,000", splitNumber: 4 }],
+        dataZoom: [{ type: "inside" }, { type: "slider", height: 16, bottom: 8 }],
+        series: series
+      }));
+    })();
+{%- if model.flags.get("ratio") %}
+    (function () {
+      const d = {{ model.charts.ratio | tojson }};
+      lines("chart-ratio", d.x, [{ name: "סך הכל", data: d.total, bold: true }].concat(d.groups),
+            { colors: [pal[1], pal[0], pal[2], pal[5]] });
+    })();
+{%- endif %}
+{%- if model.flags.get("approved") %}
+    (function () {
+      const d = {{ model.charts.approved | tojson }};
+      lines("chart-approved", d.x, [{ name: "אחוז אישורים", data: d.y }], { scale: true, pct: true, fmt: pf });
+    })();
+{%- endif %}
+{%- if model.flags.get("religion") %}
+    (function () {
+      const d = {{ model.charts.religion | tojson }};
+      lines("chart-religion", d.x, d.series, { colors: [pal[0], pal[2], pal[1], pal[5], pal[6], pal[3]] });
+    })();
+{%- endif %}
+{%- if model.flags.get("age") %}
+    (function () {
+      const d = {{ model.charts.age | tojson }};
+      bars("chart-age", d.x, d.series);
+    })();
+{%- endif %}
+{%- if model.flags.get("marital") %}
+    (function () {
+      const d = {{ model.charts.marital | tojson }};
+      lines("chart-marital", d.x, [{ name: "נשואות", data: d.married }, { name: "רווקות", data: d.single }],
+            { pct: true, fmt: pf, scale: true });
+    })();
+{%- endif %}
+{%- if model.flags.get("marital_g") %}
+    (function () {
+      const d = {{ model.charts.marital_g | tojson }};
+      bars("chart-marital-g", d.x, [{ name: "נשואות", data: d.married }, { name: "רווקות", data: d.single }],
+           { pct: true, fmt: pf, max: 100 });
+    })();
+{%- endif %}
+{%- if model.flags.get("grounds") %}
+    (function () {
+      const d = {{ model.charts.grounds | tojson }};
+      lines("chart-grounds", d.x, d.series, { stack: "g", pct: true, fmt: pf, max: 100,
+            colors: [pal[0], pal[1], pal[2], pal[6]] });
+    })();
+{%- endif %}
+{%- if model.flags.get("grounds_g") %}
+    (function () {
+      const d = {{ model.charts.grounds_g | tojson }};
+      bars("chart-grounds-g", d.x, d.series, { stack: "g", pct: true, fmt: pf, max: 100, horizontal: true,
+           colors: [pal[0], pal[1], pal[2], pal[6]] });
+    })();
+{%- endif %}
+{%- if model.flags.get("grounds_w") %}
+    (function () {
+      const d = {{ model.charts.grounds_w | tojson }};
+      bars("chart-grounds-w", d.x, d.series, { stack: "w", pct: true, fmt: pf, max: 100, horizontal: true,
+           colors: [pal[0], pal[1], pal[2], pal[6]] });
+    })();
+{%- endif %}
+{%- if model.flags.get("weeks") %}
+    (function () {
+      const d = {{ model.charts.weeks | tojson }};
+      bars("chart-weeks", d.x, d.series, { stack: "k", pct: true, fmt: pf, max: 100, horizontal: true,
+           colors: [pal[0], pal[6]] });
+    })();
+{%- endif %}
+{%- if model.flags.get("edu") %}
+    (function () {
+      const d = {{ model.charts.edu | tojson }};
+      bars("chart-edu", d.x, d.series, { horizontal: true });
+    })();
+{%- endif %}
+{%- if model.flags.get("intl") %}
+    (function () {
+      const d = {{ model.charts.intl | tojson }};
+      const chart = mount("chart-intl");
+      if (!chart) return;
+      chart.setOption(window.GovEcharts.option({
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+                   formatter: (p) => echarts.format.encodeHTML(p[0].name) + ": " + nf(1)(p[0].value) + " (" + d.years[p[0].dataIndex] + ")" },
+        grid: { left: 16, right: 40, top: 16, bottom: 16, containLabel: true },
+        xAxis: { type: "value", splitNumber: 4, axisLabel: { hideOverlap: true } },
+        yAxis: { type: "category", data: d.x, inverse: true, axisLabel: { width: 100, overflow: "truncate" } },
+        series: [{ type: "bar", barMaxWidth: 22,
+                   data: d.y.map((v, i) => ({ value: v, itemStyle: { color: d.x[i] === "ישראל" ? pal[1] : pal[2] } })),
+                   label: { show: true, position: "right", formatter: (p) => nf(1)(p.value) } }]
+      }));
+    })();
+{%- endif %}
+  })();
+</script>

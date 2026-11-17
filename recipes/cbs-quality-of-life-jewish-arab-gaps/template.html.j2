@@ -1,0 +1,249 @@
+{% import "gov.j2" as gov %}
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+{{ gov.lede(model.labels.lede) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("external-link", "ההודעה האחרונה של הלמ\"ס") }}
+  <p class="m-0 text-sm text-subtle mb-2">{{ model.release.title }} · פורסמה {{ model.release.date }}</p>
+{%- if model.release.headline %}
+  <p class="m-0 mb-3 text-ink-deep">{{ model.release.headline }}</p>
+{%- endif %}
+  <p class="m-0 text-sm flex flex-wrap gap-4">
+    <a href="{{ model.release.url }}" target="_blank" rel="noopener">להודעה המלאה באתר הלמ"ס</a>
+{%- if model.release.pdf %}
+    <a href="{{ model.release.pdf }}" target="_blank" rel="noopener">לקובץ ההודעה (PDF)</a>
+{%- endif %}
+  </p>
+</section>
+
+<div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
+{%- if model.kpis.jews_better is defined %}
+  {{ gov.kpi(model.kpis.jews_better, "מהמדדים: מצב היהודים ואחרים טוב יותר (" ~ model.labels.kpi_basis ~ ")") }}
+{%- endif %}
+{%- if model.kpis.arabs_better is defined %}
+  {{ gov.kpi(model.kpis.arabs_better, "מהמדדים: מצב הערבים טוב יותר (" ~ model.labels.kpi_basis ~ ")") }}
+{%- endif %}
+{%- if model.kpis.equal is defined %}
+  {{ gov.kpi(model.kpis.equal, "מהמדדים: שוויון בין הקבוצות") }}
+{%- endif %}
+{%- if model.kpis.indicators is defined %}
+  {{ gov.kpi(model.kpis.indicators, "מדדים בהודעה האחרונה") }}
+{%- endif %}
+{%- if model.kpis.lowest is defined %}
+  {{ gov.kpi(model.kpis.lowest, model.labels.lowest_kpi) }}
+{%- endif %}
+{%- if model.kpis.narrowed is defined %}
+  {{ gov.kpi(model.kpis.narrowed, "מדדים שבהם הפער הצטמצם לאורך השנים (מתוך " ~ model.labels.moves_n ~ ")") }}
+  {{ gov.kpi(model.kpis.widened, "מדדים שבהם הפער התרחב לאורך השנים (מתוך " ~ model.labels.moves_n ~ ")") }}
+{%- endif %}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+{%- if model.flags.get("summary") %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "סיכום הפערים לפי תחום") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.summary_note }}</p>
+  {{ gov.chart("chart-summary", model.labels.summary_aria, "h-80 md:h-[460px]") }}
+  {{ gov.table("חלק המדדים בכל תחום לפי הקבוצה שמצבה טוב יותר", ["תחום", "מצב יהודים ואחרים טוב יותר", "שוויון", "מצב ערבים טוב יותר"], model.tables.summary, ltr=(1, 2, 3)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.get("domains") %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "היחס החציוני בכל תחום") }}
+  <p class="m-0 text-sm text-subtle mb-3">בכל תחום, היחס האמצעי מבין כל מדדי התחום בשנת הדיווח האחרונה. קו מקווקו ב-1 מסמן שוויון; עמודה קצרה ממנו פירושה שברוב המדדים בתחום מצב היהודים ואחרים טוב יותר.</p>
+  {{ gov.chart("chart-domains", model.labels.domains_aria, "h-80 md:h-96") }}
+  {{ gov.table("היחס החציוני בין מצב הערבים למצב היהודים בכל תחום", ["תחום", "יחס חציוני", "מדדים", "מדדים עם יחס מתחת ל-1"], model.tables.domains, ltr=(1, 2, 3)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.get("latest") %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "היחס בכל מדד, " ~ model.labels.latest_year) }}
+  <p class="m-0 text-sm text-subtle mb-3">בחרו תחום כדי לראות את היחס בין מצב הערבים למצב היהודים בכל אחד ממדדיו. עמודה שמסתיימת לפני הקו המקווקו (1) פירושה שמצב היהודים ואחרים טוב יותר; עמודה שעוברת אותו פירושה שמצב הערבים טוב יותר.</p>
+  <label class="block text-sm mb-3">תחום:
+    <select id="sel-latest" class="border border-rule rounded-gov px-2 py-1 text-sm bg-white">
+{%- for d in model.charts.latest.domains %}
+      <option value="{{ loop.index0 }}">{{ d }}</option>
+{%- endfor %}
+    </select>
+  </label>
+  {{ gov.chart("chart-latest", model.labels.latest_aria, "h-80 md:h-[460px]") }}
+  {{ gov.table("היחס בין מצב הערבים למצב היהודים בכל מדד", ["תחום", "מדד", "יחס"], model.tables.latest, ltr=(2,)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.get("trend") %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "מגמות בפערים לאורך השנים, " ~ model.labels.trend_span) }}
+  <p class="m-0 text-sm text-subtle mb-3">כל קו הוא מדד אחד: היחס בין מצב הערבים למצב היהודים בכל שנה שבה נמדד. קו שמתקרב ל-1 מראה פער שהצטמצם. לחיצה על שם מדד במקרא מסתירה אותו.</p>
+  <label class="block text-sm mb-3">תחום:
+    <select id="sel-trend" class="border border-rule rounded-gov px-2 py-1 text-sm bg-white">
+{%- for d in model.charts.trend.domains %}
+      <option value="{{ loop.index0 }}">{{ d }}</option>
+{%- endfor %}
+    </select>
+  </label>
+  {{ gov.chart("chart-trend", model.labels.trend_aria, "h-[420px] md:h-[460px]") }}
+{%- if model.tables.trend %}
+  {{ gov.table("היחס בשנה הראשונה ובשנה האחרונה של כל מדד", ["תחום", "מדד", "יחס בשנה הראשונה", "יחס בשנה האחרונה", "הפער"], model.tables.trend, ltr=(2, 3)) }}
+{%- endif %}
+</section>
+{%- endif %}
+
+{%- if model.flags.get("change") %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "היכן הפער השתנה הכי הרבה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.change_n }} המדדים שבהם המרחק מקו השוויון השתנה הכי הרבה בין השנה הראשונה לשנה האחרונה שלהם. נקודה בהירה: השנה הראשונה; נקודה כהה: השנה האחרונה. בראש: מדדים שבהם הפער הצטמצם; בתחתית: מדדים שבהם התרחב.</p>
+  {{ gov.chart("chart-change", model.labels.change_aria, "h-[520px] md:h-[560px]") }}
+  {{ gov.table("היחס בשנה הראשונה ובשנה האחרונה במדדים שהשתנו הכי הרבה", ["מדד (שנים)", "יחס בשנה הראשונה", "יחס בשנה האחרונה"], model.tables.change, ltr=(1, 2)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.get("raw") %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "האחוזים מאחורי היחס: " ~ model.labels.raw_domain) }}
+  <p class="m-0 text-sm text-subtle mb-3">בתחום הזה ההודעה מפרסמת גם את האחוזים עצמם בקרב יהודים ובקרב ערבים, {{ model.labels.latest_year }}.</p>
+  {{ gov.chart("chart-raw", model.labels.raw_aria, "h-80 md:h-96") }}
+  {{ gov.table("אחוזים בקרב יהודים ובקרב ערבים, " ~ model.labels.raw_domain, ["מדד", "סך הכל", "יהודים", "ערבים"], model.tables.raw, ltr=(1, 2, 3)) }}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("tag", "על הנתונים") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm text-subtle marker:text-brand">
+    <li>הנתונים מתוך ההודעה השנתית לתקשורת "פערים בין יהודים לערבים במדדי איכות חיים בישראל" של הלשכה המרכזית לסטטיסטיקה (הלמ"ס), שמבוססת על מערכת מדדי איכות החיים, קיימות וחוסן לאומי.</li>
+    <li>כל ערך הוא יחס בין מצב הערבים למצב היהודים ואחרים במדד. במדדים שבהם ערך גבוה הוא חיובי (כמו שיעור תעסוקה) היחס הוא ערך הערבים חלקי ערך היהודים; במדדים שבהם ערך נמוך הוא חיובי (כמו תמותת תינוקות) היחס הפוך. כך שבכל מדד ערך נמוך מ-1 פירושו שמצב היהודים ואחרים טוב יותר.</li>
+    <li>שנת הדיווח האחרונה אינה זהה בכל המדדים: חלק מהמדדים נמדדים בסקרים שאינם שנתיים, ולכן הנתון האחרון שלהם מוקדם יותר. השינוי במגמה מחושב בין השנה הראשונה לשנה האחרונה שבהן נמדד כל מדד; לפי כלל של העמוד (לא של הלמ"ס), פער נחשב כמצטמצם או מתרחב כשהמרחק שלו מקו השוויון השתנה ביותר מכ-{{ model.labels.move_pct }} (במונחי לוגריתם היחס).</li>
+    <li>הנתונים מתארים פערים בין הקבוצות ואינם מסבירים את הסיבות להם. התרשימים בהודעה משתנים משנה לשנה, והעמוד מציג את התרשימים שבהודעה האחרונה.</li>
+  </ul>
+</section>
+
+<script>
+  (function () {
+    const C_J = "#0068f5", C_A = "#0b3668", C_E = "#c3cfe7";
+    const r = (v) => v == null ? "–" : (v < 0.095 ? v.toFixed(3) : v.toFixed(2));
+    const eqLine = { silent: true, symbol: "none", lineStyle: { type: "dashed", color: "#6c757d" }, label: { show: false }, data: [] };
+    function init(id) {
+      const el = document.getElementById(id);
+      if (!el) return null;
+      const c = echarts.init(el);
+      window.addEventListener("resize", () => c.resize());
+      return c;
+    }
+    function bars(chart, ys, vs) {
+      chart.setOption(window.GovEcharts.option({
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: r },
+        grid: { left: 16, right: 24, top: 24, bottom: 16, containLabel: true },
+        xAxis: { type: "value", splitNumber: 4, axisLabel: { hideOverlap: true } },
+        yAxis: { type: "category", inverse: true, data: ys, axisLabel: { width: 140, overflow: "break" } },
+        series: [{ type: "bar", name: "יחס", barMaxWidth: 22,
+          data: vs.map((v) => ({ value: v, itemStyle: { color: v < 1 ? C_J : v > 1 ? C_A : C_E } })),
+          markLine: Object.assign({}, eqLine, { data: [{ xAxis: 1 }] }) }]
+      }), true);
+    }
+{%- if model.flags.get("summary") %}
+    (function () {
+      const d = {{ model.charts.summary | tojson }};
+      const c = init("chart-summary");
+      if (!c) return;
+      const pct = (v) => v == null ? "–" : v.toFixed(1) + "%";
+      c.setOption(window.GovEcharts.option({
+        color: [C_J, C_E, C_A],
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: pct },
+        legend: { top: 0 },
+        grid: { left: 16, right: 24, top: 48, bottom: 16, containLabel: true },
+        xAxis: { type: "value", max: 100, interval: 25, axisLabel: { formatter: (v) => v + "%", hideOverlap: true } },
+        yAxis: { type: "category", inverse: true, data: d.x, axisLabel: { width: 130, overflow: "break" } },
+        series: [["jews", "מצב יהודים ואחרים טוב יותר"], ["equal", "שוויון"], ["arabs", "מצב ערבים טוב יותר"]]
+          .map((p) => ({ type: "bar", stack: "s", name: p[1], data: d[p[0]], barMaxWidth: 26 }))
+      }));
+    })();
+{%- endif %}
+{%- if model.flags.get("domains") %}
+    (function () {
+      const d = {{ model.charts.domains | tojson }};
+      const c = init("chart-domains");
+      if (c) bars(c, d.x, d.y);
+    })();
+{%- endif %}
+{%- if model.flags.get("latest") %}
+    (function () {
+      const d = {{ model.charts.latest | tojson }};
+      const c = init("chart-latest");
+      const sel = document.getElementById("sel-latest");
+      if (!c || !sel) return;
+      const show = () => { const s = d.by[d.domains[+sel.value]]; bars(c, s.y, s.v); };
+      sel.addEventListener("change", show);
+      show();
+    })();
+{%- endif %}
+{%- if model.flags.get("trend") %}
+    (function () {
+      const d = {{ model.charts.trend | tojson }};
+      const c = init("chart-trend");
+      const sel = document.getElementById("sel-trend");
+      if (!c || !sel) return;
+      const show = () => {
+        const s = d.by[d.domains[+sel.value]];
+        c.setOption(window.GovEcharts.option({
+          tooltip: { trigger: "axis", valueFormatter: r },
+          legend: { type: "scroll", top: 0 },
+          grid: { left: 16, right: 24, top: 56, bottom: 48, containLabel: true },
+          dataZoom: [{ type: "slider", height: 16, bottom: 8 }],
+          xAxis: { type: "category", data: s.x, boundaryGap: false },
+          yAxis: { type: "value", scale: true, splitNumber: 4 },
+          series: s.series.map((x, i) => Object.assign({ type: "line", name: x.name, data: x.data, connectNulls: true, symbolSize: 5 },
+            i === 0 ? { markLine: Object.assign({}, eqLine, { data: [{ yAxis: 1 }] }) } : {}))
+        }), true);
+      };
+      sel.addEventListener("change", show);
+      show();
+    })();
+{%- endif %}
+{%- if model.flags.get("change") %}
+    (function () {
+      const d = {{ model.charts.change | tojson }};
+      const c = init("chart-change");
+      if (!c) return;
+      c.setOption(window.GovEcharts.option({
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: (ps) => { const i = ps[0].dataIndex; const e = (t) => String(t).replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;" })[ch]); return e(d.y[i]) + "<br>השנה הראשונה: " + r(d.v0[i]) + "<br>השנה האחרונה: " + r(d.v1[i]); } },
+        legend: { top: 0, data: ["השנה הראשונה", "השנה האחרונה"] },
+        grid: { left: 16, right: 24, top: 40, bottom: 16, containLabel: true },
+        xAxis: { type: "value", splitNumber: 4, axisLabel: { hideOverlap: true } },
+        yAxis: { type: "category", data: d.y, axisLabel: { width: 150, overflow: "break", fontSize: 11 } },
+        series: [
+          { type: "custom", name: "שינוי", silent: true, tooltip: { show: false },
+            renderItem: (p, api) => {
+              const a = api.coord([api.value(0), api.value(2)]), b = api.coord([api.value(1), api.value(2)]);
+              return { type: "line", shape: { x1: a[0], y1: a[1], x2: b[0], y2: b[1] }, style: { stroke: C_E, lineWidth: 3 } };
+            },
+            encode: { x: [0, 1], y: 2 },
+            data: d.v0.map((v, i) => [v, d.v1[i], i]) },
+          { type: "scatter", name: "השנה הראשונה", symbolSize: 10, itemStyle: { color: "#6c9fd8" }, data: d.v0.map((v, i) => [v, i]),
+            markLine: Object.assign({}, eqLine, { data: [{ xAxis: 1 }] }) },
+          { type: "scatter", name: "השנה האחרונה", symbolSize: 10, itemStyle: { color: C_A }, data: d.v1.map((v, i) => [v, i]) }
+        ]
+      }));
+    })();
+{%- endif %}
+{%- if model.flags.get("raw") %}
+    (function () {
+      const d = {{ model.charts.raw | tojson }};
+      const c = init("chart-raw");
+      if (!c) return;
+      c.setOption(window.GovEcharts.option({
+        color: [C_J, C_A],
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => v == null ? "–" : v.toFixed(1) + "%" },
+        legend: { top: 0 },
+        grid: { left: 16, right: 24, top: 40, bottom: 16, containLabel: true },
+        xAxis: { type: "value", max: 100, interval: 25, axisLabel: { formatter: (v) => v + "%", hideOverlap: true } },
+        yAxis: { type: "category", inverse: true, data: d.x, axisLabel: { width: 140, overflow: "break" } },
+        series: [{ type: "bar", name: "יהודים", data: d.jews, barMaxWidth: 16 }, { type: "bar", name: "ערבים", data: d.arabs, barMaxWidth: 16 }]
+      }));
+    })();
+{%- endif %}
+  })();
+</script>

@@ -1,0 +1,302 @@
+{% import "gov.j2" as gov %}
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+{{ gov.lede(model.labels.lede) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("external-link", "ההודעה האחרונה של הלמ\"ס") }}
+  <p class="m-0 text-sm text-subtle mb-2">{{ model.release.title }} · פורסמה {{ model.release.date }}</p>
+  <p class="m-0 text-sm flex flex-wrap gap-4">
+    <a href="{{ model.release.url }}" target="_blank" rel="noopener">להודעה המלאה באתר הלמ"ס</a>
+{%- if model.release.pdf %}
+    <a href="{{ model.release.pdf }}" target="_blank" rel="noopener">לדוח המלא (PDF)</a>
+{%- endif %}
+  </p>
+</section>
+
+<div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
+  {{ gov.kpi(model.kpis.cities, "ערים גדולות בהשוואה (" ~ model.labels.year ~ ")") }}
+  {{ gov.kpi(model.kpis.indicators, "מדדי איכות חיים") }}
+  {{ gov.kpi(model.kpis.top_share, "מהמדדים טובים מהממוצע ב" ~ model.labels.top_city) }}
+  {{ gov.kpi(model.kpis.above_half, "ערים שמצבן טוב מהממוצע ברוב המדדים") }}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "דירוג הערים: בכמה מדדים המצב טוב מהממוצע הארצי") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.rank_note }}</p>
+  {{ gov.chart("chart-rank", model.labels.rank_aria, "h-[560px]") }}
+  {{ gov.table("מספר המדדים הטובים והפחות טובים מהממוצע הארצי לפי עיר", ["עיר", "מדדים זמינים", "טוב מהממוצע", "פחות טוב מהממוצע", "שיעור הטובים מהממוצע"], model.tables.rank, ltr=(1, 2, 3, 4)) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "חוזקות וחולשות לפי תחום") }}
+  <p class="m-0 text-sm text-subtle mb-3">אחוז המדדים בכל תחום שבהם מצב העיר טוב מהממוצע הארצי ({{ model.labels.year }}). כחול כהה: רוב המדדים בתחום טובים מהממוצע; בהיר: רובם פחות טובים.</p>
+  {{ gov.chart("chart-domains", model.labels.domains_aria, "h-[620px]") }}
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">אחוז המדדים הטובים מהממוצע הארצי לפי עיר ותחום</caption>
+        <thead><tr>{% for c in model.labels.domain_cols %}<th scope="col">{{ c }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in model.tables.domains %}
+          <tr>{% for v in r %}{% if loop.first %}<th scope="row">{{ v }}</th>{% else %}<td dir="ltr">{{ v }}</td>{% endif %}{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("search", "פרופיל עיר מול הממוצע הארצי") }}
+  <p class="m-0 text-sm text-subtle mb-3">בחרו עיר: כל עמודה היא הסטייה של העיר מהממוצע הארצי באותו מדד, באחוזים. עמודה ירוקה (ימינה מהאפס) פירושה מצב טוב מהממוצע, גם במדדים שבהם ערך נמוך הוא הטוב (כמו צפיפות דיור או תחושת בדידות).</p>
+  <label for="profile-city" class="block text-sm font-semibold text-ink-deep mb-2">עיר</label>
+  <select id="profile-city" class="mb-3 border border-rule rounded-gov px-3 py-2 text-sm">
+{%- for c in model.charts.profile.cities %}
+    <option value="{{ loop.index0 }}">{{ c }}</option>
+{%- endfor %}
+  </select>
+  {{ gov.chart("chart-profile", model.labels.profile_aria, "h-[1100px]") }}
+  {{ gov.table("שלושת המדדים הטובים ביותר והפחות טובים ביותר של כל עיר ביחס לממוצע הארצי", ["עיר", "הכי טוב מהממוצע", "הכי פחות טוב מהממוצע"], model.tables.profile) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "כל המדדים בכל הערים") }}
+  <p class="m-0 text-sm text-subtle mb-3">היחס בין ערך המדד בעיר לממוצע הארצי ({{ model.labels.year }}). ירוק: טוב מהממוצע, אדום: פחות טוב, אפור: קרוב לממוצע. תא לבן: המדד אינו זמין לעיר.</p>
+  {{ gov.chart("chart-matrix", model.labels.matrix_aria, "h-[1500px]") }}
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">היחס לממוצע הארצי לפי מדד ועיר</caption>
+        <thead><tr>{% for c in model.labels.matrix_cols %}<th scope="col">{{ c }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in model.tables.matrix %}
+          <tr>{% for v in r %}{% if loop.first %}<th scope="row">{{ v }}</th>{% elif loop.index0 == 1 %}<td>{{ v }}</td>{% else %}<td dir="ltr">{{ v }}</td>{% endif %}{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+{%- if model.flags.spread %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "איפה הערים שונות זו מזו יותר מכול") }}
+  <p class="m-0 text-sm text-subtle mb-3">המדדים שבהם הפער בין העיר הטובה ביותר לפחות טובה הוא הגדול ביותר: כל פס נמתח מהיחס הנמוך לגבוה בין הערים (1 = הממוצע הארצי). ערכים שהלמ"ס סימנה בכוכבית לא נכללו.</p>
+  {{ gov.chart("chart-spread", model.labels.spread_aria, "h-80 md:h-[460px]") }}
+  {{ gov.table("המדדים עם הפער הגדול ביותר בין הערים", ["מדד", "הטובה ביותר (יחס)", "הפחות טובה (יחס)", "פי כמה"], model.tables.spread, ltr=(3,)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.leaders %}
+<section class="card p-5 mb-6">
+  {{ gov.head("circle-check", "במקום הראשון: כמה מדדים כל עיר מובילה") }}
+  <p class="m-0 text-sm text-subtle mb-3">בכמה מדדים כל עיר במקום הראשון בין הערים הגדולות (היחס הגבוה ביותר לממוצע הארצי, {{ model.labels.year }}). בתיקו כל הערים המובילות נספרות.</p>
+  {{ gov.chart("chart-leaders", model.labels.leaders_aria, "h-80 md:h-[460px]") }}
+  {{ gov.table("מספר המדדים שבהם העיר במקום הראשון", ["עיר", "מדדים במקום הראשון"], model.tables.leaders, ltr=(1,)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.trend %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "השינוי לאורך המהדורות") }}
+  <p class="m-0 text-sm text-subtle mb-3">שיעור המדדים שבהם מצב העיר טוב מהממוצע הארצי בכל מהדורה ({{ model.labels.years }}). רשימת המדדים משתנה מעט בין השנים, ולכן זו השוואה כללית.</p>
+  {{ gov.chart("chart-trend", model.labels.trend_aria, "h-[720px]") }}
+  {{ gov.table("שיעור המדדים הטובים מהממוצע הארצי לפי עיר ושנה", model.labels.trend_cols, model.tables.trend, ltr=range(1, model.labels.trend_cols | length) | list) }}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("tag", "על הנתונים") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm text-subtle marker:text-brand">
+    <li>הנתונים מתוך ההודעות לתקשורת "מדדי איכות חיים בערים הגדולות" של הלשכה המרכזית לסטטיסטיקה (הלמ"ס). הערים הגדולות הן ערים שבהן 100 אלף תושבים ומעלה. שנים בעמוד: {{ model.labels.years }}.</li>
+    <li>כל ערך הוא היחס בין המדד בעיר לממוצע הארצי, שערכו 1. הלמ"ס מכוונת את היחס כך שערך מעל 1 מציין תמיד מצב טוב מהממוצע, גם במדדים שבהם ערך נמוך הוא הרצוי (אבטלה, צפיפות דיור, הרוגים בתאונות, תחושת בדידות, רעש).</li>
+    <li>הספירה בעמוד היא של היחסים שבלוחות: מעל 1 טוב מהממוצע, מתחת ל-1 פחות טוב, ו-1 בדיוק שווה לממוצע. בטקסט ההודעה של הלמ"ס הספירה עשויה להיות שונה במדד או שניים.</li>
+    <li>שיוך המדדים לתחומים לפי מסגרת מדדי איכות החיים של הלמ"ס. במדדים של אירועים נדירים (כמו הרוגים בתאונות דרכים) היחס עשוי להיות קיצוני בעיר קטנה יחסית.</li>
+    <li>הלמ"ס מדגישה שהמדדים בכל עיר מושפעים מההרכב הדמוגרפי, החברתי והכלכלי של אוכלוסייתה: ההשוואה מתארת את המצב ואינה מסבירה אותו.</li>
+  </ul>
+</section>
+
+<script>
+  (function () {
+    const enc = (s) => echarts.format.encodeHTML(String(s));
+    const d = {{ model.charts.rank | tojson }};
+    const el = document.getElementById("chart-rank");
+    const chart = echarts.init(el);
+    const series = [
+      { type: "bar", stack: "s", name: "טוב מהממוצע", data: d.better, itemStyle: { color: "#198754" }, barMaxWidth: 22 },
+      { type: "bar", stack: "s", name: "פחות טוב מהממוצע", data: d.worse, itemStyle: { color: "#dc3545" }, barMaxWidth: 22 }
+    ];
+{%- if model.flags.rank_equal %}
+    series.push({ type: "bar", stack: "s", name: "שווה לממוצע", data: d.equal, itemStyle: { color: "#c3cfe7" }, barMaxWidth: 22 });
+{%- endif %}
+    chart.setOption(window.GovEcharts.option({
+      tooltip: {
+        trigger: "axis", axisPointer: { type: "shadow" },
+        formatter: (ps) => {
+          const i = ps[0].dataIndex;
+          return "<b>" + enc(d.x[i]) + "</b><br>" + ps.map((p) => enc(p.seriesName) + ": " + p.value).join("<br>") +
+            "<br>טובים מהממוצע: " + d.share[i].toFixed(1) + "%";
+        }
+      },
+      legend: { top: 0 },
+      grid: { left: 8, right: 16, top: 40, bottom: 8, containLabel: true },
+      xAxis: { type: "value", axisLabel: { hideOverlap: true } },
+      yAxis: { type: "category", inverse: true, data: d.x, axisLabel: { width: 90, overflow: "truncate" } },
+      series: series
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+</script>
+
+<script>
+  (function () {
+    const enc = (s) => echarts.format.encodeHTML(String(s));
+    const d = {{ model.charts.domains | tojson }};
+    const chart = echarts.init(document.getElementById("chart-domains"));
+    chart.setOption(window.GovEcharts.option({
+      tooltip: {
+        position: "top",
+        formatter: (p) => "<b>" + enc(d.y[p.value[1]]) + "</b><br>" + enc(d.x[p.value[0]]) + ": " +
+          p.value[2].toFixed(0) + "% מ-" + p.value[3] + " מדדים טובים מהממוצע"
+      },
+      grid: { left: 8, right: 8, top: 8, bottom: 56, containLabel: true },
+      xAxis: { type: "category", inverse: true, data: d.x, splitArea: { show: true }, axisLabel: { interval: 0, rotate: 50, fontSize: 10, width: 90, overflow: "truncate" } },
+      yAxis: { type: "category", inverse: true, data: d.y, splitArea: { show: true }, axisLabel: { fontSize: 11 } },
+      visualMap: {
+        min: 0, max: 100, dimension: 2, calculable: false, orient: "horizontal", left: "center", bottom: 0,
+        itemHeight: 120, inRange: { color: ["#f1f7ff", "#7fb2fa", "#0068f5", "#0b3668"] },
+        formatter: (v) => Math.round(v) + "%"
+      },
+      series: [{ type: "heatmap", data: d.cells, label: { show: false }, emphasis: { itemStyle: { borderColor: "#0c3058", borderWidth: 1 } } }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+</script>
+
+<script>
+  (function () {
+    const d = {{ model.charts.profile | tojson }};
+    const sel = document.getElementById("profile-city");
+    const el = document.getElementById("chart-profile");
+    const chart = echarts.init(el);
+    function draw(i) {
+      const rows = d.data[i];
+      const p = { y: rows.map((r) => d.labels[r[0]]), v: rows.map((r) => r[1]) };
+      chart.setOption(window.GovEcharts.option({
+        tooltip: {
+          trigger: "axis", axisPointer: { type: "shadow" },
+          formatter: (ps) => "<b>" + echarts.format.encodeHTML(String(ps[0].name)) + "</b><br>" +
+            (ps[0].value >= 0 ? "טוב מהממוצע ב-" : "פחות טוב מהממוצע ב-") + Math.abs(ps[0].value).toFixed(0) + "%"
+        },
+        grid: { left: 8, right: 16, top: 8, bottom: 8, containLabel: true },
+        xAxis: { type: "value", axisLabel: { formatter: (v) => v + "%", hideOverlap: true } },
+        yAxis: { type: "category", inverse: true, data: p.y, axisLabel: { width: el.clientWidth < 500 ? 130 : 220, overflow: "truncate", fontSize: 11 } },
+        series: [{
+          type: "bar", data: p.v.map((v) => ({ value: v, itemStyle: { color: v >= 0 ? "#198754" : "#dc3545" } })),
+          barMaxWidth: 14
+        }]
+      }), true);
+    }
+    sel.addEventListener("change", () => draw(Number(sel.value)));
+    draw(0);
+    window.addEventListener("resize", () => chart.resize());
+  })();
+</script>
+
+<script>
+  (function () {
+    const enc = (s) => echarts.format.encodeHTML(String(s));
+    const d = {{ model.charts.matrix | tojson }};
+    const chart = echarts.init(document.getElementById("chart-matrix"));
+    chart.setOption(window.GovEcharts.option({
+      tooltip: {
+        position: "top",
+        formatter: (p) => "<b>" + enc(d.x[p.value[0]]) + "</b><br>" + enc(d.y[p.value[1]]) + "<br>יחס לממוצע הארצי: " + p.value[3].toFixed(2)
+      },
+      grid: { left: 8, right: 8, top: 8, bottom: 56, containLabel: true },
+      xAxis: { type: "category", inverse: true, position: "top", data: d.x, axisLabel: { interval: 0, rotate: 60, fontSize: 10 } },
+      yAxis: { type: "category", inverse: true, data: d.y, axisLabel: { interval: 0, fontSize: 10, width: 130, overflow: "truncate" } },
+      visualMap: {
+        min: -1, max: 1, dimension: 2, calculable: false, orient: "horizontal", left: "center", bottom: 0,
+        itemHeight: 120, text: ["טוב מהממוצע", "פחות טוב"], inRange: { color: ["#dc3545", "#e9edf3", "#198754"] },
+        formatter: (v) => Math.pow(2, v).toFixed(1)
+      },
+      series: [{ type: "heatmap", data: d.cells, emphasis: { itemStyle: { borderColor: "#0c3058", borderWidth: 1 } } }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+</script>
+{%- if model.flags.spread %}
+
+<script>
+  (function () {
+    const enc = (s) => echarts.format.encodeHTML(String(s));
+    const d = {{ model.charts.spread | tojson }};
+    const chart = echarts.init(document.getElementById("chart-spread"));
+    chart.setOption(window.GovEcharts.option({
+      tooltip: {
+        trigger: "axis", axisPointer: { type: "shadow" },
+        formatter: (ps) => {
+          const i = ps[0].dataIndex;
+          return "<b>" + enc(d.y[i]) + "</b><br>הגבוה: " + enc(d.hi_city[i]) + " (" + d.hi[i].toFixed(2) + ")<br>הנמוך: " +
+            enc(d.lo_city[i]) + " (" + d.lo[i].toFixed(2) + ")";
+        }
+      },
+      grid: { left: 8, right: 24, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: "value", min: 0, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "category", inverse: true, data: d.y, axisLabel: { width: 140, overflow: "truncate", fontSize: 11 } },
+      series: [
+        { type: "bar", stack: "r", data: d.lo, itemStyle: { color: "transparent" }, silent: true, barMaxWidth: 16 },
+        {
+          type: "bar", stack: "r", data: d.hi.map((h, i) => +(h - d.lo[i]).toFixed(2)), itemStyle: { color: "#0068f5" }, barMaxWidth: 16,
+          markLine: { silent: true, symbol: "none", data: [{ xAxis: 1 }], lineStyle: { color: "#0c3058", type: "dashed" }, label: { formatter: "ממוצע ארצי" } }
+        }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+</script>
+{%- endif %}
+{%- if model.flags.leaders %}
+
+<script>
+  (function () {
+    const d = {{ model.charts.leaders | tojson }};
+    const chart = echarts.init(document.getElementById("chart-leaders"));
+    chart.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => v + " מדדים" },
+      grid: { left: 8, right: 32, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: "value", minInterval: 1, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "category", inverse: true, data: d.x, axisLabel: { width: 90, overflow: "truncate" } },
+      series: [{ type: "bar", data: d.y, itemStyle: { color: "#0068f5" }, barMaxWidth: 20, label: { show: true, position: "right" } }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+</script>
+{%- endif %}
+{%- if model.flags.trend %}
+
+<script>
+  (function () {
+    const d = {{ model.charts.trend | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-trend"));
+    const colors = [pal[6], pal[2], pal[0], pal[1]].slice(-d.series.length);
+    chart.setOption(window.GovEcharts.option({
+      color: colors,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => v == null ? "–" : v.toFixed(1) + "%" },
+      legend: { top: 0 },
+      grid: { left: 8, right: 16, top: 40, bottom: 8, containLabel: true },
+      xAxis: { type: "value", max: 100, axisLabel: { formatter: (v) => v + "%", hideOverlap: true } },
+      yAxis: { type: "category", inverse: true, data: d.x, axisLabel: { width: 90, overflow: "truncate" } },
+      series: d.series.map((s) => ({ type: "bar", name: s.name, data: s.data, barMaxWidth: 10 }))
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+</script>
+{%- endif %}

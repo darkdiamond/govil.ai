@@ -1,0 +1,106 @@
+{
+  "contract_version": 1,
+  "dataset_id": "cbs-criminal-defendants",
+  "recipe_version": 1,
+  "authored_at": "2026-11-17T12:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-07-28T00:00:00Z",
+    "rows": {
+      "t1": 22,
+      "t2": 37,
+      "t3": 38,
+      "t4": 24,
+      "t5": 25,
+      "t6": 24,
+      "t7": 28,
+      "t8": 20,
+      "t9": 16,
+      "t10": 6,
+      "t11": 0,
+      "t12": 0,
+      "t13": 0,
+      "releases": 3
+    }
+  },
+  "inputs": [
+    {
+      "name": "t1",
+      "by_id": "t1",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t2",
+      "by_id": "t2",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t3",
+      "by_id": "t3",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t4",
+      "by_id": "t4",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t5",
+      "by_id": "t5",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t6",
+      "by_id": "t6",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t7",
+      "by_id": "t7",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t8",
+      "by_id": "t8",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t9",
+      "by_id": "t9",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t10",
+      "by_id": "t10",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t11",
+      "by_id": "t11",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t12",
+      "by_id": "t12",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "t13",
+      "by_id": "t13",
+      "required_columns": ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "ROW"]
+    },
+    {
+      "name": "releases",
+      "by_id": "releases",
+      "required_columns": [
+        "RELEASE_NO",
+        "RELEASE_DATE",
+        "TITLE",
+        "HEADLINE",
+        "PAGE_URL",
+        "REPORT_PDF_URL"
+      ]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": ["25", "69"]
+}
