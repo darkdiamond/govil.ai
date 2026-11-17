@@ -95,8 +95,9 @@ function startTyping() {
   typing = tick;
   typer = setTimeout(tick, 1200);
   if ("IntersectionObserver" in window && rootEl.value) {
-    observer = new IntersectionObserver(([entry]) => {
-      inView = entry?.isIntersecting ?? true;
+    // Entries queue up while the main thread is busy: the last is current.
+    observer = new IntersectionObserver((entries) => {
+      inView = entries[entries.length - 1]?.isIntersecting ?? true;
       if (inView && typing && typer === undefined)
         typer = setTimeout(typing, 350);
     });
@@ -181,14 +182,15 @@ function onNavigate(kind: "page" | "route") {
   if (kind === "route") dismissed.value = true;
 }
 
-// "/" anywhere on the page (outside a field, and outside an open dialog such
-// as the header search's panel) jumps to the box.
+// "/" anywhere on the page (outside a field, and not while a dialog such as
+// the header search's panel is open, even with focus on its toggle) jumps to
+// the box.
 function onGlobalKey(e: KeyboardEvent) {
   if (e.key !== "/" || e.ctrlKey || e.metaKey || e.altKey) return;
   const t = e.target as HTMLElement | null;
   if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)))
     return;
-  if (document.activeElement?.closest('[role="dialog"]')) return;
+  if (document.querySelector('[role="dialog"]')) return;
   e.preventDefault();
   inputEl.value?.focus();
 }
