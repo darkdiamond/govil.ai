@@ -150,6 +150,13 @@ def fam_label(f):
 
 
 # --- prep ------------------------------------------------------------------------
+def _ns_range(d):
+    """Null dates outside the datetime64[ns] range. pandas 3 parses to us, so a junk
+    year (1412, 9999) parses instead of becoming NaT and would overflow the ns
+    Series below (pandas 2 made those NaT itself)."""
+    return d.where(d.between(pd.Timestamp.min, pd.Timestamp.max))
+
+
 def _prepare(raw):
     df = raw[["locality", "manufacturer", "fruits", "checked", "notes", "validity", "date"]].copy()
     for c in df.columns:
@@ -162,13 +169,14 @@ def _prepare(raw):
     df["checked"] = df["checked"].where(df["checked"] != "", NOT_GIVEN)
     df["grower"] = df["manufacturer"] + " (" + df["locality"] + ")"
     df["family"] = df["fruits"].map(classify)
-    df["insp"] = pd.to_datetime(df["date"], format="%d/%m/%Y", errors="coerce")
-    fixed = pd.to_datetime(df["validity"], format="%d/%m/%Y", errors="coerce")
+    df["insp"] = _ns_range(pd.to_datetime(df["date"], format="%d/%m/%Y", errors="coerce"))
+    fixed = _ns_range(pd.to_datetime(df["validity"], format="%d/%m/%Y", errors="coerce"))
     months = pd.to_numeric(df["validity"].str.extract(MONTHS_RE)[0], errors="coerce")
     rel = pd.Series(pd.NaT, index=df.index, dtype="datetime64[ns]")
     mask = months.notna() & df["insp"].notna()
     for m in sorted(months[mask].unique()):
-        sel = mask & (months == m)
+        # insp + m months must still fit the ns Series it is written into.
+        sel = mask & (months == m) & (df["insp"] <= pd.Timestamp.max - pd.DateOffset(months=int(m)))
         rel[sel] = df.loc[sel, "insp"] + pd.DateOffset(months=int(m))
     df["expiry"] = fixed.where(fixed.notna(), rel)
     df["relative"] = months.notna()
@@ -627,6 +635,14 @@ def compute(frames):
     agent_data = {
         "summary_he": (f"רשימת הרבנות הראשית של {n(n_growers)} מגדלים ב-{n(n_localities)} יישובים שפירותיהם אושרו "
                        f"ללא חשש ערלה: {n(total)} שורות זן, לפי קבוצת גידול, זן, יישוב, בודק ותוקף."),
+        "seo": {
+            "title": "רשימת חקלאים ללא חשש ערלה: אישורי ערלה של הרבנות",
+            "description": (f"רשימת הרבנות הראשית של {n(n_growers)} מגדלים מאושרים ללא חשש ערלה ב-"
+                            f"{n(n_localities)} יישובים: איתור לפי מגדל, יישוב, זן ותוקף האישור."),
+            "name": "רשימת חקלאים ללא חשש פרי ערלה",
+            "alternate_names": ["אישורי ערלה", "רשימת חקלאים אישור ערלה", "אישור ערלה רבנות",
+                                "דוח מגדלים מאושרים לענייני ערלה", "ללא חשש ערלה"],
+        },
         "dataset_kind": "registry",
         "suggested_tags": ["ערלה", "כשרות", "חקלאות", "מטעים", "רבנות ראשית", "פירות"],
         "related_ids": ["1a49cbba-3722-4a67-9c20-9895697d0373",

@@ -1,7 +1,7 @@
 {
   "contract_version": 1,
   "dataset_id": "b5dd1f5e-0566-42fd-8db9-ae12e10c445b",
-  "recipe_version": 4,
+  "recipe_version": 5,
   "authored_at": "2026-10-24T00:00:00Z",
   "authored_against": {
     "metadata_modified": "2026-10-23T04:00:00+00:00",
@@ -31,6 +31,26 @@
         "AVG_ANNUAL_YIELD_TRAILING_5YRS",
         "STANDARD_DEVIATION",
         "SHARPE_RATIO",
+        "STOCK_MARKET_EXPOSURE",
+        "FOREIGN_EXPOSURE",
+        "FOREIGN_CURRENCY_EXPOSURE"
+      ],
+      "columns": [
+        "FUND_ID",
+        "FUND_NAME",
+        "PARENT_COMPANY_NAME",
+        "FUND_CLASSIFICATION",
+        "REPORT_PERIOD",
+        "TOTAL_ASSETS",
+        "AVG_ANNUAL_MANAGEMENT_FEE",
+        "AVG_DEPOSIT_FEE",
+        "MONTHLY_YIELD",
+        "YEAR_TO_DATE_YIELD",
+        "AVG_ANNUAL_YIELD_TRAILING_3YRS",
+        "AVG_ANNUAL_YIELD_TRAILING_5YRS",
+        "STANDARD_DEVIATION",
+        "SHARPE_RATIO",
+        "LIQUID_ASSETS_PERCENT",
         "STOCK_MARKET_EXPOSURE",
         "FOREIGN_EXPOSURE",
         "FOREIGN_CURRENCY_EXPOSURE"

@@ -95,10 +95,11 @@ def _parse_dates(s):
     d1 = pd.to_datetime(s, format=f1, errors="coerce")
     d2 = pd.to_datetime(s, format=f2, errors="coerce")
     d = d1.fillna(d2)
-    # Sentinel dates (e.g. 2999-12-31) overflow datetime64[ns]. pandas 2
-    # coerced them to NaT; pandas 3 keeps them at us resolution, so null
-    # them here to behave the same on both.
-    return d.where(d.dt.year < 2262)
+    # Dates outside the datetime64[ns] range (a 2999-12-31 sentinel, a
+    # year-1412 typo) overflow the ns cast in _prepare. pandas 2 coerced
+    # them to NaT; pandas 3 keeps them at us resolution, so null both ends
+    # here to behave the same on both.
+    return d.where(d.between(pd.Timestamp.min, pd.Timestamp.max))
 
 
 def _kind(name):
@@ -554,6 +555,14 @@ def compute(frames):
         "summary_he": (f"{_int(total)} אישורים והיתרים של המשרד להגנת הסביבה ל-{_int(n_fac)} מפעלים: "
                        f"אישורים לרישיון עסק לפי מחוז, יישוב וסוג עסק, והיתרי קרינה, רנטגן ורעלים "
                        f"לפי סוג, מיקום, מועד ומשך."),
+        "seo": {
+            "title": "היתרי רעלים, קרינה ורישיונות עסק למפעלים: חיפוש לפי מפעל",
+            "description": (f"חיפוש ב-{_int(total)} אישורים והיתרים של המשרד להגנת הסביבה ל-{_int(n_fac)} "
+                            f"מפעלים: היתרי רעלים, קרינה ורנטגן ואישורים לרישיון עסק, לפי מפעל ויישוב."),
+            "name": "רישיונות עסק והיתרים מסוגים שונים למפעלים",
+            "alternate_names": ["היתר רעלים", "חיפוש היתר רעלים", "היתרי קרינה", "רישיון עסק למפעל",
+                                "היתרים של המשרד להגנת הסביבה"],
+        },
         "dataset_kind": "registry",
         "suggested_tags": ["רישוי עסקים", "מפעלים", "הגנת הסביבה", "קרינה", "רנטגן", "רעלים"],
         "related_ids": [
