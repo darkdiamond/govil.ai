@@ -168,9 +168,9 @@ landing pages. Six layers:
    **Routine, up to hourly:** a local Claude Code routine on the user's machine
    (bridge environment, scheduled task `trig_01J1zwYMCbCtSXY8yFGeJ23e`, no
    schedule of its own) is fired by a gate,
-   `.claude/skills/solve-authoring-issues/gate.sh` (origin/main's copy, run by a
-   systemd user timer at **:37, 06:37–21:37 Israel time**; `gate.sh install`
-   writes the units). The gate spends no model tokens to decide: it fires only
+   `.claude/skills/solve-authoring-issues/gate.sh`, run by a systemd user timer
+   at **:37, 06:37–21:37 Israel time** from a local copy (`gate.sh install`
+   copies it to `~/.local/libexec` and writes the units; re-run it to update). The gate spends no model tokens to decide: it fires only
    when an open pipeline issue is neither `authoring-blocked` nor closed by an
    open PR (plus once at 06:37 when blocked ones are open, for the recovery and
    unblock checks), not while a batch's worktree is live, and not for the same

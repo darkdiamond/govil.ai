@@ -6,8 +6,9 @@
 # that calls RemoteTrigger (the CLI has no trigger command, and this way the
 # OAuth token never leaves Claude Code).
 #
-# Runs from a systemd user timer on the owner's machine, always as origin/main's
-# copy (`gate.sh install` writes the units). By hand:
+# Runs from a systemd user timer on the owner's machine, as a local copy that
+# `gate.sh install` puts in ~/.local/libexec (never main's latest piped to bash:
+# update it by re-running install after reviewing the change). By hand:
 #   bash gate.sh            # check, fire if due
 #   DRY_RUN=1 bash gate.sh  # check, print the decision, fire nothing
 #   bash gate.sh install    # write + enable the systemd user timer
@@ -24,7 +25,6 @@ set -euo pipefail
 
 REPO=darkdiamond/govil.ai
 TRIGGER=trig_01J1zwYMCbCtSXY8yFGeJ23e
-MAIN=/home/zilbert/workdir/govdata
 WT=/home/zilbert/workdir/govdata-authoring
 STATE=${XDG_STATE_HOME:-$HOME/.local/state}/govil-authoring-gate
 REFIRE_H=${AUTHORING_GATE_REFIRE_HOURS:-4}
@@ -36,14 +36,16 @@ log() { echo "$(date -Is) $*" | tee -a "$STATE/log"; }
 
 if [ "${1:-}" = install ]; then
   UNITS=${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user
-  mkdir -p "$UNITS"
+  BIN=$HOME/.local/libexec/govil-authoring-gate.sh
+  mkdir -p "$UNITS" "$(dirname "$BIN")"
+  install -m 0755 "$0" "$BIN"
   cat >"$UNITS/govil-authoring-gate.service" <<EOF
 [Unit]
 Description=govil.ai authoring gate (fires the authoring routine when issues wait)
 
 [Service]
 Type=oneshot
-ExecStart=/bin/bash -c 'git -C $MAIN fetch -q origin main && git -C $MAIN show origin/main:.claude/skills/solve-authoring-issues/gate.sh | bash'
+ExecStart=/bin/bash $BIN
 EOF
   cat >"$UNITS/govil-authoring-gate.timer" <<'EOF'
 [Unit]
