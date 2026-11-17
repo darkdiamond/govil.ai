@@ -843,6 +843,10 @@ def test_public_detail_compute_failures():
                        "a datastore-active resource of this dataset")),
     ("schema_changed", "input 'x': no preview for resource(s) ['0b8ce2f1'] \u2014 6 runs in a row"),
     ("schema_changed", "input 'geo': map file 0b8ce2f1: the file is gone (HTTP 404)"),
+    ("schema_changed", ("input 'x': resource 0b8ce2f1 is empty upstream (only `_id`, no rows)"
+                       " \u2014 6 runs in a row")),
+    ("schema_changed", ("input 'x': no resource has columns ['a']; resource(s) ['0b8ce2f1'] "
+                       "are empty upstream (only `_id`)")),
     ("schema_changed", "events__1.csv: export lacks column(s) ['a']"),
     ("too_large", "input 'events': 3,000,001 rows > REFRESH_MAX_RECORDS 2,000,000"),
     ("too_large", ("input 'events': export of 0b8ce2f1 crossed the 300,000,000-byte cap "

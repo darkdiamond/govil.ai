@@ -8,21 +8,13 @@ This repo is public: describe a security gap by what to change, never by how to 
 
 ## Recipes and refresh
 
-- **An empty upstream re-upload opens a misleading `schema_changed` issue.** When a publisher
-  re-uploads a 0-byte CSV (datastore total 0, only `_id`), the refresh reports "lost column(s)"
-  and opens an issue (75989c99, #470). The authoring routine now blocks these as
-  `upstream_empty` and re-probes them, but each one still opens an issue and costs an authoring
-  subagent before it is recognized. Fix: a transient `upstream_empty` fail reason (page kept, no
-  issue) that escalates only after `REFRESH_TRANSIENT_STRIKES` runs in a row. Needs a builder
-  redeploy. (2026-11-14)
-
-- **Raster map layers have no input type.** 022552b2 (מפות מפלסים ומליחות באקוויפרים, a top
-  no-recipe page by search clicks) ships only zips of yearly GeoTIFFs: coastal-aquifer water
-  level 1954-2023 (70 files, 85MB) and chloride 1977-2020 (35 files, 38MB), 527×1250 float32
-  cells in ITM. `geo_snapshot` reads vector formats only, so no recipe can read it. Fix: a
-  `raster: true` input that turns each GeoTIFF in a zip into a per-year summary table (mean,
-  percentiles, cells over a threshold) plus an optional coarse grid. Pillow opens these files;
-  ship a TIFF reader in the builder image and redeploy before authoring. (2026-11-09)
+- **Author 022552b2 with the new `raster` input.** 022552b2 (מפות מפלסים ומליחות באקוויפרים, a
+  top no-recipe page by search clicks) ships only zips of yearly GeoTIFFs: coastal-aquifer water
+  level 1954-2023 (`wl_tiff.zip`, 70 files, 85MB) and chloride 1977-2020 (`cl_tiff.zip`, 35
+  files, 38MB). The `raster: true` input reads both (per-year mean/percentiles, plus
+  `raster_grid` cells; 0.8-1.7s locally). Redeploy the builder first (new recipe.json field and
+  Pillow in the image), then author it. `wl_tiff.zip` is 85% of `REFRESH_MAP_MAX_BYTES`: a few
+  more yearly files and it needs a recipe `limits` or a higher cap. (2026-11-09)
 
 - **The preview's Tailwind misses classes added after the dev server started.** A chart height
   like `h-[30rem]` that no page had when `preview` started renders at 0px until
@@ -97,12 +89,11 @@ This repo is public: describe a security gap by what to change, never by how to 
   d08d4a17 (notaries) and 35c791ca (licensed garages) are lookup-intent pages whose searchers
   want one row, but the page doesn't point them at the explorer. Fix: add the callout the #124
   pass added to the other lookup pages, and bump `recipe_version`. (2026-11-05)
-- **The map reader can't open a zip of zips.** ee626064 (משרד הבינוי והשיכון GIS layers)
-  ships its fourth layer, מחיר למשתכן (`gis_dira.zip`, 9.2MB), as a zip holding
-  `Lots_view.zip`, `Plans_view.zip`, `Projects_view.zip` and `Settelments_Centroid_view.zip`.
-  `geo_snapshot` reads only top-level shapefiles, so the recipe skips that layer and says so in
-  fixed copy. Fix: let `geo_snapshot` descend one level into nested zips (with the same size
-  caps), then add a `mehir` map input to ee626064 and bump its `recipe_version`. (2026-11-04)
+- **Add the מחיר למשתכן layer to ee626064.** Its fourth layer (`gis_dira.zip`, 9.2MB) is a zip
+  of `Lots_view.zip`, `Plans_view.zip`, `Projects_view.zip` and `Settelments_Centroid_view.zip`,
+  which `geo_snapshot` now opens one level down. Add a `mehir` map input (with `map_member`
+  naming the layer to read), drop the fixed copy that says the layer is skipped, and bump
+  `recipe_version`, after the builder redeploy. (2026-11-04)
 - **Top-100 legacy map pages that the snapshot path can't serve.** חלקות (dff8a168, 667MB SHP)
   is a national layer far over the 100MB download cap; it would need a pre-aggregation step
   (the גושים/תצ"ר recipes reduce each polygon to a centroid in compute, but the file must still
@@ -113,8 +104,9 @@ This repo is public: describe a security gap by what to change, never by how to 
   skipped, so the page stays on 2024 with no issue (match both names, or fail when the newest
   CKAN resource isn't read). 4eef54bc also joins authorities across years by name only, so a
   renamed authority splits in two. ab746a13 uses `pick: "latest"` by `last_modified`: a
-  re-upload of a closed year flips the page to that year (pick by the year in the resource
-  name instead). (2026-10-31)
+  re-upload of a closed year flips the page to that year. Switch it to `pick: "latest_year"`
+  (exists since this item's fix; concat of its 5 matching years is ~4.3M rows, too big) and
+  bump `recipe_version`, after the builder redeploy. (2026-10-31)
 - **GIS layers with no recipe could get maps now.** `map: true` reads their SHP/KMZ zips
   directly, but they have no recipe and no open issue, so nothing queues them:
   `python -m services.page_builder.map_backfill list` reports them as `no_recipe` (63 on
@@ -140,12 +132,11 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
   killer, but its exported CSVs sit in the same memory (`/tmp` is RAM on Cloud Run). If heavy
   recipes multiply, give them their own job execution with more memory (filter on
   `manifest.heavy`) rather than raising the shared job's `--memory`. (2026-10-30)
-- **65dafbb0's map input sits near the 50MB `map_max_kb` ceiling.** The תצ"ר layer converts to
-  49.2MB at tolerance 2e-5, and its floor is 37.6MB (at 2e-4; coarser steps grow again as small
-  rings fall back to full detail). About a third more plans and it fails `too_large`. Most of
-  the bytes it can't shed are properties the recipe never reads (TALAR_COMM, the ITM bounding
-  box, dates): let a `map` input take `columns` to drop properties before sizing (a recipe.py
-  change, so it folds into every recipe's hash; redeploy before a recipe uses it). (2026-11-06)
+- **Give 65dafbb0's map input `columns`.** The תצ"ר layer converts to 49.2MB at tolerance 2e-5,
+  near the 50MB `map_max_kb` ceiling (its floor is 37.6MB), and about a third more plans fails it
+  `too_large`. Most of the bytes are properties the recipe never reads (TALAR_COMM, the ITM
+  bounding box, dates). A map input now takes `columns`, which drop properties before sizing:
+  list the ones the recipe reads, after the builder redeploy. (2026-11-06)
 
 - **Cloud Run → Bank of Israel connects still drop SYNs.** About half of the TCP connects to
   `edge.boi.org.il` from the job stall (up to ~135s); from outside GCP none do. The provider

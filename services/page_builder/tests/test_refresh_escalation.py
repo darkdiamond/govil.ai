@@ -41,6 +41,13 @@ class EmptyCkan(FakeCkan):
         return {**super().preview(rid), "total": 0}
 
 
+class EmptyUpstreamCkan(FakeCkan):
+    """The publisher re-uploaded an empty file: the datastore keeps only `_id`."""
+
+    def preview(self, rid):
+        return {"fields": [{"id": "_id"}], "total": 0, "sample_rows": []}
+
+
 class NoExport(FakeCkan):
     """The full export fails every run (short, moved during the walk, or CKAN)."""
 
@@ -61,6 +68,7 @@ def _rendered_then_bumped(env, store_cls=FakeStore):
 @pytest.mark.parametrize("ckan_cls, strike, escalated, needle", [
     (EmptyCkan, "no_rows", "schema_changed", "has no rows"),
     (NoExport, "export_failed", "too_large", "full fetch of"),
+    (EmptyUpstreamCkan, "upstream_empty", "schema_changed", "is empty upstream"),
 ])
 def test_a_fetch_that_fails_every_run_escalates(env, monkeypatch, ckan_cls, strike,
                                                 escalated, needle):

@@ -37,6 +37,8 @@ Two ways in:
     downloads it once in a browser, `author snapshot` commits it as WGS84
     GeoJSON, and when CKAN's size/hash for it moves past `snapshot_of` the
     refresh fails `geometry_stale` and a human re-downloads it.
+Raster files (a GeoTIFF or a zip of them) are read by a `raster: true` input
+into one summary row per TIFF (`geo_snapshot.raster_table`).
 """
 from __future__ import annotations
 
@@ -89,6 +91,22 @@ class PreviewUnavailable(RecipeError):
         super().__init__(message, reason="fetch_failed")
 
 
+class UpstreamEmpty(RecipeError):
+    """A resource's datastore holds no columns but `_id` (the publisher
+    re-uploaded an empty file: total 0). Usually fixed upstream within days,
+    so it is transient (the refresh counts it as a strike and escalates to
+    `schema_changed` only when it lasts), never a lost column."""
+
+    def __init__(self, message: str):
+        super().__init__(message, reason="fetch_failed")
+
+
+def _emptied(cols: list[str] | None) -> bool:
+    """A preview's column list is only `_id`: an emptied datastore table.
+    An ignored resource reports `[]` (no columns known), which is not this."""
+    return bool(cols) and set(cols) == {"_id"}
+
+
 class SnapshotOf(BaseModel):
     """The CKAN resource facts a snapshot was taken from. `hash` is CKAN's
     md5 of the upload (often empty); `size` is the fallback. `last_modified`
@@ -125,7 +143,10 @@ class RecipeInput(BaseModel):
         yearly CSV) — the new file is picked up automatically. Pair with
         `concat: true`, or with `pick: "latest"` for datasets that publish
         each full snapshot as a new resource: only the matching resource
-        with the newest CKAN `last_modified` is read.
+        with the newest CKAN `last_modified` is read. `pick: "latest_year"`
+        reads the matching resource whose name carries the newest year
+        (`... 2026`), so a re-upload of a closed year doesn't flip the page
+        to it; ties and names with no year fall back to `last_modified`.
 
     `columns` (optional) fetches only these columns from the datastore,
     which shrinks the export of a wide table. It must include every
@@ -141,6 +162,15 @@ class RecipeInput(BaseModel):
     `MAP_MAX_KB_CEILING`. It bounds the table compute reads, not the page: a
     city layer of 26k building polygons or 129k road segments converts to
     15-23 MB, and the recipe's compute must aggregate it to page size.
+    `columns` on a map input keeps only those feature properties (plus
+    `__geometry`), dropped before the size target is applied, so a layer whose
+    bytes are mostly unread properties fits. `map_member` names the inner zip
+    to read when the file is a zip of several zipped layers.
+
+    `raster: true` downloads the `by_id` resource (a GeoTIFF, or a zip of
+    them) on every run and reads each TIFF as one summary row (see
+    `geo_snapshot.raster_table`). `raster_grid: N` adds a `kind` column and
+    the means of N×N-pixel blocks as `cell` rows (WGS84 centres).
     """
     model_config = ConfigDict(extra="forbid")
 
@@ -148,27 +178,43 @@ class RecipeInput(BaseModel):
     by_id: str | None = None
     by_schema: list[str] | None = None
     concat: bool = False
-    pick: Literal["all", "latest"] = "all"
+    pick: Literal["all", "latest", "latest_year"] = "all"
     required_columns: list[str] = Field(default_factory=list)
     columns: list[str] | None = Field(default=None, min_length=1)
     snapshot: str | None = None
     snapshot_of: SnapshotOf | None = None
     map: bool = False
     map_max_kb: int | None = Field(default=None, ge=1, le=MAP_MAX_KB_CEILING)
+    map_member: str | None = Field(default=None, pattern=r"^[^/\\]{1,200}\.[Zz][Ii][Pp]$")
+    raster: bool = False
+    raster_grid: int | None = Field(default=None, ge=2, le=1000)
 
     @model_validator(mode="after")
     def _one_selector(self) -> RecipeInput:
         if bool(self.by_id) == bool(self.by_schema):
             raise ValueError(f"input {self.name!r}: set exactly one of by_id / by_schema")
-        if self.map_max_kb is not None and not self.map:
-            raise ValueError(f"input {self.name!r}: map_max_kb needs map: true")
+        if (self.map_max_kb is not None or self.map_member is not None) and not self.map:
+            raise ValueError(f"input {self.name!r}: map_max_kb / map_member need map: true")
+        if self.raster_grid is not None and not self.raster:
+            raise ValueError(f"input {self.name!r}: raster_grid needs raster: true")
         if self.map:
             if not self.by_id:
                 raise ValueError(f"input {self.name!r}: map needs by_id (its CKAN map-file resource)")
             if self.snapshot is not None or self.snapshot_of is not None:
                 raise ValueError(f"input {self.name!r}: map and snapshot are two ways in; pick one")
+            if self.concat or self.pick != "all":
+                raise ValueError(f"input {self.name!r}: map takes no concat / pick")
+            if self.columns is not None and GEOMETRY_COLUMN in self.columns:
+                raise ValueError(
+                    f"input {self.name!r}: {GEOMETRY_COLUMN} is always kept; drop it from columns"
+                )
+        if self.raster:
+            if not self.by_id:
+                raise ValueError(f"input {self.name!r}: raster needs by_id (its CKAN file resource)")
+            if self.map or self.snapshot is not None or self.snapshot_of is not None:
+                raise ValueError(f"input {self.name!r}: raster is its own way in; drop map / snapshot")
             if self.columns is not None or self.concat or self.pick != "all":
-                raise ValueError(f"input {self.name!r}: map takes no columns / concat / pick")
+                raise ValueError(f"input {self.name!r}: raster takes no columns / concat / pick")
         if self.snapshot is not None or self.snapshot_of is not None:
             if self.snapshot is None or self.snapshot_of is None:
                 raise ValueError(f"input {self.name!r}: snapshot and snapshot_of go together")
@@ -181,14 +227,17 @@ class RecipeInput(BaseModel):
                 raise ValueError(f"input {self.name!r}: snapshot needs by_id (its CKAN resource)")
             if self.columns is not None or self.concat or self.pick != "all":
                 raise ValueError(f"input {self.name!r}: snapshot takes no columns / concat / pick")
-        if self.pick == "latest":
+        if self.pick != "all":
             if not self.by_schema:
-                raise ValueError(f"input {self.name!r}: pick 'latest' requires by_schema")
+                raise ValueError(f"input {self.name!r}: pick {self.pick!r} requires by_schema")
             if self.concat:
-                raise ValueError(f"input {self.name!r}: pick 'latest' reads one resource; drop concat")
+                raise ValueError(
+                    f"input {self.name!r}: pick {self.pick!r} reads one resource; drop concat"
+                )
         elif self.by_schema and not self.concat:
             raise ValueError(
-                f"input {self.name!r}: by_schema requires concat: true or pick: 'latest'"
+                f"input {self.name!r}: by_schema requires concat: true or pick: 'latest' "
+                "/ 'latest_year'"
             )
         if self.columns is not None:
             missing = [c for c in self.required_columns if c not in self.columns]
@@ -428,6 +477,15 @@ def _modified_key(resource: dict) -> datetime:
     return v if v.tzinfo else v.replace(tzinfo=UTC)
 
 
+_NAME_YEAR_RE = re.compile(r"(?<!\d)(?:19|20)\d\d(?!\d)")
+
+
+def name_year(name: str | None) -> int | None:
+    """The first 19xx/20xx year standing alone in a resource name, or None."""
+    m = _NAME_YEAR_RE.search(name or "")
+    return int(m.group(0)) if m else None
+
+
 def resolve_inputs(
     manifest: RecipeManifest,
     resources: list[dict],
@@ -441,7 +499,9 @@ def resolve_inputs(
     when the preview failed. Raises RecipeError(reason="schema_changed") when
     the data no longer has the shape the recipe was written for — a missing
     resource, a vanished column — so the page is kept and a human re-authors
-    it; PreviewUnavailable when a column check needed a preview it didn't get.
+    it; PreviewUnavailable when a column check needed a preview it didn't get;
+    UpstreamEmpty when a resource it needs (or, for `by_schema`, any it could
+    have matched) has been emptied to `_id` alone.
     """
     from services.shared.resources import select_prefetch_resources
 
@@ -461,7 +521,7 @@ def resolve_inputs(
                 )
             out[inp.name] = [res]
             continue
-        if inp.map:
+        if inp.map or inp.raster:
             res = by_id.get(inp.by_id)
             if res is None or not res.get("url"):
                 raise RecipeError(
@@ -482,10 +542,13 @@ def resolve_inputs(
         else:
             matched = []
             unknown = []
+            emptied = []
             for res in active:
                 cols = fields_of(res["id"])
                 if cols is None:
                     unknown.append(res["id"][:8])
+                elif _emptied(cols):
+                    emptied.append(res["id"][:8])
                 elif set(inp.by_schema or []) <= set(cols):
                     # The scanner's full resource, not select_prefetch_resources'
                     # {id, name, format}: the export needs its url (file
@@ -497,12 +560,33 @@ def resolve_inputs(
                 raise PreviewUnavailable(
                     f"input {inp.name!r}: no preview for resource(s) {unknown}"
                 )
+            if not matched and emptied:
+                # The file that used to match may be the emptied one: say so
+                # rather than report a schema change.
+                raise UpstreamEmpty(
+                    f"input {inp.name!r}: no resource has columns {inp.by_schema}; "
+                    f"resource(s) {emptied} are empty upstream (only `_id`)"
+                )
             if not matched:
                 raise RecipeError(
                     f"input {inp.name!r}: no resource has columns {inp.by_schema}",
                     reason="schema_changed",
                 )
-            if inp.pick == "latest":
+            if inp.pick == "latest_year":
+                def _year_key(r: dict) -> tuple[int, datetime]:
+                    full = by_id.get(r["id"], r)
+                    y = name_year(full.get("name"))
+                    return (-1 if y is None else y, _modified_key(full))
+
+                no_year = [r["id"][:8] for r in matched
+                           if name_year(by_id.get(r["id"], r).get("name")) is None]
+                if no_year:
+                    log.warning(
+                        "input %r: resource name(s) of %s carry no year; pick "
+                        "'latest_year' ranks them oldest", inp.name, no_year,
+                    )
+                matched = [max(matched, key=_year_key)]
+            elif inp.pick == "latest":
                 undated = [r["id"][:8] for r in matched
                            if not by_id.get(r["id"], {}).get("last_modified")]
                 if undated:
@@ -521,6 +605,11 @@ def resolve_inputs(
                 if got is None:
                     raise PreviewUnavailable(
                         f"input {inp.name!r}: no preview for resource {res['id'][:8]}"
+                    )
+                if _emptied(got):
+                    raise UpstreamEmpty(
+                        f"input {inp.name!r}: resource {res['id'][:8]} is empty "
+                        "upstream (only `_id`, no rows)"
                     )
                 cols = set(got)
                 lost = [c for c in needed if c not in cols]
