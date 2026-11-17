@@ -1,0 +1,371 @@
+{% import "gov.j2" as gov %}
+{%- macro callout(key) -%}
+{%- if model.callouts[key] is defined %}
+  <p class="m-0 mb-3 text-sm font-semibold text-ink-deep">{{ model.callouts[key] }}</p>
+{%- endif %}
+{%- endmacro %}
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+{{ gov.lede(model.labels.lede) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("external-link", "ההודעה האחרונה של הלמ\"ס") }}
+  <p class="m-0 text-sm text-subtle mb-2">{{ model.release.title }} · פורסמה {{ model.release.date }}</p>
+{%- if model.release.headline %}
+  <p class="m-0 mb-3 text-sm text-ink-deep">{{ model.release.headline }}</p>
+{%- endif %}
+  <p class="m-0 text-sm flex flex-wrap gap-4">
+    <a href="{{ model.release.url }}" target="_blank" rel="noopener">להודעה המלאה באתר הלמ"ס</a>
+{%- if model.release.pdf %}
+    <a href="{{ model.release.pdf }}" target="_blank" rel="noopener">לדוח המלא (PDF)</a>
+{%- endif %}
+  </p>
+</section>
+
+<div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
+{%- for key in ["count", "sum", "avg", "ipo", "wage"] %}
+{%- if model.kpis[key] is defined %}
+  {{ gov.kpi(model.kpis[key], model.labels[key ~ "_kpi"]) }}
+{%- endif %}
+{%- endfor %}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "כמה אקזיטים היו בכל שנה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.annual_note }}</p>
+  {{ callout("trend") }}{{ callout("peak") }}
+  {{ gov.chart("chart-annual", model.labels.annual_aria, "h-72 md:h-96") }}
+  {{ gov.table("עסקאות אקזיט לפי שנה", ["שנה", "עסקאות", "סכום (מיליון דולר)", "ממוצע לעסקה (מיליון דולר)"], model.tables.annual, ltr=(1, 2, 3)) }}
+</section>
+
+{%- if model.flags.type %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "שווי האקזיטים: רכישות ומיזוגים מול הנפקות") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.type_note }}</p>
+  {{ callout("value") }}{{ callout("ipo") }}
+  {{ gov.chart("chart-type", model.labels.type_aria, "h-72 md:h-96") }}
+  {{ gov.table("עסקאות אקזיט לפי סוג ושנה", model.labels.type_cols, model.tables.type, ltr=range(1, model.labels.type_cols | length) | list) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.size %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "גודל העסקאות") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.size_note }}</p>
+  {{ callout("big") }}
+  {{ gov.chart("chart-size", model.labels.size_aria, "h-80 md:h-96") }}
+  {{ gov.table("עסקאות אקזיט לפי גודל העסקה (מיליון דולר) ושנה", model.labels.size_cols, model.tables.size, ltr=range(1, model.labels.size_cols | length) | list) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.sector %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "אקזיטים לפי תחום פעילות") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.sector_note }}</p>
+  {{ callout("sector") }}
+  {{ gov.chart("chart-sector", model.labels.sector_aria, "h-[440px]") }}
+  {{ gov.table("עסקאות אקזיט לפי תחום פעילות", ["תחום", "עסקאות", "סכום (מיליון דולר)", "ממוצע לעסקה (מיליון דולר)"], model.tables.sector, ltr=(1, 2, 3)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.geo %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "מי קונה: מיקום הרוכשים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.geo_note }}</p>
+  {{ callout("geo") }}
+  {{ gov.chart("chart-geo", model.labels.geo_aria, "h-72 md:h-80") }}
+  {{ gov.table("עסקאות אקזיט לפי מיקום הרוכש", ["מיקום", "עסקאות", "% מהעסקאות", "סכום (מיליון דולר)", "% מהסכום"], model.tables.geo, ltr=(1, 2, 3, 4)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.owner %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "בעלות ישראלית או זרה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.owner_note }}</p>
+  {{ callout("owner") }}
+  {{ gov.chart("chart-owner", model.labels.owner_aria, "h-64 md:h-72") }}
+  {{ gov.table("בעלות על החברות לפי מיקום הרוכש", ["מיקום הרוכש", "בעלות ישראלית", "בעלות זרה"], model.tables.owner, ltr=(1, 2)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.israeli %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "אקזיטים לרוכשים ישראלים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.israeli_note }}</p>
+  {{ callout("israeli") }}
+  {{ gov.chart("chart-israeli", model.labels.israeli_aria, "h-72 md:h-96") }}
+  {{ gov.table("עסקאות אקזיט של רוכשים ישראלים לפי שנה", ["שנה", "עסקאות", "סכום (מיליון דולר)", "% מכלל העסקאות"], model.tables.israeli, ltr=(1, 2, 3)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.district %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "אקזיטים לפי מחוז") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.district_note }}</p>
+  {{ callout("district") }}
+  {{ gov.chart("chart-district", model.labels.district_aria, "h-72 md:h-96") }}
+  {{ gov.table("עסקאות אקזיט לפי מחוז ושנה", model.labels.district_cols, model.tables.district, ltr=range(1, model.labels.district_cols | length) | list) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.age %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "גיל החברה ביום האקזיט") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.age_note }}</p>
+  {{ callout("age") }}
+  {{ gov.chart("chart-age", model.labels.age_aria, "h-64 md:h-72") }}
+  {{ gov.table("עסקאות אקזיט לפי שנות הפעילות של החברה", ["שנות פעילות", "עסקאות", "חלק מהעסקאות"], model.tables.age, ltr=(1, 2)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.closure %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "מה קורה לחברה אחרי האקזיט") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.closure_note }}</p>
+  {{ callout("closure") }}
+  {{ gov.chart("chart-closure", model.labels.closure_aria, "h-72 md:h-80") }}
+  {{ gov.table("חברות שנסגרו אחרי אקזיט לפי הזמן עד הסגירה", ["מתי נסגרה", "חברות", "חלק מהחברות"], model.tables.closure, ltr=(1, 2)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.wages %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "שכר ומשרות בחברות שעשו אקזיט") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.wages_note }}{% if model.labels.wages_jobs is defined %} {{ model.labels.wages_jobs }}{% endif %}</p>
+  {{ callout("wages") }}
+  {{ gov.chart("chart-wages", model.labels.wages_aria, "h-72 md:h-80") }}
+  {{ gov.table("משרות שכיר ושכר חודשי ממוצע לפי גודל החברה", ["גודל החברה", "משרות שכיר", "שכר חודשי ממוצע (ש\"ח)"], model.tables.wages, ltr=(1, 2)) }}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("tag", "על הנתונים") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm text-subtle marker:text-brand">
+    <li>הנתונים מתוך ההודעה השנתית לתקשורת של הלשכה המרכזית לסטטיסטיקה, על בסיס הנתונים על אקזיטים בישראל שהלמ"ס בנתה בשיתוף המועצה הלאומית למחקר ופיתוח אזרחי. עסקת אקזיט היא רכישה או מיזוג של חברה ישראלית, או הנפקה ראשונה שלה לציבור.</li>
+    <li>הסכומים בדולרים, במחירים שוטפים. השכר בשקלים.</li>
+    <li>בכל הודעה הלמ"ס מעדכנת גם את נתוני השנים הקודמות, ולכן מספרים לשנה מסוימת יכולים להשתנות בין הודעות. העמוד מציג את ההודעה האחרונה. התרשימים בהודעה משתנים משנה לשנה, וכל אחד מהם מוצג כאן כשהוא מופיע בה.</li>
+  </ul>
+</section>
+
+<script>
+  (function () {
+    const d = {{ model.charts.annual | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-annual"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[1]],
+      tooltip: { trigger: "axis" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: [
+        { type: "value", name: "עסקאות" },
+        { type: "value", name: "מיליון דולר", splitLine: { show: false } }
+      ],
+      series: [
+        { type: "bar", name: "עסקאות אקזיט", data: d.count },
+        { type: "line", name: "ממוצע לעסקה (מיליון דולר)", yAxisIndex: 1, data: d.avg, lineStyle: { width: 3 },
+          tooltip: { valueFormatter: (v) => v == null ? "" : Math.round(v).toLocaleString("he-IL") } }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- if model.flags.type %}
+  (function () {
+    const d = {{ model.charts.type | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-type"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[2]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "לא פורסם" : Math.round(v).toLocaleString("he-IL") + " מיליון דולר" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", axisLabel: { formatter: (v) => v >= 1000 ? (v / 1000).toLocaleString("he-IL") + " מיליארד" : v } },
+      series: [
+        { type: "bar", stack: "a", name: "רכישה או מיזוג", data: d.ma },
+        { type: "bar", stack: "a", name: "הנפקה ראשונה לציבור", data: d.ipo }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.size %}
+  (function () {
+    const d = {{ model.charts.size | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-size"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[6], pal[2], pal[5], pal[1], pal[0], pal[8], pal[9]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL") + " עסקאות" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 64, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value" },
+      series: d.names.map((n, k) => ({ type: "bar", stack: "a", name: n + " מיליון דולר", data: d.series[k] }))
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.sector %}
+  (function () {
+    const d = {{ model.charts.sector | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const esc = (s) => echarts.format.encodeHTML(String(s));
+    const chart = echarts.init(document.getElementById("chart-sector"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+        formatter: (ps) => { const i = ps[0].dataIndex; return esc(d.names[i]) + "<br>" +
+          Math.round(d.sum[i] || 0).toLocaleString("he-IL") + " מיליון דולר, " + d.count[i].toLocaleString("he-IL") + " עסקאות"; } },
+      grid: { left: 16, right: 56, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: "value", axisLabel: { show: false }, splitLine: { show: false } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 120, overflow: "break", fontSize: 11 } },
+      series: [{ type: "bar", data: d.sum,
+        label: { show: true, position: "right", formatter: (p) => p.value == null ? "" : Math.round(p.value).toLocaleString("he-IL") } }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.geo %}
+  (function () {
+    const d = {{ model.charts.geo | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const tn = d.count.reduce((a, b) => a + b, 0);
+    const ts = d.sum.reduce((a, b) => a + (b || 0), 0);
+    const pn = d.count.map((v) => tn ? Math.round(v / tn * 1000) / 10 : null);
+    const ps = d.sum.map((v) => ts && v != null ? Math.round(v / ts * 1000) / 10 : null);
+    const chart = echarts.init(document.getElementById("chart-geo"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[2], pal[0]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => v == null ? "" : Number(v).toFixed(1) + "%" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 48, top: 32, bottom: 8, containLabel: true },
+      xAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 110, overflow: "break", fontSize: 11 } },
+      series: [
+        { type: "bar", name: "% מהעסקאות", data: pn },
+        { type: "bar", name: "% מהסכום", data: ps,
+          label: { show: true, position: "right", formatter: (p) => p.value == null ? "" : Math.round(p.value) + "%" } }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.owner %}
+  (function () {
+    const d = {{ model.charts.owner | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-owner"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[6]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => v == null ? "" : Math.round(v) + "%" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 32, bottom: 8, containLabel: true },
+      xAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", data: d.names, inverse: true },
+      series: [
+        { type: "bar", stack: "a", name: "בעלות ישראלית", data: d.isr,
+          label: { show: true, formatter: (p) => Math.round(p.value) + "%" } },
+        { type: "bar", stack: "a", name: "בעלות זרה", data: d.frn }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.israeli %}
+  (function () {
+    const d = {{ model.charts.israeli | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-israeli"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[2], pal[1]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Math.round(v).toLocaleString("he-IL") },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: [
+        { type: "value", name: "עסקאות" },
+        { type: "value", name: "מיליון דולר", splitLine: { show: false } }
+      ],
+      series: [
+        { type: "bar", name: "עסקאות", data: d.count },
+        { type: "line", name: "סכום (מיליון דולר)", yAxisIndex: 1, data: d.sum, lineStyle: { width: 3 } }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.district %}
+  (function () {
+    const d = {{ model.charts.district | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-district"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[2], pal[1], pal[6], pal[5], pal[8]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL") + " עסקאות" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 56, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value" },
+      series: d.names.map((n, k) => ({ type: "bar", stack: "a", name: n, data: d.series[k] }))
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.age %}
+  (function () {
+    const d = {{ model.charts.age | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-age"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => Number(v).toLocaleString("he-IL") + " עסקאות" },
+      grid: { left: 16, right: 16, top: 24, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.names },
+      yAxis: { type: "value" },
+      series: [{ type: "bar", data: d.values, label: { show: true, position: "top" } }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.closure %}
+  (function () {
+    const d = {{ model.charts.closure | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-closure"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[2]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => Number(v).toLocaleString("he-IL") + " חברות" },
+      grid: { left: 16, right: 48, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: "value", axisLabel: { show: false }, splitLine: { show: false } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 130, overflow: "break", fontSize: 11 } },
+      series: [{ type: "bar", data: d.values, label: { show: true, position: "right" } }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.wages %}
+  (function () {
+    const d = {{ model.charts.wages | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const lines = [];
+    if (d.all != null) lines.push({ yAxis: d.all, name: "כל החברות שעשו אקזיט", lineStyle: { color: pal[0] } });
+    if (d.econ != null) lines.push({ yAxis: d.econ, name: "ממוצע במשק", lineStyle: { color: pal[1] } });
+    const chart = echarts.init(document.getElementById("chart-wages"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[2]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => v == null ? "" : Math.round(v).toLocaleString("he-IL") + " ש\"ח" },
+      grid: { left: 16, right: 16, top: 40, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.names, name: "גודל החברה", nameLocation: "middle", nameGap: 28 },
+      yAxis: { type: "value", max: (v) => Math.ceil(v.max * 1.15 / 5000) * 5000, axisLabel: { formatter: (v) => v.toLocaleString("he-IL") } },
+      series: [{ type: "bar", name: "שכר חודשי ממוצע", data: d.wage,
+        markLine: { symbol: "none", data: lines,
+          label: { formatter: (p) => p.name + ": " + Math.round(p.value).toLocaleString("he-IL"), position: "insideEndTop", fontSize: 11 } } }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+</script>

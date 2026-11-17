@@ -1,0 +1,436 @@
+{% import "gov.j2" as gov %}
+{%- macro callout(key) -%}
+{%- if model.callouts[key] is defined %}
+  <p class="m-0 mb-3 text-sm font-semibold text-ink-deep">{{ model.callouts[key] }}</p>
+{%- endif %}
+{%- endmacro %}
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+{{ gov.lede(model.labels.lede) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("external-link", "ההודעה האחרונה של הלמ\"ס") }}
+  <p class="m-0 text-sm text-subtle mb-2">{{ model.release.title }} · פורסמה {{ model.release.date }}</p>
+{%- if model.release.headline %}
+  <p class="m-0 mb-3 text-sm text-ink-deep">{{ model.release.headline }}</p>
+{%- endif %}
+  <p class="m-0 text-sm flex flex-wrap gap-4">
+    <a href="{{ model.release.url }}" target="_blank" rel="noopener">להודעה המלאה באתר הלמ"ס</a>
+{%- if model.release.pdf %}
+    <a href="{{ model.release.pdf }}" target="_blank" rel="noopener">לדוח המלא (PDF)</a>
+{%- endif %}
+  </p>
+</section>
+
+<div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
+{%- for key in ["active", "open", "close", "jobs", "wage", "raised"] %}
+{%- if model.kpis[key] is defined %}
+  {{ gov.kpi(model.kpis[key], model.labels[key ~ "_kpi"]) }}
+{%- endif %}
+{%- endfor %}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "חברות הזנק פעילות ומשרות שכיר") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.trend_note }}</p>
+  {{ gov.chart("chart-trend", model.labels.trend_aria, "h-72 md:h-96") }}
+  {{ gov.table("חברות הזנק פעילות ומשרות שכיר לפי שנה", ["שנה", "חברות פעילות", "משרות שכיר"], model.tables.trend, ltr=(1, 2)) }}
+</section>
+
+{%- if model.flags.flows %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "כמה סטארט-אפים נפתחו וכמה נסגרו") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.flows_note }}</p>
+  {{ gov.chart("chart-flows", model.labels.flows_aria, "h-72 md:h-96") }}
+  {{ gov.table("פתיחות וסגירות של חברות הזנק לפי שנה", ["שנה", "נפתחו", "נסגרו", "מאזן", "אחוז הסגירות"], model.tables.flows, ltr=(1, 2, 3, 4)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.wagebill %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "סך השכר בחברות ההזנק") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.wagebill_note }}</p>
+  {{ gov.chart("chart-wagebill", model.labels.wagebill_aria, "h-64 md:h-80") }}
+  {{ gov.table("סך השכר בחברות ההזנק לפי שנה (מיליארד ש\"ח)", ["שנה", "מיליארד ש\"ח"], model.tables.wagebill, ltr=(1,)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.size %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "שכר בחברות הזנק לפי גודל החברה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.size_note }}</p>
+  {{ callout("size") }}
+  {{ gov.chart("chart-size", model.labels.size_aria, "h-72 md:h-80") }}
+  {{ gov.table("שכר חודשי ממוצע למשרת שכיר לפי גודל חברה (ש\"ח)", ["גודל חברה (משרות שכיר)", "שכר חודשי ממוצע"], model.tables.size, ltr=(1,)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.sector %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "תחומי הפעילות של חברות ההזנק") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.sector_note }}</p>
+  {{ gov.chart("chart-sector", model.labels.sector_aria, "h-[520px]") }}
+  {{ gov.table("חברות הזנק לפי תחום פעילות", ["תחום פעילות", "חברות פעילות", "נפתחו", "נסגרו", "משרות שכיר"], model.tables.sector, ltr=(1, 2, 3, 4)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.swage %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "שכר לפי תחום פעילות") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.swage_note }}</p>
+  {{ callout("swage") }}
+  {{ gov.chart("chart-swage", model.labels.swage_aria, "h-[520px]") }}
+  {{ gov.table("שכר חודשי ממוצע ומשרות שכיר לפי תחום פעילות", ["תחום פעילות", "שכר חודשי ממוצע (ש\"ח)", "משרות שכיר"], model.tables.swage, ltr=(1, 2)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.rates %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "אחוז הפתיחות והסגירות בכל תחום") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.rates_note }}</p>
+  {{ callout("rates") }}
+  {{ gov.chart("chart-rates", model.labels.rates_aria, "h-[560px]") }}
+  {{ gov.table("אחוז הפתיחות והסגירות לפי תחום פעילות", model.labels.rates_cols, model.tables.rates, ltr=range(1, model.labels.rates_cols | length) | list) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.district %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "חברות הזנק לפי מחוז") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.district_note }}</p>
+  {{ gov.chart("chart-district", model.labels.district_aria, "h-72 md:h-80") }}
+  {{ gov.table("חברות הזנק פעילות ושכר חודשי ממוצע לפי מחוז", ["מחוז", "חברות פעילות", "שכר חודשי ממוצע (ש\"ח)"], model.tables.district, ltr=(1, 2)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.rounds %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "גיוסי הון לפי שלב הגיוס") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.rounds_note }}</p>
+  {{ gov.chart("chart-rounds", model.labels.rounds_aria, "h-72 md:h-96") }}
+  {{ gov.table("גיוסי הון לפי סוג הגיוס ושנה", model.labels.rounds_cols, model.tables.rounds, ltr=range(1, model.labels.rounds_cols | length) | list) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.rsector %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "גיוסי הון לפי תחום פעילות") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.rsector_note }}</p>
+  {{ gov.chart("chart-rsector", model.labels.rsector_aria, "h-[560px]") }}
+  {{ gov.table("גיוסי הון לפי תחום פעילות וסוג הגיוס (מיליון דולר)", model.labels.rsector_cols, model.tables.rsector, ltr=range(1, model.labels.rsector_cols | length) | list) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.funding %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "מימון פרטי מול מימון ממשלתי") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.funding_note }}</p>
+  {{ callout("funding") }}
+  {{ gov.chart("chart-funding", model.labels.funding_aria, "h-[520px]") }}
+  {{ gov.table("מימון ממוצע לחברה לפי תחום פעילות (מיליון דולר)", ["תחום פעילות", "מימון פרטי", "מימון ממשלתי", "יחס"], model.tables.funding, ltr=(1, 2, 3)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.grants %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "מענקי רשות החדשנות") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.grants_note }}</p>
+  {{ callout("grants") }}
+  {{ gov.chart("chart-grants", model.labels.grants_aria, "h-[520px]") }}
+  {{ gov.table("מענקי רשות החדשנות לחברות הזנק לפי תחום פעילות", model.labels.grants_cols, model.tables.grants, ltr=range(1, model.labels.grants_cols | length) | list) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.mature %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "חברות בשלות: סטארט-אפים שגדלו") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.mature_note }}</p>
+  {{ callout("mature") }}
+  {{ gov.chart("chart-mature", model.labels.mature_aria, "h-72 md:h-96") }}
+  {{ gov.table("חברות בשלות ומשרות שכיר לפי גודל ושנה", ["שנה", "חברות עד 25 משרות", "חברות מעל 25 משרות", "משרות בחברות עד 25", "משרות בחברות מעל 25"], model.tables.mature, ltr=(1, 2, 3, 4)) }}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("tag", "על הנתונים") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm text-subtle marker:text-brand">
+    <li>הנתונים מתוך ההודעה השנתית לתקשורת של הלשכה המרכזית לסטטיסטיקה על חברות הזנק בישראל, המבוססת על בסיס הנתונים של הלמ"ס על חברות הזנק ועל חברות הזנק שבשלו.</li>
+    <li>חברה בשלה היא חברת הזנק שגדלה ועברה את שלב ההזנק. נתוני הגיוסים והמימון כוללים גם את החברות הבשלות.</li>
+    <li>בשנים האחרונות של בסיס הנתונים יש הטיית חסר בגלל מידע שעדיין לא נחשף, ולכן נתוני הפתיחות של השנים האחרונות עשויים לעלות בהודעות הבאות.</li>
+    <li>הלוחות בהודעה משתנים משנה לשנה. העמוד מציג את הלוחות שמופיעים בהודעה האחרונה, ונתוני השנים הקודמות בה עשויים להיות מעודכנים לעומת הודעות קודמות.</li>
+  </ul>
+</section>
+
+<script>
+  (function () {
+    const d = {{ model.charts.trend | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-trend"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[2], pal[0]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL") },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: [
+        { type: "value", name: "חברות", position: "right" },
+        { type: "value", name: "משרות", position: "left", splitLine: { show: false },
+          axisLabel: { formatter: (v) => v >= 1000 ? (v / 1000).toLocaleString("he-IL") + " אלף" : v } }
+      ],
+      series: [
+        { type: "bar", name: "חברות פעילות", data: d.active, yAxisIndex: 0 },
+        { type: "line", name: "משרות שכיר", data: d.jobs, yAxisIndex: 1, lineStyle: { width: 3 } }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- if model.flags.flows %}
+  (function () {
+    const d = {{ model.charts.flows | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-flows"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[5], "#0c3058"],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL") },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value" },
+      series: [
+        { type: "bar", name: "נפתחו", data: d.open },
+        { type: "bar", name: "נסגרו", data: d.close },
+        { type: "line", name: "מאזן", data: d.net.map((v) => v < 0 ? { value: v, itemStyle: { color: "#dc3545" } } : v), lineStyle: { width: 2 } }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.wagebill %}
+  (function () {
+    const d = {{ model.charts.wagebill | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-wagebill"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[1]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toFixed(2) + " מיליארד ש\"ח" },
+      grid: { left: 16, right: 16, top: 24, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value" },
+      series: [{ type: "bar", name: "סך השכר", data: d.wage }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.size %}
+  (function () {
+    const d = {{ model.charts.size | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const fmtN = (v) => Number(v).toLocaleString("he-IL");
+    const lines = [];
+    if (d.all != null) lines.push({ yAxis: d.all, name: "כלל חברות ההזנק", lineStyle: { color: pal[0] } });
+    if (d.hitech != null) lines.push({ yAxis: d.hitech, name: "ענף ההייטק", lineStyle: { color: "#0c3058" } });
+    if (d.economy != null) lines.push({ yAxis: d.economy, name: "כל המשק", lineStyle: { color: "#6c757d" } });
+    const chart = echarts.init(document.getElementById("chart-size"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[2]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => fmtN(v) + " ש\"ח" },
+      grid: { left: 16, right: 16, top: 24, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.names, name: "משרות שכיר", nameLocation: "middle", nameGap: 28 },
+      yAxis: { type: "value" },
+      series: [{
+        type: "bar", name: "שכר חודשי ממוצע", data: d.values, barMaxWidth: 56,
+        markLine: { symbol: "none", label: { formatter: (p) => p.name + ": " + fmtN(p.value), position: "insideEndTop" }, data: lines }
+      }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.sector %}
+  (function () {
+    const d = {{ model.charts.sector | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-sector"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0]],
+      tooltip: {
+        trigger: "axis", axisPointer: { type: "shadow" },
+        formatter: (ps) => {
+          const i = ps[0].dataIndex;
+          return echarts.format.encodeHTML(d.names[i]) + "<br>" + Number(d.active[i]).toLocaleString("he-IL") + " חברות פעילות"
+            + (d.jobs[i] == null ? "" : "<br>" + Number(d.jobs[i]).toLocaleString("he-IL") + " משרות שכיר");
+        }
+      },
+      grid: { left: 16, right: 48, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: "value", axisLabel: { show: false }, splitLine: { show: false } },
+      yAxis: { type: "category", inverse: true, data: d.names, axisLabel: { width: 130, overflow: "break" } },
+      series: [{ type: "bar", name: "חברות פעילות", data: d.active,
+        label: { show: true, position: "right", formatter: (p) => Number(p.value).toLocaleString("he-IL") } }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.swage %}
+  (function () {
+    const d = {{ model.charts.swage | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-swage"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[1]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => Number(v).toLocaleString("he-IL") + " ש\"ח" },
+      grid: { left: 16, right: 56, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: "value", axisLabel: { show: false }, splitLine: { show: false } },
+      yAxis: { type: "category", inverse: true, data: d.names, axisLabel: { width: 130, overflow: "break" } },
+      series: [{
+        type: "bar", name: "שכר חודשי ממוצע", data: d.values,
+        label: { show: true, position: "right", formatter: (p) => Number(p.value).toLocaleString("he-IL") },
+        markLine: d.all == null ? undefined : { symbol: "none", label: { show: false }, lineStyle: { color: "#0c3058", type: "dashed" },
+          data: [{ xAxis: d.all, name: "כלל חברות ההזנק" }] }
+      }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.rates %}
+  (function () {
+    const d = {{ model.charts.rates | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-rates"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[5]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => v == null ? "" : Number(v).toFixed(1) + "%" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 36, bottom: 8, containLabel: true },
+      xAxis: { type: "value", axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", inverse: true, data: d.names, axisLabel: { width: 130, overflow: "break" } },
+      series: [
+        { type: "bar", name: "אחוז הפתיחות", data: d.open },
+        { type: "bar", name: "אחוז הסגירות", data: d.close }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.district %}
+  (function () {
+    const d = {{ model.charts.district | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-district"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0]],
+      tooltip: {
+        trigger: "axis", axisPointer: { type: "shadow" },
+        formatter: (ps) => {
+          const i = ps[0].dataIndex;
+          return echarts.format.encodeHTML(d.names[i])
+            + (d.active[i] == null ? "" : "<br>" + Number(d.active[i]).toLocaleString("he-IL") + " חברות פעילות")
+            + (d.wage[i] == null ? "" : "<br>שכר חודשי ממוצע: " + Number(d.wage[i]).toLocaleString("he-IL") + " ש\"ח");
+        }
+      },
+      grid: { left: 16, right: 48, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: "value", axisLabel: { show: false }, splitLine: { show: false } },
+      yAxis: { type: "category", inverse: true, data: d.names },
+      series: [{ type: "bar", name: "חברות פעילות", data: d.active,
+        label: { show: true, position: "right", formatter: (p) => Number(p.value).toLocaleString("he-IL") } }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.rounds %}
+  (function () {
+    const d = {{ model.charts.rounds | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-rounds"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[6], pal[2], pal[0], pal[8], pal[4]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => v == null ? "" : Math.round(v).toLocaleString("he-IL") + " מיליון דולר" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 64, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", axisLabel: { formatter: (v) => Number(v).toLocaleString("he-IL") } },
+      series: d.names.map((n, i) => ({ type: "bar", stack: "a", name: n, data: d.amount[i], barMaxWidth: 72 }))
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.rsector %}
+  (function () {
+    const d = {{ model.charts.rsector | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-rsector"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[6], pal[2], pal[0], pal[8]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => v == null ? "" : Math.round(v).toLocaleString("he-IL") + " מיליון דולר" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 64, bottom: 28, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3, name: "מיליארד דולר", nameLocation: "middle", nameGap: 24, axisLabel: { formatter: (v) => (v / 1000).toLocaleString("he-IL") } },
+      yAxis: { type: "category", inverse: true, data: d.names, axisLabel: { width: 130, overflow: "break" } },
+      series: d.types.map((t, i) => ({ type: "bar", stack: "a", name: t, data: d.values[i] }))
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.funding %}
+  (function () {
+    const d = {{ model.charts.funding | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-funding"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[6]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => v == null ? "" : Number(v).toFixed(2) + " מיליון דולר" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 36, bottom: 8, containLabel: true },
+      xAxis: { type: "value", axisLabel: { formatter: "{value}" }, name: "מיליון דולר" },
+      yAxis: { type: "category", inverse: true, data: d.names, axisLabel: { width: 130, overflow: "break" } },
+      series: [
+        { type: "bar", name: "מימון פרטי ממוצע", data: d.private },
+        { type: "bar", name: "מימון ממשלתי ממוצע", data: d.gov }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.grants %}
+  (function () {
+    const d = {{ model.charts.grants | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-grants"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[2]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => Number(v).toFixed(1) + " מיליון ש\"ח" },
+      grid: { left: 16, right: 48, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: "value", axisLabel: { show: false }, splitLine: { show: false } },
+      yAxis: { type: "category", inverse: true, data: d.names, axisLabel: { width: 130, overflow: "break" } },
+      series: [{ type: "bar", name: "סך מענק", data: d.values,
+        label: { show: true, position: "right", formatter: (p) => Math.round(p.value).toLocaleString("he-IL") } }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.mature %}
+  (function () {
+    const d = {{ model.charts.mature | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-mature"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[6], pal[2], pal[0]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL") },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 56, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: [
+        { type: "value", name: "חברות", position: "right" },
+        { type: "value", name: "משרות", position: "left", splitLine: { show: false },
+          axisLabel: { formatter: (v) => v >= 1000 ? (v / 1000).toLocaleString("he-IL") + " אלף" : v } }
+      ],
+      series: [
+        { type: "bar", stack: "a", name: "חברות עד 25 משרות", data: d.small },
+        { type: "bar", stack: "a", name: "חברות מעל 25 משרות", data: d.big },
+        { type: "line", name: "משרות בחברות מעל 25", data: d.jobs_big, yAxisIndex: 1, lineStyle: { width: 3 } }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+</script>

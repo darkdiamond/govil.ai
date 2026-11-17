@@ -175,21 +175,24 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
 
 ## CBS reports (cbs_releases provider)
 
-- **Most yearly CBS reports still have no page.** The first 5 are done (local authorities,
-  population at the new year, aliyah, baby names, motor vehicles; 2026-11-17). The 38-month
-  catalog (`catalog --months 38`) lists ~60 more with Excel tables once holiday collections
-  ("לרגל …", "לקט נתונים") and one-offs are left out: national spending on education / health / R&D /
-  culture / welfare, agriculture, quality of life by city and district, business and employer
-  demography, startups and exits, non-profits, dwellings and buildings, home ownership, degree
-  recipients, vehicle-km, driving licences, public-transport validations, people charged and
-  convicted, foreign residents, VAT dealer openings and closings. Several renumber their tables
-  every edition, so read tables by title (as `cbs-motor-vehicles` and `cbs-local-authorities`
-  do), not by stem. (2026-11-05)
-- **CBS price-index chapters with no page.** `cbs_index catalog` chapters with no recipe:
-  construction inputs for commercial buildings and offices (ca), road and bridge works (d),
-  agriculture (e), buses and minibuses (f/fa), industry export prices (ba), and the 118
-  selected-product CPI codes (chapter a, subject 40: bread, milk, petrol …). Each is a new
-  `source.json` code list, no provider change. (2026-11-17)
+- **25 CBS reports still have no page.** 35 yearly reports are done (2026-11-17, PR #503). Left,
+  as recipe ids to use: yearly `cbs_releases` reports: `cbs-hotel-finances` (הכנסות, הוצאות ורווח
+  מלונות התיירות), `cbs-agriculture`, `cbs-dwellings-buildings`, `cbs-home-ownership`,
+  `cbs-academic-degrees`, `cbs-teaching-staff` (1 table), `cbs-education-attainment` (רמת
+  ההשכלה, רב שנתי), `cbs-pregnancy-termination`, `cbs-criminal-defendants` (עומדים לדין),
+  `cbs-criminal-convictions` (מורשעים בדין), `cbs-foreign-residents`,
+  `cbs-quality-of-life-cities`, `-districts`, `-gender-gaps`, `-jewish-arab-gaps`,
+  `cbs-vehicle-km` (נסועה), `cbs-driving-licences`, `cbs-public-transport-validations`,
+  `cbs-postdocs` (בָּתַר-דוקטורט, with niqqud). `cbs_index` pages: commercial construction
+  inputs (chapter ca), road and bridge inputs (d), agriculture inputs (e), bus inputs (f + fa),
+  industry export prices (ba; check overlap with `cbs-index-producer-prices` and
+  `cbs-trade-price-indices`), selected consumer prices (chapter a, subject 40). Find each
+  report's regex, chapter and tables with `catalog --months 38`. What the batch learned:
+  declare every stem plus 3 spare `optional` ones and find each table by its title (CBS
+  renumbers them); check the regex against the whole release list (sibling reports share
+  prefixes); `history_releases` > 1 when each edition holds one year; never a private
+  `cbs._*` helper (the guard rejects it); `seo.title`/`name` fixed strings; holiday collections
+  ("לרגל …", "לקט נתונים") stay out. (2026-11-05)
 - **Year-end CBS editions with a different table set are skipped.** `cbs-visitor-arrivals`
   and `cbs-israelis-departures` skip the January "בשנת YYYY" edition, which replaces December's
   and adds tables. `cbs-labour-supply-demand` skips the Oct–Dec "ושנת" edition (90 files). Each

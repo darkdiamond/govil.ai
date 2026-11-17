@@ -1,0 +1,206 @@
+{% import "gov.j2" as gov %}
+{%- macro callout(key) -%}
+{%- if model.callouts[key] is defined %}
+  <p class="m-0 mb-3 text-sm font-semibold text-ink-deep">{{ model.callouts[key] }}</p>
+{%- endif %}
+{%- endmacro %}
+{%- macro rank_section(key, icon, title, caption) -%}
+{%- if model.flags[key] is defined %}
+<section class="card p-5 mb-6">
+  {{ gov.head(icon, title) }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels[key ~ "_note"] }}</p>
+  {{ caller() }}
+  {{ gov.chart("chart-" ~ key, model.labels[key ~ "_aria"], "h-[440px] md:h-[460px]") }}
+  {{ gov.table(caption, model.labels[key ~ "_cols"], model.tables[key], ltr=range(1, model.labels[key ~ "_cols"] | length) | list) }}
+</section>
+{%- endif %}
+{%- endmacro %}
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+{{ gov.lede(model.labels.lede) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("external-link", "ההודעה האחרונה של הלמ\"ס") }}
+  <p class="m-0 text-sm text-subtle mb-2">{{ model.release.title }} · פורסמה {{ model.release.date }}</p>
+  <p class="m-0 text-sm flex flex-wrap gap-4">
+    <a href="{{ model.release.url }}" target="_blank" rel="noopener">להודעה המלאה באתר הלמ"ס</a>
+{%- if model.release.pdf %}
+    <a href="{{ model.release.pdf }}" target="_blank" rel="noopener">לדוח המלא (PDF)</a>
+{%- endif %}
+  </p>
+</section>
+
+<div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
+{%- for key in ["in_pos", "out_pos", "in_flow", "out_flow", "hitech"] %}
+{%- if model.kpis[key] is defined %}
+  {{ gov.kpi(model.kpis[key], model.labels[key ~ "_kpi"]) }}
+{%- endif %}
+{%- endfor %}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+{%- if model.charts.hist is defined %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "יתרות ההשקעה הישירה לאורך השנים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.hist_note }}</p>
+  {{ callout("growth") }}
+  {{ gov.chart("chart-hist", model.labels.hist_aria, "h-72 md:h-96") }}
+  {{ gov.table("יתרות ותנועות ההשקעה הישירה לפי שנה (מיליוני דולרים)", ["שנה", "יתרות: חו\"ל בישראל", "יתרות: ישראל בחו\"ל", "תנועות: חו\"ל בישראל", "תנועות: ישראל בחו\"ל"], model.tables.hist, ltr=(1, 2, 3, 4)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.flows %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "תנועות: השקעות ישירות חדשות בכל שנה") }}
+  <p class="m-0 text-sm text-subtle mb-3">התנועות הן ההשקעות החדשות נטו שבוצעו במהלך השנה (השקעות בהון, רווחים שהושקעו מחדש והלוואות בין חברות קשורות), במיליוני דולרים.</p>
+  {{ callout("flows") }}
+  {{ gov.chart("chart-flows", model.labels.flow_aria, "h-72 md:h-96") }}
+  {{ gov.table("תנועות ההשקעה הישירה לפי שנה (מיליוני דולרים)", ["שנה", "חו\"ל בישראל", "ישראל בחו\"ל"], model.tables.flows, ltr=(1, 2)) }}
+</section>
+{%- endif %}
+
+{% call rank_section("in_pos_industry", "list", "השקעות זרות בישראל לפי ענף", "יתרות ההשקעה הישירה של חו\"ל בישראל לפי ענף (מיליוני דולרים)") %}{{ callout("top_in_ind") }}{% endcall %}
+
+{% call rank_section("in_pos_country", "list", "מאילו מדינות מגיעות ההשקעות בישראל", "יתרות ההשקעה הישירה של חו\"ל בישראל לפי מדינה (מיליוני דולרים)") %}{{ callout("in_cty") }}{% endcall %}
+
+{% call rank_section("out_pos_industry", "list", "השקעות ישראליות בחו\"ל לפי ענף", "יתרות ההשקעה הישירה של ישראל בחו\"ל לפי ענף (מיליוני דולרים)") %}{{ callout("top_out_ind") }}{% endcall %}
+
+{% call rank_section("out_pos_country", "list", "היכן משקיעים ישראלים בחו\"ל", "יתרות ההשקעה הישירה של ישראל בחו\"ל לפי מדינה (מיליוני דולרים)") %}{{ callout("out_cty") }}{% endcall %}
+
+{%- if model.flags.cont %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "התפלגות לפי יבשת") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.cont_note }}</p>
+  {{ gov.chart("chart-cont", model.labels.cont_aria, "h-80 md:h-72") }}
+  {{ gov.table("יתרות ההשקעה הישירה לפי יבשת (מיליוני דולרים)", model.labels.cont_cols, model.tables.cont, ltr=range(1, model.labels.cont_cols | length) | list) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.tech %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "עוצמה טכנולוגית: משקל ההיי-טק") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.tech_note }}</p>
+  {{ callout("hitech") }}
+  {{ gov.chart("chart-tech", model.labels.tech_aria, "h-96 md:h-80") }}
+  {{ gov.table("יתרות ההשקעה הישירה לפי עוצמה טכנולוגית (מיליוני דולרים)", model.labels.tech_cols, model.tables.tech, ltr=range(1, model.labels.tech_cols | length) | list) }}
+{%- if model.tables.hitech is defined %}
+  {{ gov.table("חלק ענפי ההיי-טק ביתרות לפי שנה", model.labels.hitech_cols, model.tables.hitech, ltr=range(1, model.labels.hitech_cols | length) | list) }}
+{%- endif %}
+</section>
+{%- endif %}
+
+{% call rank_section("in_flow_industry", "list", "השקעות חדשות בישראל לפי ענף", "תנועות ההשקעה הישירה של חו\"ל בישראל לפי ענף (מיליוני דולרים)") %}{% endcall %}
+
+{% call rank_section("out_flow_industry", "list", "השקעות ישראליות חדשות בחו\"ל לפי ענף", "תנועות ההשקעה הישירה של ישראל בחו\"ל לפי ענף (מיליוני דולרים)") %}{% endcall %}
+
+{% call rank_section("in_flow_country", "list", "השקעות חדשות בישראל לפי מדינה", "תנועות ההשקעה הישירה של חו\"ל בישראל לפי מדינה (מיליוני דולרים)") %}{% endcall %}
+
+{% call rank_section("out_flow_country", "list", "השקעות ישראליות חדשות בחו\"ל לפי מדינה", "תנועות ההשקעה הישירה של ישראל בחו\"ל לפי מדינה (מיליוני דולרים)") %}{% endcall %}
+
+{%- for d in ["in", "out"] %}
+{%- if model.flags["cross_" ~ d] is defined %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "תעשייה או שירותים: המדינות המובילות, " ~ ("השקעות של חו\"ל בישראל" if d == "in" else "השקעות של ישראל בחו\"ל")) }}
+  <p class="m-0 text-sm text-subtle mb-3">יתרות בסוף {{ model.labels["cross_" ~ d ~ "_year"] }} של המדינות הגדולות, לפי קבוצת הענף של החברה, במיליוני דולרים. תא שהלמ"ס לא פרסמה מטעמי חיסיון מוצג ריק, ו"לא מחולק" יכול להיות שלילי.</p>
+  {{ callout("cross_" ~ d) }}
+  {{ gov.chart("chart-cross_" ~ d, model.labels["cross_" ~ d ~ "_aria"], "h-80 md:h-96") }}
+  {{ gov.table("יתרות לפי מדינה וקבוצת ענף (מיליוני דולרים)", model.labels.cross_cols, model.tables["cross_" ~ d], ltr=range(1, model.labels.cross_cols | length) | list) }}
+</section>
+{%- endif %}
+{%- endfor %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("tag", "על הנתונים") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm text-subtle marker:text-brand">
+    <li>השקעה ישירה היא השקעה של תושב מדינה אחת בחברה במדינה אחרת, שמקנה לו לפחות {{ model.labels.tenpct }} מזכויות ההצבעה. הנתונים הם חלק מהחשבון הפיננסי של מאזן התשלומים ומצבת הנכסים וההתחייבויות של המשק מול חו"ל.</li>
+    <li>"יתרות" הן שווי ההשקעות בסוף השנה. "תנועות" הן ההשקעות החדשות נטו במהלך השנה, והן יכולות להיות שליליות כשמשקיעים מושכים השקעות.</li>
+    <li>ההתפלגות לפי ענף מתייחסת לענף של החברה שבה הושקע הכסף, וההתפלגות לפי מדינה מתייחסת למדינה של המשקיע הישיר. חלק מהיתרות אינו מחולק לפי ענף או מדינה מטעמי חיסיון.</li>
+    <li>הסכומים במיליוני דולרים, במחירים שוטפים. ההודעה האחרונה מעדכנת את נתוני השנים הקודמות, והעמוד מציג לכל שנה את הנתון העדכני ביותר.</li>
+  </ul>
+</section>
+
+<script>
+  (function () {
+    const pal = window.GOVIL_PALETTE;
+    const fmtM = (v) => v == null ? "" : Math.round(v).toLocaleString("he-IL");
+    const enc = (s) => echarts.format.encodeHTML(String(s));
+    function mount(id, opt) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const chart = echarts.init(el);
+      chart.setOption(window.GovEcharts.option(typeof opt === "function" ? opt(el.clientWidth < 520) : opt));
+      window.addEventListener("resize", () => chart.resize());
+    }
+    function yearBars(id, d, a, b) {
+      mount(id, {
+        color: [pal[0], pal[2]],
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => v == null ? "" : fmtM(v) + " מיליון דולר" },
+        legend: { top: 0 },
+        grid: { left: 16, right: 16, top: 40, bottom: 24, containLabel: true },
+        xAxis: { type: "category", data: d.x },
+        yAxis: { type: "value", axisLabel: { formatter: (v) => (v / 1000).toLocaleString("he-IL") + " מיליארד" } },
+        series: [
+          { type: "bar", name: 'חו"ל בישראל', data: d[a] },
+          { type: "bar", name: 'ישראל בחו"ל', data: d[b] }
+        ]
+      });
+    }
+    function rank(id, d) {
+      mount(id, {
+        color: [pal[6], pal[0]],
+        tooltip: {
+          trigger: "axis", axisPointer: { type: "shadow" },
+          formatter: (ps) => {
+            const i = ps[0].dataIndex;
+            return "<b>" + enc(d.full[i]) + "</b><br>" + ps.map((p) => enc(p.seriesName) + ": " + fmtM(p.value) + " מיליון דולר").join("<br>");
+          }
+        },
+        legend: { top: 0 },
+        grid: { left: 16, right: 56, top: 36, bottom: 8, containLabel: true },
+        xAxis: { type: "value", axisLabel: { show: false }, splitLine: { show: false } },
+        yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 120, overflow: "truncate" } },
+        series: [
+          { type: "bar", name: d.y0, data: d.v0 },
+          { type: "bar", name: d.y1, data: d.v1, label: { show: true, position: "right", formatter: (p) => fmtM(p.value) } }
+        ]
+      });
+    }
+    const bnAxis = { type: "value", splitNumber: 3, name: "מיליארדי דולרים", nameLocation: "middle", nameGap: 28, axisLabel: { formatter: (v) => (v / 1000).toLocaleString("he-IL") } };
+    function stack100(id, d, pct) {
+      mount(id, (narrow) => ({
+        color: [pal[0], pal[2], pal[1], pal[5], pal[8], pal[3], pal[6], "#c3cfe7"],
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => v == null ? "" : (pct ? Number(v).toFixed(1) + "%" : fmtM(v) + " מיליון דולר") },
+        legend: { top: 0 },
+        grid: { left: 16, right: 24, top: narrow ? 120 : 64, bottom: pct ? 8 : 36, containLabel: true },
+        xAxis: pct ? { type: "value", min: 0, max: 100, splitNumber: 4, axisLabel: { formatter: "{value}%" } } : bnAxis,
+        yAxis: { type: "category", data: d.dirs, inverse: true, axisLabel: { width: 100, overflow: "break" } },
+        series: d.names.map((n, k) => ({ type: "bar", stack: "a", name: n, data: d.series[k] }))
+      }));
+    }
+    function cross(id, d) {
+      mount(id, (narrow) => ({
+        color: [pal[0], pal[2], pal[1], "#c3cfe7"],
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => v == null ? "לא פורסם" : fmtM(v) + " מיליון דולר" },
+        legend: { top: 0 },
+        grid: { left: 16, right: 24, top: narrow ? 64 : 40, bottom: 36, containLabel: true },
+        xAxis: bnAxis,
+        yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 110, overflow: "truncate" } },
+        series: d.labels.map((n, k) => ({ type: "bar", stack: "a", name: n, data: d.series[k] }))
+      }));
+    }
+    const C = {{ model.charts | tojson }};
+    if (C.hist) {
+      yearBars("chart-hist", C.hist, "in_pos", "out_pos");
+      yearBars("chart-flows", C.hist, "in_flow", "out_flow");
+    }
+    ["in_pos_industry", "in_pos_country", "out_pos_industry", "out_pos_country",
+     "in_flow_industry", "out_flow_industry", "in_flow_country", "out_flow_country"].forEach((k) => {
+      if (C[k]) rank("chart-" + k, C[k]);
+    });
+    if (C.cont) stack100("chart-cont", C.cont, true);
+    if (C.tech) stack100("chart-tech", C.tech, false);
+    if (C.cross_in) cross("chart-cross_in", C.cross_in);
+    if (C.cross_out) cross("chart-cross_out", C.cross_out);
+  })();
+</script>

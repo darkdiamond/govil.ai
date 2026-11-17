@@ -1,0 +1,337 @@
+{% import "gov.j2" as gov %}
+{%- macro callout(key) -%}
+{%- if model.callouts[key] is defined %}
+  <p class="m-0 mb-3 text-sm font-semibold text-ink-deep">{{ model.callouts[key] }}</p>
+{%- endif %}
+{%- endmacro %}
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+{{ gov.lede(model.labels.lede) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("external-link", "ההודעה האחרונה של הלמ\"ס") }}
+  <p class="m-0 text-sm text-subtle mb-2">{{ model.release.title }} · פורסמה {{ model.release.date }}</p>
+  <p class="m-0 text-sm flex flex-wrap gap-4">
+    <a href="{{ model.release.url }}" target="_blank" rel="noopener">להודעה המלאה באתר הלמ"ס</a>
+{%- if model.release.pdf %}
+    <a href="{{ model.release.pdf }}" target="_blank" rel="noopener">לדוח המלא (PDF)</a>
+{%- endif %}
+  </p>
+</section>
+
+<div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
+{%- for key in ["total", "change", "non", "women", "births", "age"] %}
+{%- if model.kpis[key] is defined %}
+  {{ gov.kpi(model.kpis[key], model.labels[key ~ "_kpi"]) }}
+{%- endif %}
+{%- endfor %}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "כמה עסקים של עצמאים יש בישראל") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.trend_note }}</p>
+  {{ callout("trend") }}{{ callout("emp") }}
+  {{ gov.chart("chart-trend", model.labels.trend_aria, "h-72 md:h-80") }}
+  {{ gov.table("עסקים של עצמאים לפי שנה", ["שנה", "עסקים פעילים", "מעסיקים שכירים", "לא מעסיקים", "בבעלות נשים", "עסקים חדשים", "גיל ממוצע"], model.tables.trend, ltr=(1, 2, 3, 4, 5, 6)) }}
+</section>
+
+{%- if model.flags.births %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "עסקים חדשים של עצמאים (לידות עסקים)") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.births_note }}</p>
+  {{ callout("births") }}
+  {{ gov.chart("chart-births", model.labels.births_aria, "h-64 md:h-80") }}
+  {{ gov.table("לידות עסקים של עצמאים לפי שנה", ["שנה", "עסקים חדשים", "מתוך העסקים הפעילים"], model.tables.births, ltr=(1, 2)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.industry %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "עסקים של עצמאים לפי ענף כלכלי") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.industry_note }}</p>
+  {{ callout("industry") }}{{ callout("employers") }}
+  {{ gov.chart("chart-industry", model.labels.industry_aria, "h-[560px]") }}
+  {{ gov.table("עסקים של עצמאים לפי ענף", ["ענף", "עסקים", "מכלל העסקים", "מעסיקים", "לא מעסיקים"], model.tables.industry, ltr=(1, 2, 3, 4)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.growth %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "אילו ענפים גדלו") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.growth_note }}</p>
+  {{ callout("growth") }}
+  {{ gov.chart("chart-growth", model.labels.growth_aria, "h-[520px]") }}
+  {{ gov.table("שינוי במספר העסקים לפי ענף", model.labels.growth_cols, model.tables.growth, ltr=(1, 2, 3)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.women %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "עסקים בבעלות נשים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.women_note }}</p>
+  {{ callout("women") }}{{ callout("women_emp") }}
+  {{ gov.chart("chart-women", model.labels.women_aria, "h-[560px]") }}
+  {{ gov.table("עסקים של עצמאים לפי מין בעל העסק וענף", ["ענף", "בבעלות נשים", "בבעלות גברים"], model.tables.women, ltr=(1, 2)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.size %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "גודל העסק: עצמאים מול כלל העסקים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.size_note }}</p>
+  {{ callout("size") }}
+  {{ gov.chart("chart-size", model.labels.size_aria, "h-72 md:h-80") }}
+  {{ gov.table("עסקים לפי מספר משרות השכיר", ["משרות שכיר", "עסקים של עצמאים", "מהעסקים של עצמאים", "מכלל העסקים"], model.tables.size, ltr=(0, 1, 2, 3)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.pop %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "בעלי העסקים לפי קבוצת אוכלוסייה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.pop_note }}</p>
+  {{ callout("pop") }}
+  {{ gov.chart("chart-pop", model.labels.pop_aria, "h-[540px]") }}
+  {{ gov.table("עסקים של עצמאים לפי קבוצת אוכלוסייה וענף (אחוזים)", ["ענף", "יהודים", "ערבים", "אחרים"], model.tables["pop"], ltr=(1, 2, 3)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.age %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "גיל בעלי העסקים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.age_note }}</p>
+  {{ callout("age") }}
+  {{ gov.chart("chart-age", model.labels.age_aria, "h-72 md:h-80") }}
+  {{ gov.table("עסקים של עצמאים לפי גיל בעל העסק (אחוזים)", ["גיל", "כל העסקים", "מעסיקים", "לא מעסיקים"], model.tables.age, ltr=(0, 1, 2, 3)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.age_ind %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "גיל ממוצע של בעל העסק לפי ענף") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.age_ind_note }}</p>
+  {{ callout("age_ind") }}
+  {{ gov.chart("chart-age_ind", model.labels.age_ind_aria, "h-[520px]") }}
+  {{ gov.table("גיל ממוצע של בעל העסק לפי ענף", ["ענף", "גיל ממוצע"], model.tables.age_ind, ltr=(1,)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.births_cmp %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "מי פותח עסק חדש") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.births_cmp_note }}</p>
+  {{ callout("births_cmp") }}
+  {{ gov.chart("chart-births_cmp", model.labels.births_cmp_aria, "h-[620px]") }}
+  {{ gov.table("עסקים פעילים ולידות עסקים לפי מאפייני בעל העסק (אחוזים)", ["קבוצה", "מהעסקים הפעילים", "מהעסקים החדשים"], model.tables.births_cmp, ltr=(1, 2)) }}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("tag", "על הנתונים") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm text-subtle marker:text-brand">
+    <li>הנתונים מתוך ההודעה השנתית לתקשורת של הלשכה המרכזית לסטטיסטיקה על הדמוגרפיה של עסקים של עצמאים ומאפייני בעלי העסקים.</li>
+    <li>"לידת עסק" היא עסק שהחל לפעול באותה שנה. "מעסיקים" הם עסקים שמעסיקים לפחות משרת שכיר אחת.</li>
+    <li>כל נקודה בסדרה השנתית לקוחה מההודעה של אותה שנה, ולכן נתוני שנים קודמות אינם כוללים עדכונים מאוחרים. הסדרה מתחילה בהודעה הראשונה שבחלון של כשלוש שנים אחורה.</li>
+  </ul>
+</section>
+
+<script>
+  (function () {
+    const d = {{ model.charts.trend | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-trend"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[2]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL") + " עסקים" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", axisLabel: { formatter: (v) => Number(v).toLocaleString("he-IL") } },
+      series: [
+        { type: "bar", stack: "a", name: "מעסיקים שכירים", data: d.emp },
+        { type: "bar", stack: "a", name: "לא מעסיקים", data: d.non }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- if model.flags.births %}
+  (function () {
+    const d = {{ model.charts.births | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-births"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[1]],
+      tooltip: { trigger: "axis" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: [
+        { type: "value", axisLabel: { formatter: (v) => Number(v).toLocaleString("he-IL") } },
+        { type: "value", axisLabel: { formatter: "{value}%" }, splitLine: { show: false } }
+      ],
+      series: [
+        { type: "bar", name: "עסקים חדשים", data: d.births, tooltip: { valueFormatter: (v) => Number(v).toLocaleString("he-IL") } },
+        { type: "line", name: "מתוך העסקים הפעילים", yAxisIndex: 1, data: d.rate, tooltip: { valueFormatter: (v) => Number(v).toFixed(1) + "%" } }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.industry %}
+  (function () {
+    const d = {{ model.charts.industry | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-industry"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[2]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL") + " עסקים" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 32, bottom: 8, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3, axisLabel: { formatter: (v) => v >= 1000 ? (v / 1000).toLocaleString("he-IL") + " אלף" : String(v) } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 100, overflow: "break" } },
+      series: [
+        { type: "bar", stack: "a", name: "מעסיקים שכירים", data: d.emp },
+        { type: "bar", stack: "a", name: "לא מעסיקים", data: d.non }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.growth %}
+  (function () {
+    const d = {{ model.charts.growth | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-growth"));
+    chart.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => (v > 0 ? "+" : "") + Number(v).toFixed(1) + "%" },
+      grid: { left: 16, right: 56, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: "value", axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 100, overflow: "break" } },
+      series: [{
+        type: "bar",
+        data: d.values.map((v) => ({ value: v, itemStyle: { color: v < 0 ? "#dc3545" : pal[0] } })),
+        label: { show: true, position: "right", formatter: (p) => (p.value > 0 ? "+" : "") + Number(p.value).toFixed(1) + "%" }
+      }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.women %}
+  (function () {
+    const d = {{ model.charts.women | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-women"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => Number(v).toFixed(1) + "%" },
+      grid: { left: 16, right: 56, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 100, overflow: "break" } },
+      series: [{
+        type: "bar", name: "בבעלות נשים", data: d.values,
+        label: { show: true, position: "right", formatter: (p) => Number(p.value).toFixed(1) + "%" },
+        markLine: { silent: true, symbol: "none", data: [{ xAxis: d.overall }], label: { show: false }, lineStyle: { color: pal[1], type: "dashed" } }
+      }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.size %}
+  (function () {
+    const d = {{ model.charts.size | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-size"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[6]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => Number(v).toFixed(1) + "%" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.names, axisLabel: { interval: 0 } },
+      yAxis: { type: "value", axisLabel: { formatter: "{value}%" } },
+      series: [
+        { type: "bar", name: "עסקים של עצמאים", data: d.self },
+        { type: "bar", name: "כלל העסקים", data: d.all }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.pop %}
+  (function () {
+    const d = {{ model.charts["pop"] | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-pop"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[6], pal[0], pal[1]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => v == null ? "לא פורסם" : Number(v).toFixed(1) + "%" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 32, bottom: 8, containLabel: true },
+      xAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 100, overflow: "break" } },
+      series: d.groups.map((g, k) => ({ type: "bar", stack: "a", name: g, data: d.series[k] }))
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.age %}
+  (function () {
+    const d = {{ model.charts.age | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-age"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[2]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => v == null ? "" : Number(v).toFixed(1) + "%" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.groups, axisLabel: { interval: 0, rotate: 45 } },
+      yAxis: { type: "value", axisLabel: { formatter: "{value}%" } },
+      series: [
+        { type: "bar", name: "מעסיקים שכירים", data: d.emp },
+        { type: "bar", name: "לא מעסיקים", data: d.non }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.age_ind %}
+  (function () {
+    const d = {{ model.charts.age_ind | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-age_ind"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => Number(v).toFixed(1) },
+      grid: { left: 16, right: 48, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: "value", min: 30 },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 100, overflow: "break" } },
+      series: [{
+        type: "bar", name: "גיל ממוצע", data: d.values,
+        label: { show: true, position: "right", formatter: (p) => Number(p.value).toFixed(1) },
+        markLine: d.overall == null ? undefined : { silent: true, symbol: "none", data: [{ xAxis: d.overall }], label: { show: false }, lineStyle: { color: pal[1], type: "dashed" } }
+      }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.births_cmp %}
+  (function () {
+    const d = {{ model.charts.births_cmp | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-births_cmp"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[6], pal[0]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => v == null ? "" : Number(v).toFixed(1) + "%" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 48, top: 32, bottom: 8, containLabel: true },
+      xAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 90, overflow: "break" } },
+      series: [
+        { type: "bar", name: "מהעסקים הפעילים", data: d.active },
+        { type: "bar", name: "מהעסקים החדשים", data: d.births }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+</script>

@@ -1,0 +1,376 @@
+{% import "gov.j2" as gov %}
+{%- macro callout(key) -%}
+{%- for t in model.callouts[key] | default([]) %}
+  <p class="m-0 mb-3 text-sm font-semibold text-ink-deep">{{ t }}</p>
+{%- endfor %}
+{%- endmacro %}
+{%- macro tbl(caption, cols, rows) -%}
+<details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ caption }}</caption>
+        <thead><tr>{% for c in cols %}<th scope="col">{{ c }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in rows %}
+          <tr>{% for v in r %}{% if loop.first %}<th scope="row">{{ v }}</th>{% else %}<td dir="ltr">{{ v }}</td>{% endif %}{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+      </div>
+    </details>
+{%- endmacro %}
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+{{ gov.lede(model.labels.lede) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("external-link", "ההודעה האחרונה של הלמ\"ס") }}
+  <p class="m-0 text-sm text-subtle mb-2">{{ model.release.title }} · פורסמה {{ model.release.date }}</p>
+{%- if model.release.headline %}
+  <p class="m-0 mb-3 font-semibold text-ink-deep">{{ model.release.headline }}</p>
+{%- endif %}
+  <p class="m-0 text-sm flex flex-wrap gap-4">
+    <a href="{{ model.release.url }}" target="_blank" rel="noopener">להודעה המלאה באתר הלמ"ס</a>
+{%- if model.release.pdf %}
+    <a href="{{ model.release.pdf }}" target="_blank" rel="noopener">לדוח המלא (PDF)</a>
+{%- endif %}
+  </p>
+</section>
+
+<div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
+{%- if model.kpis.indicators is defined %}
+  {{ gov.kpi(model.kpis.indicators, "מדדי קיימות שנבחנו") }}
+{%- endif %}
+{%- if model.kpis.improved is defined %}
+  {{ gov.kpi(model.kpis.improved, "מהמדדים במגמת שיפור") }}
+{%- endif %}
+{%- if model.kpis.worsened is defined %}
+  {{ gov.kpi(model.kpis.worsened, "מהמדדים במגמת הרעה") }}
+{%- endif %}
+{%- for key in ["renew", "bio", "trust", "gov"] %}
+{%- if model.kpis[key] is defined %}
+  {{ gov.kpi(model.kpis[key], model.labels[key ~ "_kpi"]) }}
+{%- endif %}
+{%- endfor %}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+{%- if model.flags.overview %}
+<section class="card p-5 mb-6">
+  {{ gov.head("chart-bar", "מגמות השינוי לפי סוג ההון") }}
+  <p class="m-0 text-sm text-subtle mb-3">בכל סוג הון: כמה מהמדדים השתפרו לאורך השנים, כמה הורעו ובכמה לא חל שינוי מובהק (אחוז מהמדדים בכל סוג).</p>
+  {{ callout("overview") }}
+  {{ gov.chart("chart-overview", model.labels.overview_aria, "h-72 md:h-80") }}
+  {{ tbl("מגמות השינוי במדדי ההון לפי סוג ההון", ["סוג ההון", "שיפור", "הרעה", "ללא שינוי מובהק", "סך הכל"], model.tables.overview) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.renew %}
+<section class="card p-5 mb-6">
+  {{ gov.head("trending-up", "הון טבעי: אנרגיה מתחדשת") }}
+  <p class="m-0 text-sm text-subtle mb-3">אחוז האנרגיה ממקורות מתחדשים (שמש, רוח, מים וביוגז): מתוך כלל אספקת האנרגיה הראשונית ומתוך ייצור החשמל.</p>
+  {{ callout("renew") }}
+  {{ gov.chart("chart-renew", model.labels.renew_aria, "h-72 md:h-80") }}
+  {{ tbl("שיעור האנרגיה המתחדשת לפי שנה (אחוזים)", model.labels.renew_cols, model.tables.renew) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.air %}
+<section class="card p-5 mb-6">
+  {{ gov.head("triangle-alert", "הון טבעי: חשיפה למזהמי אוויר") }}
+  <p class="m-0 text-sm text-subtle mb-3">החשיפה הממוצעת של האוכלוסייה לכל מזהם ביחס לערך היעד השנתי שלו. ערך היעד הוא הקו המקווקו: מעליו החשיפה גבוהה מהיעד, ומגמת ירידה היא שיפור.</p>
+  {{ callout("air") }}
+  {{ gov.chart("chart-air", model.labels.air_aria, "h-72 md:h-80") }}
+  {{ tbl("חשיפה למזהמי אוויר ביחס לערך היעד (100 = ערך היעד)", model.labels.air_cols, model.tables.air) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.energy %}
+<section class="card p-5 mb-6">
+  {{ gov.head("trending-up", "הון טבעי: אספקת אנרגיה ראשונית לנפש") }}
+  <p class="m-0 text-sm text-subtle mb-3">סך האנרגיה שעמדה לרשות המשק (הפקה מקומית ויבוא, בניכוי יצוא ותדלוק בין-לאומי), בחישוב לנפש.</p>
+  {{ callout("energy") }}
+  {{ gov.chart("chart-energy", model.labels.energy_aria, "h-64 md:h-80") }}
+  {{ tbl("אספקת אנרגיה ראשונית לנפש לפי שנה", ["שנה", "אספקת אנרגיה ראשונית לנפש"], model.tables.energy) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.bio %}
+<section class="card p-5 mb-6">
+  {{ gov.head("chart-bar", "הון טבעי: מדד המגוון הביולוגי") }}
+  <p class="m-0 text-sm text-subtle mb-3">המדד המשוקלל ורכיביו בכל שנת מדידה, ביחס לרמת הייחוס (הקו המקווקו). מתחת לקו: מצב פחות טוב מרמת הייחוס.</p>
+  {{ callout("bio") }}
+  {{ gov.chart("chart-bio", model.labels.bio_aria, "h-72 md:h-80") }}
+  {{ tbl("מדד המגוון הביולוגי ורכיביו לפי שנת מדידה", model.labels.bio_cols, model.tables.bio) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.bio_units %}
+<section class="card p-5 mb-6">
+  {{ gov.head("map-pin", "המגוון הביולוגי לפי יחידת ניטור") }}
+  <p class="m-0 text-sm text-subtle mb-3">מדד המגוון הביולוגי בכל יחידת ניטור (סוג בית גידול). הקו המקווקו הוא המדד הארצי.</p>
+  {{ callout("bio_units") }}
+  {{ gov.chart("chart-bio-units", model.labels.bio_units_aria, "h-80 md:h-96") }}
+  {{ tbl("רכיבי מדד המגוון הביולוגי לפי יחידת ניטור", model.labels.bio_units_cols, model.tables.bio_units) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.health %}
+<section class="card p-5 mb-6">
+  {{ gov.head("trending-up", "הון אנושי: בריאות") }}
+  <p class="m-0 text-sm text-subtle mb-3">מיטות אשפוז, ציוד רפואי ועובדים במקצועות הבריאות, כמדד שערכו 100 בשנת הבסיס ({{ model.labels.health_base }}). לחיצה על שם בסדרה מסתירה אותה.</p>
+  {{ callout("health") }}
+  {{ gov.chart("chart-health", model.labels.health_aria, "h-[520px] md:h-[420px]") }}
+  {{ tbl("מדדי בריאות לפי שנה (שנת בסיס = 100)", model.labels.health_cols, model.tables.health) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.edu %}
+<section class="card p-5 mb-6">
+  {{ gov.head("trending-up", "הון אנושי: השכלה וכישורים") }}
+  <p class="m-0 text-sm text-subtle mb-3">שיעורי בעלי תעודות ותארים ותקצוב ההשכלה, כמדד שערכו 100 בשנת הבסיס ({{ model.labels.edu_base }}).</p>
+  {{ callout("edu") }}
+  {{ gov.chart("chart-edu", model.labels.edu_aria, "h-[520px] md:h-[420px]") }}
+  {{ tbl("מדדי השכלה וכישורים לפי שנה (שנת בסיס = 100)", model.labels.edu_cols, model.tables.edu) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.jobs %}
+<section class="card p-5 mb-6">
+  {{ gov.head("trending-up", "הון אנושי: אבטלה") }}
+  <p class="m-0 text-sm text-subtle mb-3">אחוז הבלתי מועסקים מכוח העבודה האזרחי (בני 15 ומעלה), לפי מין. בטבלה גם שיעור האבטלה הממושכת: אחוז המובטלים לאורך זמן מתוך כלל הבלתי מועסקים.</p>
+  {{ callout("jobs") }}
+  {{ gov.chart("chart-jobs", model.labels.jobs_aria, "h-72 md:h-80") }}
+  {{ tbl("שיעור הבלתי מועסקים והאבטלה הממושכת לפי שנה (אחוזים)", model.labels.jobs_cols, model.tables.jobs) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.migration %}
+<section class="card p-5 mb-6">
+  {{ gov.head("chart-bar", "הון אנושי: מאזן הגירה") }}
+  <p class="m-0 text-sm text-subtle mb-3">מאזן ההגירה בכל שנה, באלפים. עמודה מתחת לאפס היא מאזן שלילי.</p>
+  {{ callout("migration") }}
+  {{ gov.chart("chart-migration", model.labels.migration_aria, "h-64 md:h-80") }}
+  {{ tbl("מאזן ההגירה לפי שנה (אלפים)", ["שנה", "מאזן הגירה (אלפים)"], model.tables.migration) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.trust %}
+<section class="card p-5 mb-6">
+  {{ gov.head("trending-up", "הון חברתי: אמון בזולת") }}
+  <p class="m-0 text-sm text-subtle mb-3">אחוז בני 20 ומעלה שאומרים שאפשר לתת אמון ברוב האנשים, לפי מין וקבוצת אוכלוסייה.</p>
+  {{ callout("trust") }}
+  {{ gov.chart("chart-trust", model.labels.trust_aria, "h-72 md:h-80") }}
+  {{ tbl("שיעור הנותנים אמון בזולת לפי שנה (אחוזים)", model.labels.trust_cols, model.tables.trust) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.inst %}
+<section class="card p-5 mb-6">
+  {{ gov.head("building-2", "הון חברתי: אמון במוסדות השלטון") }}
+  <p class="m-0 text-sm text-subtle mb-3">אחוז בני 20 ומעלה שנותנים אמון בכל מוסד במידה רבה או במידה מסוימת, לפי הסקר החברתי.</p>
+  {{ callout("inst") }}
+  {{ gov.chart("chart-inst", model.labels.inst_aria, "h-72 md:h-80") }}
+  {{ tbl("שיעור הנותנים אמון במוסדות השלטון לפי שנה (אחוזים)", model.labels.inst_cols, model.tables.inst) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("chart-bar", "אמון במוסדות לפי מין וקבוצת אוכלוסייה") }}
+  <p class="m-0 text-sm text-subtle mb-3">הנתון האחרון ({{ model.labels.inst_groups_year }}) לכל מוסד: גברים ונשים, יהודים וערבים.</p>
+  {{ gov.chart("chart-inst-groups", model.labels.inst_groups_aria, "h-72 md:h-80") }}
+  {{ tbl("אמון במוסדות השלטון לפי קבוצה", model.labels.inst_groups_cols, model.tables.inst_groups) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.econ %}
+<section class="card p-5 mb-6">
+  {{ gov.head("trending-up", "הון כלכלי: הון פיזי, הון ידע והון פיננסי") }}
+  <p class="m-0 text-sm text-subtle mb-3">מלאי ההון, מלאי המו"פ, העושר הפיננסי של משקי הבית והחוב, כמדד שערכו 100 בשנת הבסיס ({{ model.labels.econ_base }}).</p>
+  {{ callout("econ") }}
+  {{ gov.chart("chart-econ", model.labels.econ_aria, "h-[520px] md:h-[420px]") }}
+  {{ tbl("מדדי הון כלכלי לפי שנה (שנת בסיס = 100)", model.labels.econ_cols, model.tables.econ) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.culture %}
+<section class="card p-5 mb-6">
+  {{ gov.head("trending-up", "הון תרבותי") }}
+  <p class="m-0 text-sm text-subtle mb-3">ספרים, סרטים, כרטיסי קולנוע, מועסקים בענף האמנות והבידור, וההוצאה הלאומית לתרבות, כמדד שערכו 100 בשנת הבסיס ({{ model.labels.culture_base }}).</p>
+  {{ callout("culture") }}
+  {{ gov.chart("chart-culture", model.labels.culture_aria, "h-[520px] md:h-[420px]") }}
+  {{ tbl("מדדי הון תרבותי לפי שנה (שנת בסיס = 100)", model.labels.culture_cols, model.tables.culture) }}
+{%- if model.tables.culture_actual is defined %}
+  {{ tbl("הנתון האחרון של כל מדד תרבות", ["מדד", "שנה", "ערך"], model.tables.culture_actual) }}
+{%- endif %}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("tag", "על הנתונים") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm text-subtle marker:text-brand">
+    <li>הנתונים מתוך ההודעה השנתית לתקשורת של הלשכה המרכזית לסטטיסטיקה על מדדי הקיימות (הון) בישראל. המדדים בוחנים את מצב ההון הכלכלי, הטבעי, האנושי, החברתי והתרבותי לאורך זמן.</li>
+    <li>חלק מהסדרות מוצגות כמדד: הערך בשנת הבסיס הוא 100 וערך של 150 פירושו גידול של מחצית לעומת שנת הבסיס. לכל סדרה שנת בסיס משלה.</li>
+    <li>התרשימים בהודעה משתנים משנה לשנה. העמוד מציג את התרשימים שמופיעים בהודעה האחרונה, ונתוני השנים הקודמות בה עשויים להיות מעודכנים לעומת הודעות קודמות.</li>
+  </ul>
+</section>
+
+<script>
+  (function () {
+    const pal = window.GOVIL_PALETTE;
+    const lineColors = [pal[0], pal[1], pal[2], "#198754", "#ffc107", pal[5], "#dc3545", pal[7]];
+    window.__susLines = function (id, d, opts) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const o = opts || {};
+      const chart = echarts.init(el);
+      const narrow = el.clientWidth < 640;
+      const longest = Math.max(...d.names.map((n) => n.length));
+      const bottom = narrow && longest > 20 ? 36 + d.names.length * 22 : (o.bottom || 64);
+      const series = d.names.map((n, k) => ({
+        type: "line", name: n, data: d.data[k], connectNulls: true,
+        showSymbol: d.x.length < 16, symbolSize: 5, lineStyle: { width: k === 0 && o.boldFirst ? 3 : 2 }
+      }));
+      if (o.ref != null && series.length) {
+        series[0].markLine = { silent: true, symbol: "none", lineStyle: { type: "dashed", color: "#6c757d" },
+          label: { formatter: o.refLabel || "", position: "insideStartTop" }, data: [{ yAxis: o.ref }] };
+      }
+      chart.setOption(window.GovEcharts.option({
+        color: o.colors || lineColors,
+        tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL", { maximumFractionDigits: o.digits == null ? 1 : o.digits }) + (o.unit || "") },
+        legend: { bottom: 0, type: "plain", textStyle: { width: Math.max(120, el.clientWidth - 64), overflow: "truncate" } },
+        grid: { left: 12, right: 16, top: 24, bottom: bottom, containLabel: true },
+        xAxis: { type: "category", data: d.x, boundaryGap: false },
+        yAxis: { type: "value", scale: !!o.scale, axisLabel: { formatter: (v) => v + (o.unit || "") } },
+        series: series
+      }));
+      window.addEventListener("resize", () => chart.resize());
+    };
+  })();
+{%- if model.flags.overview %}
+  (function () {
+    const d = {{ model.charts.overview | tojson }};
+    const pct = (arr) => arr.map((v, i) => d.n[i] ? Math.round(v / d.n[i] * 1000) / 10 : 0);
+    const raw = { "שיפור": d.imp, "הרעה": d.worse, "ללא שינוי מובהק": d.flat };
+    const chart = echarts.init(document.getElementById("chart-overview"));
+    chart.setOption(window.GovEcharts.option({
+      color: ["#198754", "#dc3545", "#c3cfe7"],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+        formatter: (ps) => echarts.format.encodeHTML(ps[0].name) + "<br>" + ps.map((p) => p.marker + echarts.format.encodeHTML(p.seriesName) + ": " + raw[p.seriesName][p.dataIndex] + " מדדים (" + p.value + "%)").join("<br>") },
+      legend: { top: 0 },
+      grid: { left: 12, right: 16, top: 36, bottom: 8, containLabel: true },
+      xAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", data: d.names, inverse: true },
+      series: [
+        { type: "bar", stack: "a", name: "שיפור", data: pct(d.imp), label: { show: true, formatter: (p) => p.value >= 12 ? p.value.toFixed(0) + "%" : "", color: "#fff" } },
+        { type: "bar", stack: "a", name: "הרעה", data: pct(d.worse), label: { show: true, formatter: (p) => p.value >= 12 ? p.value.toFixed(0) + "%" : "", color: "#fff" } },
+        { type: "bar", stack: "a", name: "ללא שינוי מובהק", data: pct(d.flat), label: { show: true, formatter: (p) => p.value >= 12 ? p.value.toFixed(0) + "%" : "", color: "#0c3058" } }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.renew %}
+  window.__susLines("chart-renew", {{ model.charts.renew | tojson }}, { unit: "%", bottom: 56 });
+{%- endif %}
+{%- if model.flags.air %}
+  window.__susLines("chart-air", {{ model.charts.air | tojson }}, { ref: 100, refLabel: "ערך היעד", digits: 0, bottom: 40 });
+{%- endif %}
+{%- if model.flags.energy %}
+  window.__susLines("chart-energy", {{ model.charts.energy | tojson }}, { scale: true, digits: 2, bottom: 40 });
+{%- endif %}
+{%- if model.flags.health %}
+  window.__susLines("chart-health", {{ model.charts.health | tojson }}, { ref: 100, bottom: 110 });
+{%- endif %}
+{%- if model.flags.edu %}
+  window.__susLines("chart-edu", {{ model.charts.edu | tojson }}, { ref: 100, scale: true, bottom: 110 });
+{%- endif %}
+{%- if model.flags.jobs %}
+  window.__susLines("chart-jobs", {{ model.charts.jobs | tojson }}, { unit: "%", bottom: 40, boldFirst: true });
+{%- endif %}
+{%- if model.flags.trust %}
+  window.__susLines("chart-trust", {{ model.charts.trust | tojson }}, { unit: "%", bottom: 56, boldFirst: true });
+{%- endif %}
+{%- if model.flags.inst %}
+  window.__susLines("chart-inst", {{ model.charts.inst | tojson }}, { unit: "%", bottom: 40 });
+{%- endif %}
+{%- if model.flags.econ %}
+  window.__susLines("chart-econ", {{ model.charts.econ | tojson }}, { ref: 100, bottom: 110 });
+{%- endif %}
+{%- if model.flags.culture %}
+  window.__susLines("chart-culture", {{ model.charts.culture | tojson }}, { ref: 100, bottom: 110 });
+{%- endif %}
+{%- if model.flags.migration %}
+  (function () {
+    const d = {{ model.charts.migration | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-migration"));
+    chart.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => v == null ? "" : (v < 0 ? "\u200e\u2212" : "") + Math.abs(Number(v)).toLocaleString("he-IL", { maximumFractionDigits: 1 }) + " אלף" },
+      grid: { left: 12, right: 16, top: 16, bottom: 8, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", axisLabel: { formatter: (v) => v < 0 ? "\u200e\u2212" + (-v) : String(v) } },
+      series: [{ type: "bar", name: "מאזן הגירה", data: d.y.map((v) => ({ value: v, itemStyle: { color: v < 0 ? "#dc3545" : pal[0] } })) }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.bio %}
+  (function () {
+    const d = {{ model.charts.bio | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const n = d.years.length;
+    const chart = echarts.init(document.getElementById("chart-bio"));
+    chart.setOption(window.GovEcharts.option({
+      color: d.years.map((y, k) => k === n - 1 ? pal[0] : (k === n - 2 ? pal[2] : pal[6])),
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => v == null ? "" : Number(v).toFixed(3) },
+      legend: { top: 0 },
+      grid: { left: 12, right: 16, top: 36, bottom: 8, containLabel: true },
+      xAxis: { type: "category", data: d.names, axisLabel: { interval: 0, width: 80, overflow: "break" } },
+      yAxis: { type: "value", min: (v) => Math.floor((v.min - 0.02) * 50) / 50, max: (v) => Math.ceil((Math.max(v.max, 1) + 0.01) * 50) / 50 },
+      series: d.years.map((y, k) => ({ type: "bar", name: String(y), data: d.data[k],
+        markLine: k === 0 ? { silent: true, symbol: "none", lineStyle: { type: "dashed", color: "#6c757d" }, label: { formatter: "רמת הייחוס", position: "insideStartTop" }, data: [{ yAxis: 1 }] } : undefined }))
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.bio_units %}
+  (function () {
+    const d = {{ model.charts.bio_units | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-bio-units"));
+    const s = { type: "bar", name: "מדד המגוון הביולוגי", data: d.values,
+      label: { show: true, position: "right", formatter: (p) => p.value == null ? "" : Number(p.value).toFixed(3) } };
+    if (d.national != null) {
+      s.markLine = { silent: true, symbol: "none", lineStyle: { type: "dashed", color: "#6c757d" }, label: { formatter: "ארצי" }, data: [{ xAxis: d.national }] };
+    }
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => v == null ? "" : Number(v).toFixed(3) },
+      grid: { left: 12, right: 56, top: 24, bottom: 8, containLabel: true },
+      xAxis: { type: "value", min: (v) => Math.floor((v.min - 0.01) * 100) / 100, max: 1 },
+      yAxis: { type: "category", data: d.names, axisLabel: { width: 100, overflow: "break" } },
+      series: [s]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.inst %}
+  (function () {
+    const d = {{ model.charts.inst_groups | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-inst-groups"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[1], pal[0], pal[2], pal[6], pal[5]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => v == null ? "" : Number(v).toFixed(1) + "%" },
+      legend: { top: 0 },
+      grid: { left: 12, right: 16, top: 40, bottom: 8, containLabel: true },
+      xAxis: { type: "category", data: d.names, axisLabel: { interval: 0, width: 90, overflow: "break" } },
+      yAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+      series: d.groups.map((g, k) => ({ type: "bar", name: g, data: d.data.map((r) => r[k]) }))
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+</script>
