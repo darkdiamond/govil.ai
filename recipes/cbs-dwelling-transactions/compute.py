@@ -465,7 +465,7 @@ def compute(frames):
         df = frames.get(name)
         if df is not None and not df.empty:
             t3[key] = _t3(cbs.grid(df, name), name)
-    dsales, d_tot, d_t = [], None, None
+    dsales, d_tot, d_t, d_base = [], None, None, None
     if len(t3) == 2:
         common = sorted(set(t3["new"][1]) & set(t3["second"][1]))
         d_t = common[-1] if common else None
@@ -492,13 +492,13 @@ def compute(frames):
             d_tot = {"new": tn, "second": ts, "now": tn + ts, "then": tn0 + ts0,
                      "chg": _chg(tn + ts, tn0 + ts0)}
     if len(dsales) >= 3:
-        base = d_tot["now"] if d_tot else sum(r["now"] for r in dsales)
+        d_base = d_tot["now"] if d_tot else sum(r["now"] for r in dsales)
         charts["dsales"] = {"names": [_dl(r["d"]) for r in dsales],
                             "new": [round(r["new"]) for r in dsales],
                             "second": [round(r["second"]) for r in dsales]}
         tables["dsales"] = [[_dl(r["d"]), _n(r["new"]), _n(r["second"]), _n(r["now"]),
                              fmt.signed_pct(r["chg"]) if r["chg"] is not None else "",
-                             fmt.pct(r["now"] / base) if base else ""] for r in dsales]
+                             fmt.pct(r["now"] / d_base) if d_base else ""] for r in dsales]
         if d_tot:
             tables["dsales"].append(["סך הכל (כולל לא ידוע)", _n(d_tot["new"]), _n(d_tot["second"]),
                                      _n(d_tot["now"]),
@@ -570,7 +570,6 @@ def compute(frames):
                       f"וב{c2} ({_n(v2)}).")
     if dsales:
         top = dsales[0]
-        base = d_tot["now"] if d_tot else sum(r["now"] for r in dsales)
         moved = [r for r in dsales if r["chg"] is not None]
         up = max(moved, key=lambda r: (r["chg"], r["d"]), default=None)
         down = min(moved, key=lambda r: (r["chg"], r["d"]), default=None)
@@ -581,7 +580,8 @@ def compute(frames):
         if down and down["chg"] < 0:
             moves.append(f"ירדו הכי הרבה ב{_dl(down['d'])} ({fmt.signed_pct(down['chg'])})")
         add("dsales", f"מתחילת {d_t[0]} ({span}) נמכרו הכי הרבה דירות ב{_dl(top['d'])}: "
-                      f"{_n(top['now'])} דירות, {fmt.pct(top['now'] / base)} מכלל המכירות"
+                      f"{_n(top['now'])} דירות"
+                      + (f", {fmt.pct(top['now'] / d_base)} מכלל המכירות" if d_base else "")
                       + (f". לעומת אותם חודשים ב-{d_t[0] - 1}, המכירות " + " ו".join(moves)
                          if moves else "") + ".")
 

@@ -201,7 +201,9 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
 - **`cbs-foreign-trade-by-country` still hand-rolls the "latest release" sort**
   (`RELEASE_DATE`, then `RELEASE_NO` as a string, so "99/2026" beats "100/2026"). Swap it for
   `cbs.latest_release`, as the other CBS recipes now do; it was left out of that PR because
-  another change was editing the recipe. (2026-11-09)
+  another change was editing the recipe. `cbs-road-accidents` takes its latest edition from
+  `cbs.latest_release` but still orders `rel` with that string sort for `_first_reports` (the
+  `order` / "later" count, and which of two same-month editions wins). (2026-11-17)
 
 ## Shared recipe code (govlib, gov.j2, page libs)
 
