@@ -7,6 +7,8 @@ Inputs are CBS grid tables from the newest edition of the release:
        Monthly rows since January of the year before last.
   t2   new dwellings still for sale at month end (original / SA / trend) and
        months of supply, same months as t1.
+  t3a, t3b  new / second-hand dwellings sold per month by district (optional;
+       the section is left out unless both are there)
   t4..t8  the release's chart-data sheets. Their order moved between
        editions (2025: a by-district table sat in t4 and the charts started at
        t5; some editions have four charts, not five), so each sheet is
@@ -23,6 +25,8 @@ data rows (months, districts, cities) are found by pattern, so a missing one
 only shortens a series. Months in these sheets are arabic numerals (1-12),
 not the roman numerals govlib.cbs.periods reads, hence the local `_months`.
 """
+import re
+
 import pandas as pd
 from govlib import cbs, fmt
 
@@ -198,6 +202,44 @@ def _named(rows, header_pred, what):
     return out
 
 
+def _is_total(c):
+    return c.startswith(("סך הכל", "סה\"כ"))
+
+
+def _t3(rows, name):
+    """({district: {(y, m): sold}}, {(y, m): total incl. unknown}) from the
+    by-district sales table (t3a new, t3b second-hand). District names sit in
+    the header row left of "סך הכל", a long one wrapping into the next row
+    ("אזור יהודה" / "והשומרון2"); trailing digits are footnote marks."""
+    h = _row(rows, _is_total, what=f"{name} סך הכל")
+    hdr = rows[h]
+    tcol = _find(hdr, _is_total, what=f"{name} סך הכל")
+    nxt = rows[h + 1] if h + 1 < len(rows) else []
+    cols = {}
+    for j in range(tcol):
+        c, cont = cbs.cell(hdr, j), cbs.cell(nxt, j)
+        if not c:
+            continue
+        if cont and "א" <= cont[0] <= "ת":
+            c = f"{c} {cont}"
+        cols[_district_name(re.sub(r"\d+$", "", c))] = j
+    if len(cols) < 3:
+        raise ValueError(f"{name}: fewer than three district columns")
+    out, total = {d: {} for d in cols}, {}
+    for i, y, m in _months(rows, h + 1):
+        if m is None:
+            continue
+        r = rows[i]
+        for d, j in cols.items():
+            v = cbs.val(r, j)
+            if v is not None:
+                out[d][(y, m)] = v
+        v = cbs.val(r, tcol)
+        if v is not None:
+            total[(y, m)] = v
+    return out, total
+
+
 def _district_name(n):
     n = n.strip()
     n = n.removeprefix("מחוז ")
@@ -251,17 +293,16 @@ def _sum(recs, path):
 
 
 def compute(frames):
-    rel = frames["releases"]
-    rel = rel[rel["RELEASE_DATE"] != ""].sort_values(["RELEASE_DATE", "RELEASE_NO"], kind="stable")
-    if rel.empty:
-        raise ValueError("releases: no edition listed")
-    latest_rel = rel.iloc[-1]
+    latest_rel = cbs.latest_release(frames["releases"])
 
     t1 = _t1(cbs.grid(frames["t1"], "t1"))
     t2 = _t2(cbs.grid(frames["t2"], "t2"))
     found = {}
     for name in TABLES:
-        rows = cbs.grid(frames[name], name)
+        df = frames.get(name)
+        if df is None or df.empty:  # an optional chart sheet this edition lacks
+            continue
+        rows = cbs.grid(df, name)
         k = _kind(_title(rows))
         if k and k not in found:
             found[k] = rows
@@ -415,6 +456,57 @@ def compute(frames):
     charts["cities"] = {"names": [n for n, _ in cities], "values": [round(v) for _, v in cities]}
     tables["cities"] = [[n, _n(v)] for n, v in cities]
 
+    # ── sales by district (t3a new, t3b second-hand; optional tables) ────
+    # Year to date: January .. the tables' latest month, this year and the
+    # same months last year. A district enters only with every month of both
+    # periods in both tables, so no total is a short sum.
+    t3 = {}
+    for key, name in (("new", "t3a"), ("second", "t3b")):
+        df = frames.get(name)
+        if df is not None and not df.empty:
+            t3[key] = _t3(cbs.grid(df, name), name)
+    dsales, d_tot, d_t = [], None, None
+    if len(t3) == 2:
+        common = sorted(set(t3["new"][1]) & set(t3["second"][1]))
+        d_t = common[-1] if common else None
+    if d_t:
+        now_m = [(d_t[0], m) for m in range(1, d_t[1] + 1)]
+        then_m = [(d_t[0] - 1, m) for m in range(1, d_t[1] + 1)]
+
+        def period(series, ms):
+            return sum(series[t] for t in ms) if all(t in series for t in ms) else None
+
+        for d in sorted(set(t3["new"][0]) & set(t3["second"][0])):
+            vals = {(k, p): period(t3[k][0][d], ms) for k in ("new", "second")
+                    for p, ms in (("now", now_m), ("then", then_m))}
+            if any(v is None for v in vals.values()):
+                continue
+            now, then = vals[("new", "now")] + vals[("second", "now")], \
+                vals[("new", "then")] + vals[("second", "then")]
+            dsales.append({"d": d, "new": vals[("new", "now")], "second": vals[("second", "now")],
+                           "now": now, "then": then, "chg": _chg(now, then)})
+        dsales.sort(key=lambda r: (-r["now"], r["d"]))
+        tn, ts = period(t3["new"][1], now_m), period(t3["second"][1], now_m)
+        tn0, ts0 = period(t3["new"][1], then_m), period(t3["second"][1], then_m)
+        if None not in (tn, ts, tn0, ts0):
+            d_tot = {"new": tn, "second": ts, "now": tn + ts, "then": tn0 + ts0,
+                     "chg": _chg(tn + ts, tn0 + ts0)}
+    if len(dsales) >= 3:
+        base = d_tot["now"] if d_tot else sum(r["now"] for r in dsales)
+        charts["dsales"] = {"names": [_dl(r["d"]) for r in dsales],
+                            "new": [round(r["new"]) for r in dsales],
+                            "second": [round(r["second"]) for r in dsales]}
+        tables["dsales"] = [[_dl(r["d"]), _n(r["new"]), _n(r["second"]), _n(r["now"]),
+                             fmt.signed_pct(r["chg"]) if r["chg"] is not None else "",
+                             fmt.pct(r["now"] / base) if base else ""] for r in dsales]
+        if d_tot:
+            tables["dsales"].append(["סך הכל (כולל לא ידוע)", _n(d_tot["new"]), _n(d_tot["second"]),
+                                     _n(d_tot["now"]),
+                                     fmt.signed_pct(d_tot["chg"]) if d_tot["chg"] is not None else "",
+                                     ""])
+    else:
+        dsales = []
+
     # ── insights ─────────────────────────────────────────────────────────
     insights = []
 
@@ -476,6 +568,22 @@ def compute(frames):
         (c1, v1), (c2, v2) = cities[0], cities[1]
         add("cities", f"בין הערים הגדולות, הכי הרבה דירות חדשות למכירה יש ב{c1} ({_n(v1)}) "
                       f"וב{c2} ({_n(v2)}).")
+    if dsales:
+        top = dsales[0]
+        base = d_tot["now"] if d_tot else sum(r["now"] for r in dsales)
+        moved = [r for r in dsales if r["chg"] is not None]
+        up = max(moved, key=lambda r: (r["chg"], r["d"]), default=None)
+        down = min(moved, key=lambda r: (r["chg"], r["d"]), default=None)
+        span = f"ינואר עד {fmt.MONTHS_HE[d_t[1] - 1]}" if d_t[1] > 1 else "ינואר"
+        moves = []
+        if up and up["chg"] > 0:
+            moves.append(f"עלו הכי הרבה ב{_dl(up['d'])} ({fmt.signed_pct(up['chg'])})")
+        if down and down["chg"] < 0:
+            moves.append(f"ירדו הכי הרבה ב{_dl(down['d'])} ({fmt.signed_pct(down['chg'])})")
+        add("dsales", f"מתחילת {d_t[0]} ({span}) נמכרו הכי הרבה דירות ב{_dl(top['d'])}: "
+                      f"{_n(top['now'])} דירות, {fmt.pct(top['now'] / base)} מכלל המכירות"
+                      + (f". לעומת אותם חודשים ב-{d_t[0] - 1}, המכירות " + " ו".join(moves)
+                         if moves else "") + ".")
 
     # ── text ─────────────────────────────────────────────────────────────
     labels.update({
@@ -504,6 +612,16 @@ def compute(frames):
         "cities_aria": "דירות חדשות שנותרו למכירה בערים הגדולות",
         "cities_caption": "דירות חדשות שנותרו למכירה לפי עיר",
     })
+    if dsales:
+        mon = fmt.MONTHS_HE[d_t[1] - 1]
+        labels.update({
+            "dsales_note": (f"דירות שנמכרו מינואר עד {mon} {d_t[0]} בכל מחוז, חדשות ויד שנייה, "
+                            f"והשינוי לעומת אותם חודשים ב-{d_t[0] - 1}. החלוקה למחוזות לפי מיקום "
+                            f"הדירה."),
+            "dsales_aria": f"דירות שנמכרו לפי מחוז וסוג, ינואר עד {mon} {d_t[0]}",
+            "dsales_caption": f"דירות שנמכרו לפי מחוז, ינואר עד {mon} {d_t[0]}",
+            "dsales_chg": f"שינוי לעומת {d_t[0] - 1}",
+        })
     if ytd:
         labels.update({
             "ytd_note": (f"סך הדירות שנמכרו מינואר עד {fmt.MONTHS_HE[lt[1] - 1]}, {lt[0]} מול "
@@ -555,5 +673,5 @@ def compute(frames):
         "labels": labels,
         "release": release,
         "flags": {"ytd": bool(ytd), "years": bool(years), "stock": len(sk) >= 2,
-                  "sub": bool(sub_years)},
+                  "sub": bool(sub_years), "dsales": bool(dsales)},
     }

@@ -198,13 +198,10 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
   twins of t5/t7, kept as downloads. Each is still fetched every run, and a missing stem fails
   the whole page's sync (item above). Drop them from `source.json` if the downloads aren't
   worth that, or mark them `"optional": true` (the flag exists now). (2026-11-05)
-- **Existing CBS recipes don't use the new provider features yet.** Once the job runs a build
-  with them: mark the chart sheets that come and go `"optional": true`
-  (`cbs-dwelling-transactions` t8, `cbs-construction-starts` t8–t14, `cbs-labour-force-survey`
-  t15–t22; compute must accept an empty grid). Add a by-district sales section to
-  `cbs-dwelling-transactions` from `t3a`/`t3b`. Swap the 23 copies of the "latest release" sort
-  (`RELEASE_DATE`, then `RELEASE_NO` as a string, so "99/2026" beats "100/2026") for
-  `cbs.latest_release`. (2026-11-09)
+- **`cbs-foreign-trade-by-country` still hand-rolls the "latest release" sort**
+  (`RELEASE_DATE`, then `RELEASE_NO` as a string, so "99/2026" beats "100/2026"). Swap it for
+  `cbs.latest_release`, as the other CBS recipes now do; it was left out of that PR because
+  another change was editing the recipe. (2026-11-09)
 
 ## Shared recipe code (govlib, gov.j2, page libs)
 

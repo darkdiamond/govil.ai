@@ -291,12 +291,7 @@ def _tone(c, band=0.02):
 
 
 def compute(frames):
-    rel = frames["releases"].copy()
-    rel = rel[rel["RELEASE_DATE"] != ""].sort_values(["RELEASE_DATE", "RELEASE_NO"],
-                                                      kind="stable")
-    if rel.empty:
-        raise ValueError("releases: no edition listed")
-    latest_rel = rel.iloc[-1]
+    latest_rel = cbs.latest_release(frames["releases"])
 
     tabs = _tables(frames)
     missing = [k for k in ("visitors", "tourists", "countries", "crossings", "air")
