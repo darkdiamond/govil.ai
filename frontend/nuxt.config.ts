@@ -336,7 +336,6 @@ export default defineNuxtConfig({
         "/404/",
         "/datasets/",
         "/about/",
-        "/how-it-works/",
         "/faq/",
         "/contact/",
         "/privacy/",

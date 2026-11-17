@@ -80,11 +80,6 @@ const newsOn = Number(useRuntimeConfig().public.newsCount || 0) > 0;
             >נושאים</NuxtLink
           >
           <NuxtLink
-            to="/how-it-works/"
-            class="py-2 text-white/85 hover:text-white no-underline hover:no-underline"
-            >איך זה עובד</NuxtLink
-          >
-          <NuxtLink
             to="/about/"
             class="py-2 text-white/85 hover:text-white no-underline hover:no-underline"
             >אודות</NuxtLink
@@ -178,13 +173,6 @@ const newsOn = Number(useRuntimeConfig().public.newsCount || 0) > 0;
         <div>
           <div class="font-display text-base mb-2">על האתר</div>
           <ul class="list-none p-0 m-0 space-y-1.5">
-            <li>
-              <NuxtLink
-                to="/how-it-works/"
-                class="text-white/85 hover:text-white no-underline hover:no-underline"
-                >איך זה עובד</NuxtLink
-              >
-            </li>
             <li>
               <NuxtLink
                 to="/about/"

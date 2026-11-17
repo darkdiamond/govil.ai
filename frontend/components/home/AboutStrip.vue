@@ -14,10 +14,9 @@
     </div>
     <nav aria-label="על האתר">
       <ul class="list-none m-0 p-0 flex flex-wrap gap-x-5 gap-y-2 text-sm">
-        <li><NuxtLink to="/how-it-works/">איך זה עובד</NuxtLink></li>
+        <li><NuxtLink to="/about/#how-it-works">איך זה עובד</NuxtLink></li>
         <li><NuxtLink to="/news/about/">איך נכתבות החדשות</NuxtLink></li>
         <li><NuxtLink to="/faq/">שאלות נפוצות</NuxtLink></li>
-        <li><NuxtLink to="/about/">אודות</NuxtLink></li>
       </ul>
     </nav>
   </section>

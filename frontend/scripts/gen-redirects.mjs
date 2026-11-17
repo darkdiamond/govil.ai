@@ -144,11 +144,23 @@ for (const t of OLD_SPACE_TAGS) {
   addTag(`/tags/${t}/`, tagTarget(t.replace(/\s+/g, "-")));
 }
 
+// 4. Retired site pages folded into another page. Fixed list.
+//    Each path 301s with and without its trailing slash.
+const PAGE_REDIRECTS = {
+  "/how-it-works": "/about/", // merged into /about/ (2026-11-17)
+};
+for (const [path, destination] of Object.entries(PAGE_REDIRECTS)) {
+  for (const source of [path, `${path}/`]) {
+    redirects.push({ source, destination, type: 301 });
+  }
+}
+
 const firebase = JSON.parse(readFileSync(firebasePath, "utf-8"));
 firebase.hosting.redirects = redirects;
 writeFileSync(firebasePath, JSON.stringify(firebase, null, 2) + "\n", "utf-8");
 
 console.log(
   `[gen-redirects] wrote ${redirects.length} redirects ` +
-    `(${dsCount} dataset, ${tagCount} tag) to firebase.json`
+    `(${dsCount} dataset, ${tagCount} tag, ` +
+    `${2 * Object.keys(PAGE_REDIRECTS).length} page) to firebase.json`
 );
