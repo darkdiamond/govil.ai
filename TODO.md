@@ -175,10 +175,30 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
 
 ## CBS reports (cbs_releases provider)
 
-- **Yearly CBS reports (~50) have no pages.** Run `catalog --months 38` to find the ones
-  published in two or more years; skip holiday collections ("לרגל …"). The release-list window
-  (`LIST_WINDOW`) is now 1500 items (~3 years), enough for 2–3 editions of each; deploy the job
-  with it before merging a yearly recipe. (2026-11-05)
+- **Most yearly CBS reports still have no page.** The first 5 are done (local authorities,
+  population at the new year, aliyah, baby names, motor vehicles; 2026-11-17). The 38-month
+  catalog (`catalog --months 38`) lists ~60 more with Excel tables once holiday collections
+  ("לרגל …", "לקט נתונים") and one-offs are left out: national spending on education / health / R&D /
+  culture / welfare, agriculture, quality of life by city and district, business and employer
+  demography, startups and exits, non-profits, dwellings and buildings, home ownership, degree
+  recipients, vehicle-km, driving licences, public-transport validations, people charged and
+  convicted, foreign residents, VAT dealer openings and closings. Several renumber their tables
+  every edition, so read tables by title (as `cbs-motor-vehicles` and `cbs-local-authorities`
+  do), not by stem. (2026-11-05)
+- **CBS recipes that read tables by title have no spare table slots.** `cbs-local-authorities`
+  (t1..t36), `cbs-motor-vehicles` (t1..t13), `cbs-baby-names` (t1..t9) and `cbs-aliyah`
+  (t8..t12) declare exactly as many stems as the newest edition has. If the next edition adds
+  a table, the last one is never downloaded and its section silently drops (motor-vehicles
+  fails loudly only when a required chart moves past t13). Spare `optional` stems would fix
+  it, but `CbsReleasesProvider.facts` lists an absent optional table as an "HTML" download
+  pointing at the release page, so each spare shows a meaningless row under the page. Fix:
+  leave absent optional tables out of the resources list (builder redeploy), then add ~3 spare
+  stems to these recipes. (2026-11-17)
+- **CBS price-index chapters with no page.** `cbs_index catalog` chapters with no recipe:
+  construction inputs for commercial buildings and offices (ca), road and bridge works (d),
+  agriculture (e), buses and minibuses (f/fa), industry export prices (ba), and the 118
+  selected-product CPI codes (chapter a, subject 40: bread, milk, petrol …). Each is a new
+  `source.json` code list, no provider change. (2026-11-17)
 - **Year-end CBS editions with a different table set are skipped.** `cbs-visitor-arrivals`
   and `cbs-israelis-departures` skip the January "בשנת YYYY" edition, which replaces December's
   and adds tables. `cbs-labour-supply-demand` skips the Oct–Dec "ושנת" edition (90 files). Each

@@ -1,0 +1,411 @@
+{% import "gov.j2" as gov %}
+{%- macro callout(key) -%}
+{%- if model.callouts[key] is defined %}
+  <p class="m-0 mb-3 text-sm font-semibold text-ink-deep">{{ model.callouts[key] }}</p>
+{%- endif %}
+{%- endmacro %}
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+{{ gov.lede(model.labels.lede) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("external-link", "ההודעה האחרונה של הלמ\"ס") }}
+  <p class="m-0 text-sm text-subtle mb-2">{{ model.release.title }} · פורסמה {{ model.release.date }}</p>
+{%- if model.release.headline %}
+  <p class="m-0 mb-3 font-semibold text-ink-deep">{{ model.release.headline }}</p>
+{%- endif %}
+  <p class="m-0 text-sm flex flex-wrap gap-4">
+    <a href="{{ model.release.url }}" target="_blank" rel="noopener">להודעה המלאה באתר הלמ"ס</a>
+{%- if model.release.pdf %}
+    <a href="{{ model.release.pdf }}" target="_blank" rel="noopener">לדוח המלא (PDF)</a>
+{%- endif %}
+  </p>
+</section>
+
+<div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
+{%- for key in ["motor", "private", "ev", "hybrid", "evnew", "newcars"] %}
+{%- if model.kpis[key] is defined %}
+  {{ gov.kpi(model.kpis[key], model.labels[key ~ "_kpi"]) }}
+{%- endif %}
+{%- endfor %}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "רמת המינוע: כלי רכב לכל 1,000 תושבים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.motor_note }}</p>
+  {{ callout("motor") }}
+  {{ gov.chart("chart-motor", model.labels.motor_aria, "h-72 md:h-96") }}
+  {{ gov.table("רמת המינוע לפי שנה", ["שנה", "כל כלי הרכב", "כלי רכב פרטיים"], model.tables.motor, ltr=(1, 2)) }}
+</section>
+
+{%- if model.flags.oecd %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "ישראל מול מדינות OECD") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.oecd_note }}</p>
+  {{ callout("oecd") }}
+  {{ gov.chart("chart-oecd", model.labels.oecd_aria, "h-96") }}
+  {{ gov.table("כלי רכב לכל 1,000 תושבים לפי מדינה", ["מדינה", "כלי רכב לכל 1,000 תושבים"], model.tables.oecd, ltr=(1,)) }}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "כלי רכב חשמליים והיברידיים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.hybrid_note }}</p>
+  {{ callout("ev") }}{{ callout("ev_long") }}
+  {{ gov.chart("chart-hybrid", model.labels.hybrid_aria, "h-72 md:h-96") }}
+  {{ gov.table("כלי רכב היברידיים וחשמליים לפי שנה", ["שנה", "היברידי רגיל", "היברידי נטען", "חשמלי"], model.tables.hybrid, ltr=(1, 2, 3)) }}
+</section>
+
+{%- if model.flags.newfuel %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "רכב פרטי חדש לפי סוג הנעה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.newfuel_note }}</p>
+  {{ callout("evnew") }}{{ callout("petrol") }}
+  {{ gov.chart("chart-newfuel", model.labels.newfuel_aria, "h-72 md:h-96") }}
+  {{ gov.table("כלי רכב פרטיים חדשים לפי סוג הנעה (אחוזים)", model.labels.newfuel_cols, model.tables.newfuel, ltr=range(1, model.labels.newfuel_cols | length) | list) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.fleet %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "סוג ההנעה בכל סוג רכב") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.fleet_note }}</p>
+  {{ callout("fleet") }}
+  {{ gov.chart("chart-fleet", model.labels.fleet_aria, "h-80 md:h-96") }}
+  {{ gov.table("מצבת כלי הרכב לפי סוג רכב וסוג הנעה (אחוזים)", model.labels.fleet_cols, model.tables.fleet, ltr=range(1, model.labels.fleet_cols | length) | list) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.owners %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "מי קונה רכב חדש: פרטיים, ליסינג וחברות") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.owners_note }}</p>
+  {{ callout("lease") }}
+  {{ gov.chart("chart-owners", model.labels.owners_aria, "h-72 md:h-96") }}
+  {{ gov.table("כלי רכב פרטיים חדשים לפי סוג בעלות", model.labels.owners_cols, model.tables.owners, ltr=range(1, model.labels.owners_cols | length) | list) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.evown %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "כמה מהרכב החדש חשמלי, לפי סוג בעלות") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.evown_note }}</p>
+  {{ callout("evown") }}
+  {{ gov.chart("chart-evown", model.labels.evown_aria, "h-72 md:h-80") }}
+  {{ gov.table("כלי רכב פרטיים חדשים חשמליים לפי סוג בעלות", model.labels.evown_cols, model.tables.evown, ltr=range(1, model.labels.evown_cols | length) | list) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.buses %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "אוטובוסים לפי סוג הנעה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.buses_note }}</p>
+  {{ callout("buses") }}
+  {{ gov.chart("chart-buses", model.labels.buses_aria, "h-72 md:h-80") }}
+  {{ gov.table("אוטובוסים לפי סוג הנעה ושנה", model.labels.buses_cols, model.tables.buses, ltr=range(1, model.labels.buses_cols | length) | list) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.origin %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "כלי רכב לפי ארץ ייצור") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.origin_note }}</p>
+  {{ callout("origin") }}
+  {{ gov.chart("chart-origin", model.labels.origin_aria, "h-[540px]") }}
+  {{ gov.table("כלי רכב מנועיים לפי ארץ ייצור (אחוזים)", model.labels.origin_cols, model.tables.origin, ltr=range(1, model.labels.origin_cols | length) | list) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.evorig %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "רכב חשמלי לפי ארץ ייצור") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.evorig_note }}</p>
+  {{ callout("evorig") }}
+  {{ gov.chart("chart-evorig", model.labels.evorig_aria, "h-64 md:h-80") }}
+  {{ gov.table("כלי רכב פרטיים חשמליים לפי ארץ ייצור", model.labels.evorig_cols, model.tables.evorig, ltr=range(1, model.labels.evorig_cols | length) | list) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.evmake %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "רכב חשמלי לפי יצרן") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.evmake_note }}</p>
+  {{ callout("evmake") }}
+  {{ gov.chart("chart-evmake", model.labels.evmake_aria, "h-[520px]") }}
+  {{ gov.table("כלי רכב פרטיים חשמליים לפי יצרן", ["יצרן", "כלי רכב", "חלק מהמצבת"], model.tables.evmake, ltr=(1, 2)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.safety %}
+<section class="card p-5 mb-6">
+  {{ gov.head("circle-check", "מערכות בטיחות ברכב החדש") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.safety_note }}</p>
+  {{ callout("safety") }}
+  {{ gov.chart("chart-safety", model.labels.safety_aria, "h-[620px]") }}
+  {{ gov.table("מערכות בטיחות בכלי רכב פרטיים חדשים (אחוזים)", model.labels.safety_cols, model.tables.safety, ltr=range(1, model.labels.safety_cols | length) | list) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.colors %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "צבע הרכב") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.colors_note }}</p>
+  {{ callout("colors") }}
+  {{ gov.chart("chart-colors", model.labels.colors_aria, "h-[440px]") }}
+  {{ gov.table("צבע כלי הרכב הפרטיים (אחוזים)", model.labels.colors_cols, model.tables.colors, ltr=range(1, model.labels.colors_cols | length) | list) }}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("tag", "על הנתונים") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm text-subtle marker:text-brand">
+    <li>הנתונים מתוך ההודעה השנתית לתקשורת של הלשכה המרכזית לסטטיסטיקה על כלי הרכב המנועיים בישראל, המבוססת על מרשם כלי הרכב של משרד התחבורה. מצבת כלי הרכב נכונה לסוף השנה.</li>
+    <li>"כלי רכב פרטיים חדשים" הם כלי רכב שעלו לכביש לראשונה באותה שנה. רמת המינוע היא מספר כלי הרכב לכל 1,000 תושבים.</li>
+    <li>התרשימים בהודעה משתנים משנה לשנה. העמוד מציג את התרשימים שמופיעים בהודעה האחרונה, ונתוני השנים הקודמות בה עשויים להיות מעודכנים לעומת הודעות קודמות.</li>
+  </ul>
+</section>
+
+<script>
+  (function () {
+    const d = {{ model.charts.motor | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-motor"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[2]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Math.round(v).toLocaleString("he-IL") },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", scale: true },
+      series: [
+        { type: "line", name: "כל כלי הרכב", data: d.total, showSymbol: false, lineStyle: { width: 3 } },
+        { type: "line", name: "כלי רכב פרטיים", data: d.private, showSymbol: false }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- if model.flags.oecd %}
+  (function () {
+    const d = {{ model.charts.oecd | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-oecd"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[2]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => Math.round(v).toLocaleString("he-IL") + " לכל 1,000 תושבים" },
+      grid: { left: 16, right: 48, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: "value", axisLabel: { show: false }, splitLine: { show: false } },
+      yAxis: { type: "category", data: d.names, axisLabel: { width: 120, overflow: "break" } },
+      series: [{
+        type: "bar",
+        data: d.values.map((v, i) => d.names[i] === "ישראל" ? { value: v, itemStyle: { color: pal[0] } } : v),
+        label: { show: true, position: "right", formatter: (p) => Math.round(p.value).toLocaleString("he-IL") }
+      }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+  (function () {
+    const d = {{ model.charts.hybrid | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-hybrid"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[6], pal[2], pal[0]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL") },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", axisLabel: { formatter: (v) => v >= 1000 ? (v / 1000).toLocaleString("he-IL") + " אלף" : v } },
+      series: [
+        { type: "bar", stack: "a", name: "היברידי רגיל", data: d.reg },
+        { type: "bar", stack: "a", name: "היברידי נטען", data: d.plug },
+        { type: "bar", stack: "a", name: "חשמלי", data: d.ev }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- if model.flags.newfuel %}
+  (function () {
+    const d = {{ model.charts.newfuel | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const cols = [pal[1], pal[0], pal[2], pal[6], pal[5], pal[8], pal[9]];
+    const chart = echarts.init(document.getElementById("chart-newfuel"));
+    chart.setOption(window.GovEcharts.option({
+      color: cols,
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toFixed(1) + "%" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 56, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+      series: d.fuels.map((f, k) => ({ type: "bar", stack: "a", name: f, data: d.series[k] }))
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.fleet %}
+  (function () {
+    const d = {{ model.charts.fleet | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-fleet"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[1], pal[5], pal[2], pal[6], pal[0], pal[8], pal[9]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => v == null ? "" : Number(v).toFixed(1) + "%" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 56, bottom: 8, containLabel: true },
+      xAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", data: d.types, inverse: true, axisLabel: { width: 90, overflow: "break" } },
+      series: d.fuels.map((f, k) => ({ type: "bar", stack: "a", name: f, data: d.series[k] }))
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.owners %}
+  (function () {
+    const d = {{ model.charts.owners | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-owners"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[1], pal[2], pal[6], pal[5]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL") },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 64, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", axisLabel: { formatter: (v) => v >= 1000 ? (v / 1000).toLocaleString("he-IL") + " אלף" : v } },
+      series: d.cats.map((c, k) => ({ type: "bar", stack: "a", name: c, data: d.series[k] }))
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.evown %}
+  (function () {
+    const d = {{ model.charts.evown | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const n = d.years.length;
+    const chart = echarts.init(document.getElementById("chart-evown"));
+    chart.setOption(window.GovEcharts.option({
+      color: d.years.map((y, k) => k === n - 1 ? pal[0] : pal[6]),
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => v == null ? "" : Number(v).toFixed(1) + "%" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 48, top: 32, bottom: 8, containLabel: true },
+      xAxis: { type: "value", axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", data: d.cats, inverse: true, axisLabel: { width: 110, overflow: "break" } },
+      series: d.years.map((y, k) => ({ type: "bar", name: y, data: d.series[k],
+        label: { show: k === n - 1, position: "right", formatter: (p) => p.value == null ? "" : Number(p.value).toFixed(1) + "%" } }))
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.buses %}
+  (function () {
+    const d = {{ model.charts.buses | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-buses"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[1], pal[2], pal[0], pal[6]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL") },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value" },
+      series: d.fuels.map((f, k) => ({ type: "bar", stack: "a", name: f, data: d.series[k] }))
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.origin %}
+  (function () {
+    const d = {{ model.charts.origin | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const n = d.years.length;
+    const chart = echarts.init(document.getElementById("chart-origin"));
+    chart.setOption(window.GovEcharts.option({
+      color: d.years.map((y, k) => k === n - 1 ? pal[0] : pal[6]),
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => v == null ? "" : Number(v).toFixed(1) + "%" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 48, top: 32, bottom: 8, containLabel: true },
+      xAxis: { type: "value", axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 100, overflow: "break" } },
+      series: d.years.map((y, k) => ({ type: "bar", name: y, data: d.series[k],
+        label: { show: k === n - 1, position: "right", formatter: (p) => p.value == null ? "" : Number(p.value).toFixed(1) + "%" } }))
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.evorig %}
+  (function () {
+    const d = {{ model.charts.evorig | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const series = [{ type: "bar", name: "כל המצבת", data: d.fleet }];
+    if (d.has_new) series.push({ type: "bar", name: "חדשים בשנה האחרונה", data: d.new });
+    const chart = echarts.init(document.getElementById("chart-evorig"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[2], pal[0]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => v == null ? "" : Number(v).toFixed(1) + "%" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 48, top: 32, bottom: 8, containLabel: true },
+      xAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 100, overflow: "break" } },
+      series: series.map((s) => Object.assign(s, { label: { show: true, position: "right", formatter: (p) => p.value == null ? "" : Number(p.value).toFixed(0) + "%" } }))
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.evmake %}
+  (function () {
+    const d = {{ model.charts.evmake | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-evmake"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => Number(v).toLocaleString("he-IL") + " כלי רכב" },
+      grid: { left: 16, right: 64, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: "value", axisLabel: { show: false }, splitLine: { show: false } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 90, overflow: "break" } },
+      series: [{
+        type: "bar",
+        data: d.values.map((v, i) => i === d.names.length - 1 && d.names[i] === "אחר" ? { value: v, itemStyle: { color: pal[6] } } : v),
+        label: { show: true, position: "right", formatter: (p) => Number(p.value).toLocaleString("he-IL") }
+      }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.safety %}
+  (function () {
+    const d = {{ model.charts.safety | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const n = d.years.length;
+    const chart = echarts.init(document.getElementById("chart-safety"));
+    chart.setOption(window.GovEcharts.option({
+      color: d.years.map((y, k) => k === n - 1 ? pal[0] : pal[6]),
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => v == null ? "" : Number(v).toFixed(1) + "%" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 32, bottom: 8, containLabel: true },
+      xAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 130, overflow: "break", fontSize: 11 } },
+      series: d.years.map((y, k) => ({ type: "bar", name: y, data: d.series[k] }))
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.colors %}
+  (function () {
+    const d = {{ model.charts.colors | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const series = [{ type: "bar", name: "כל המצבת", data: d.fleet }];
+    if (d.new) series.push({ type: "bar", name: {{ model.labels.colors_new | tojson }}, data: d.new });
+    const chart = echarts.init(document.getElementById("chart-colors"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[2], pal[0]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => v == null ? "" : Number(v).toFixed(1) + "%" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 32, bottom: 8, containLabel: true },
+      xAxis: { type: "value", axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", data: d.names, inverse: true },
+      series: series
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+</script>

@@ -1,0 +1,394 @@
+{% import "gov.j2" as gov %}
+{%- macro switcher(id, groups, aria) -%}
+<div class="flex flex-wrap gap-2 mb-3" id="{{ id }}" role="group" aria-label="{{ aria }}">
+{%- for g in groups %}
+    <button type="button" class="px-3 py-1 rounded-gov-pill border border-rule text-sm" data-i="{{ loop.index0 }}" aria-pressed="{{ 'true' if loop.first else 'false' }}">{{ g.label }}</button>
+{%- endfor %}
+  </div>
+{%- endmacro %}
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+{{ gov.lede(model.labels.lede) }}
+
+{%- if model.release %}
+<section class="card p-5 mb-6">
+  {{ gov.head("external-link", "ההודעה האחרונה של הלמ\"ס") }}
+  <p class="m-0 text-sm text-subtle mb-2">{{ model.release.title }} · פורסמה {{ model.release.date }}</p>
+{%- if model.labels.headline %}
+  <p class="m-0 mb-3 text-ink-deep">{{ model.labels.headline }}</p>
+{%- endif %}
+  <p class="m-0 text-sm flex flex-wrap gap-4">
+{%- if model.release.url %}
+    <a href="{{ model.release.url }}" target="_blank" rel="noopener">להודעה המלאה באתר הלמ"ס</a>
+{%- endif %}
+{%- if model.release.pdf %}
+    <a href="{{ model.release.pdf }}" target="_blank" rel="noopener">לדוח המלא (PDF)</a>
+{%- endif %}
+  </p>
+</section>
+{%- endif %}
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+{%- for key in ["girl", "boy", "distinct", "conc"] %}
+{%- if model.kpis[key] is defined %}
+  {{ gov.kpi(model.kpis[key], model.labels[key ~ "_kpi"]) }}
+{%- endif %}
+{%- endfor %}
+</div>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("trending-up", model.labels.leaders_title) }}
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+{%- for l in model.leaders %}
+    <div class="rounded-gov border border-rule p-3 text-center">
+      <div class="text-sm text-subtle">{{ l.group }}</div>
+      <div class="text-2xl font-semibold text-ink-deep my-1">{{ l.name }}</div>
+      <div class="text-sm"><span dir="ltr">{{ l.count }}</span> תינוקות · <span dir="ltr">{{ l.share }}</span></div>
+{%- if l.tied %}
+      <div class="text-xs text-subtle mt-1">במקום הראשון יחד עם {{ l.tied }}</div>
+{%- endif %}
+{%- if l.change %}
+      <div class="text-xs text-subtle mt-1">{{ l.change }}</div>
+{%- endif %}
+    </div>
+{%- endfor %}
+  </div>
+</section>
+
+{{ gov.insights(model.insights) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("chart-bar", "עשרת השמות הנפוצים לפי מין ודת") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.top_note }}</p>
+  {{ switcher("sw-top", model.charts.top.groups, "בחירת קבוצה") }}
+  {{ gov.chart("chart-top", model.labels.top_aria, "h-80 md:h-96") }}
+  {{ gov.table(model.labels.comb_caption, model.tables.comb_cols, model.tables.comb) }}
+  <div class="overflow-x-auto">
+  {{ gov.table(model.labels.top_caption, model.tables.top_cols, model.tables.top) }}
+  </div>
+</section>
+
+{%- if model.flags.slope %}
+<section class="card p-5 mb-6">
+  {{ gov.head("trending-up", "מי עלה ומי ירד בדירוג") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.slope_note }}</p>
+  {{ switcher("sw-slope", model.charts.slope.groups, "בחירת קבוצה") }}
+  {{ gov.chart("chart-slope", model.labels.slope_aria, "h-80 md:h-[460px]") }}
+  {{ gov.table(model.labels.slope_caption, ["שם", "קבוצה", "מקום ב-" ~ model.labels.prev_year, "מקום ב-" ~ model.labels.year], model.tables.slope, ltr=(2, 3)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.movers %}
+<section class="card p-5 mb-6">
+  {{ gov.head("chart-bar", "השמות שהתחזקו והשמות שנחלשו") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.movers_note }}</p>
+  {{ switcher("sw-movers", model.charts.movers.groups, "בחירת קבוצה") }}
+  {{ gov.chart("chart-movers", model.labels.movers_aria, "h-80 md:h-96") }}
+  {{ gov.table(model.labels.movers_caption, ["שם", "קבוצה", model.labels.prev_year, model.labels.year, "שינוי (נקודות אחוז)"], model.tables.movers, ltr=(2, 3, 4)) }}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("chart-bar", "כמה מגוונים השמות בכל קבוצה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.conc_note }}</p>
+  {{ gov.chart("chart-conc", model.labels.conc_aria, "h-80 md:h-96") }}
+  {{ gov.table(model.labels.conc_caption, ["קבוצה", "חמשת השמות הנפוצים", "עשרת השמות הנפוצים", "שמות ברשימה", "חלק התינוקות ברשימה"], model.tables.conc, ltr=(1, 2, 3, 4)) }}
+</section>
+
+{%- if model.flags.uni %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "שמות לבנות ולבנים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.uni_note }}</p>
+  {{ gov.chart("chart-uni", model.labels.uni_aria, "h-80 md:h-96") }}
+  {{ gov.table(model.labels.uni_caption, ["שם", "בנות", "בנים", "חלק הבנות"], model.tables.uni, ltr=(1, 2, 3)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.trend %}
+<section class="card p-5 mb-6">
+  {{ gov.head("calendar", "השמות המובילים לאורך השנים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.trend_note }}</p>
+  {{ switcher("sw-trend", model.charts.trend.groups, "בחירת קבוצה") }}
+  {{ gov.chart("chart-trend", model.labels.trend_aria, "h-80 md:h-[460px]") }}
+  <div class="overflow-x-auto">
+  {{ gov.table(model.labels.trend_caption, model.tables.trend_cols, model.tables.trend, ltr=range(2, model.tables.trend_cols | length) | list) }}
+  </div>
+</section>
+{%- endif %}
+
+{%- if model.flags.gens %}
+<section class="card p-5 mb-6">
+  {{ gov.head("calendar", "השם הנפוץ בכל דור") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.gens_note }}</p>
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <caption class="sr-only">{{ model.labels.gens_caption }}</caption>
+      <thead><tr>{% for c in model.tables.gens_cols %}<th scope="col">{{ c }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in model.tables.gens %}
+        <tr>{% for v in r %}{% if loop.first %}<th scope="row">{{ v }}</th>{% else %}<td>{{ v }}</td>{% endif %}{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{%- endif %}
+
+{%- if model.flags.city %}
+<section class="card p-5 mb-6">
+  {{ gov.head("map-pin", "השם המוביל בכל יישוב") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.city_note }}</p>
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <caption class="sr-only">{{ model.labels.city_caption }}</caption>
+      <thead><tr>{% for c in model.tables.city_cols %}<th scope="col">{{ c }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in model.tables.city %}
+        <tr>{% for v in r %}{% if loop.first %}<th scope="row">{{ v }}</th>{% else %}<td>{{ v }}</td>{% endif %}{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{%- endif %}
+
+{%- if model.flags.cityc %}
+<section class="card p-5 mb-6">
+  {{ gov.head("map-pin", "באיזה שם בוחרים בכמה שיותר יישובים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.cityc_note }}</p>
+  {{ switcher("sw-cityc", model.charts.cityc.groups, "בחירת קבוצה") }}
+  {{ gov.chart("chart-cityc", model.labels.cityc_aria, "h-72 md:h-80") }}
+  {{ gov.table(model.labels.cityc_caption, ["שם", "קבוצה", "מספר יישובים"], model.tables.cityc, ltr=(2,)) }}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("tag", "על הנתונים") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm text-subtle marker:text-brand">
+    <li>{{ model.labels.about_lists }}</li>
+    <li>הנתונים מבוססים על מרשם האוכלוסין, כפי שעובדו בלשכה המרכזית לסטטיסטיקה (הלמ"ס). קבוצת הדת היא זו הרשומה במרשם; הנוצרים בהודעה האחרונה הם נוצרים ערבים.</li>
+    <li>השם נכתב כפי שנרשם, כך שכתיבים שונים של אותו שם (למשל בכתיב מלא וחסר) נספרים בנפרד.</li>
+    <li>"כל הבנות" ו"כל הבנים" הם סכום שחושב כאן מרשימות הקבוצות, ולא נתון שפרסמה הלמ"ס.</li>
+  </ul>
+</section>
+
+<script>
+  (function () {
+    window.__bnSwitch = function (id, render) {
+      const box = document.getElementById(id);
+      if (!box) { return; }
+      const btns = Array.prototype.slice.call(box.querySelectorAll("button"));
+      function set(i) {
+        btns.forEach(function (b) {
+          const on = Number(b.getAttribute("data-i")) === i;
+          b.setAttribute("aria-pressed", on ? "true" : "false");
+          b.classList.toggle("bg-brand", on);
+          b.classList.toggle("text-white", on);
+        });
+        render(i);
+      }
+      btns.forEach(function (b) { b.addEventListener("click", function () { set(Number(b.getAttribute("data-i"))); }); });
+      set(0);
+    };
+    window.__bnFmt = function (v) { return Number(v).toLocaleString("he-IL"); };
+  })();
+</script>
+
+<script>
+  (function () {
+    const d = {{ model.charts.top | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-top"));
+    window.__bnSwitch("sw-top", function (i) {
+      const g = d.groups[i];
+      chart.setOption(window.GovEcharts.option({
+        color: [pal[0]],
+        tooltip: {
+          trigger: "axis", axisPointer: { type: "shadow" },
+          formatter: function (ps) {
+            const p = ps[0];
+            let s = echarts.format.encodeHTML(p.name) + ": " + window.__bnFmt(p.value) + " תינוקות";
+            if (g.shares) { s += " (" + g.shares[p.dataIndex] + "%)"; }
+            return s;
+          }
+        },
+        grid: { left: 16, right: 56, top: 8, bottom: 8, containLabel: true },
+        xAxis: { type: "value", axisLabel: { show: false }, splitLine: { show: false } },
+        yAxis: { type: "category", data: g.names, inverse: true },
+        series: [{
+          type: "bar", data: g.counts, barMaxWidth: 28,
+          label: { show: true, position: "right", formatter: function (p) { return window.__bnFmt(p.value); } }
+        }]
+      }), true);
+    });
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+</script>
+{%- if model.flags.slope %}
+
+<script>
+  (function () {
+    const d = {{ model.charts.slope | tojson }};
+    const yl = {{ model.labels.year | tojson }};
+    const pyl = {{ model.labels.prev_year | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-slope"));
+    window.__bnSwitch("sw-slope", function (i) {
+      const g = d.groups[i];
+      chart.setOption(window.GovEcharts.option({
+        tooltip: {
+          trigger: "item",
+          formatter: function (p) {
+            const r = g.rows[p.seriesIndex];
+            const prev = r.prev >= d.cap ? "מחוץ לדירוג" : "מקום " + r.prev;
+            return echarts.format.encodeHTML(r.name) + "<br>" + pyl + ": " + prev + "<br>" + yl + ": מקום " + r.now;
+          }
+        },
+        grid: { left: 72, right: 72, top: 24, bottom: 24 },
+        xAxis: { type: "category", data: [pyl, yl], boundaryGap: false, position: "top", axisTick: { show: false } },
+        yAxis: { type: "value", inverse: true, min: 1, max: g.ymax, interval: 1, show: false },
+        series: g.rows.map(function (r, k) {
+          const up = r.prev > r.now, down = r.prev < r.now;
+          const col = up ? "#198754" : down ? "#dc3545" : pal[6];
+          return {
+            type: "line", name: r.name, data: [{ value: r.prev, label: { position: "left" } }, r.now], symbolSize: 8,
+            lineStyle: { color: col, width: 2 }, itemStyle: { color: col },
+            label: {
+              show: true,
+              formatter: function (p) {
+                if (p.dataIndex === 1) { return r.name + " " + r.now; }
+                return r.prev >= d.cap ? "" : String(r.prev);
+              },
+              position: "right"
+            },
+            emphasis: { focus: "series" },
+            labelLayout: { hideOverlap: true }
+          };
+        })
+      }), true);
+    });
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+</script>
+{%- endif %}
+{%- if model.flags.movers %}
+
+<script>
+  (function () {
+    const d = {{ model.charts.movers | tojson }};
+    const chart = echarts.init(document.getElementById("chart-movers"));
+    window.__bnSwitch("sw-movers", function (i) {
+      const g = d.groups[i];
+      chart.setOption(window.GovEcharts.option({
+        tooltip: {
+          trigger: "axis", axisPointer: { type: "shadow" },
+          formatter: function (ps) {
+            const k = ps[0].dataIndex;
+            return echarts.format.encodeHTML(g.names[k]) + ": " + g.prev[k] + "% ← " + g.now[k] + "%";
+          }
+        },
+        grid: { left: 48, right: 48, top: 8, bottom: 8, containLabel: true },
+        xAxis: { type: "value", axisLabel: { formatter: function (v) { return "\u200e" + (v < 0 ? "\u2212" + Math.abs(v) : v); } } },
+        yAxis: { type: "category", data: g.names, inverse: true, axisTick: { show: false } },
+        series: [{
+          type: "bar", barMaxWidth: 24,
+          data: g.delta.map(function (v) { return { value: v, itemStyle: { color: v >= 0 ? "#198754" : "#dc3545" }, label: { position: v >= 0 ? "right" : "left" } }; }),
+          label: { show: true, position: "right", formatter: function (p) { return "\u200e" + (p.value > 0 ? "+" : "\u2212") + Math.abs(p.value); } }
+        }]
+      }), true);
+    });
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+</script>
+{%- endif %}
+
+<script>
+  (function () {
+    const d = {{ model.charts.conc | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-conc"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[3], pal[7]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v + "%"; } },
+      legend: { top: 0 },
+      grid: { left: 16, right: 24, top: 40, bottom: 8, containLabel: true },
+      xAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", data: d.labels, inverse: true },
+      series: [
+        { type: "bar", stack: "s", name: "חמשת השמות הנפוצים", data: d.top5 },
+        { type: "bar", stack: "s", name: "חמשת הבאים", data: d.next5 },
+        { type: "bar", stack: "s", name: "שאר השמות ברשימה", data: d.rest }
+      ]
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+</script>
+{%- if model.flags.uni %}
+
+<script>
+  (function () {
+    const d = {{ model.charts.uni | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-uni"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[4]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return window.__bnFmt(v); } },
+      legend: { top: 0 },
+      grid: { left: 16, right: 24, top: 40, bottom: 8, containLabel: true },
+      xAxis: { type: "value" },
+      yAxis: { type: "category", data: d.names, inverse: true },
+      series: [
+        { type: "bar", stack: "s", name: "בנות", data: d.girls },
+        { type: "bar", stack: "s", name: "בנים", data: d.boys }
+      ]
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+</script>
+{%- endif %}
+{%- if model.flags.trend %}
+
+<script>
+  (function () {
+    const d = {{ model.charts.trend | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-trend"));
+    window.__bnSwitch("sw-trend", function (i) {
+      const g = d.groups[i];
+      chart.setOption(window.GovEcharts.option({
+        color: [pal[0], pal[2], pal[4], pal[6], pal[8]],
+        tooltip: { trigger: "axis", valueFormatter: function (v) { return window.__bnFmt(v); } },
+        legend: { top: 0 },
+        grid: { left: 16, right: 24, top: 48, bottom: 56, containLabel: true },
+        xAxis: { type: "category", data: g.years },
+        yAxis: { type: "value" },
+        dataZoom: [{ type: "inside" }, { type: "slider", bottom: 8, height: 20 }],
+        series: g.series.map(function (s) { return { type: "line", name: s.name, data: s.data, showSymbol: false }; })
+      }), true);
+    });
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+</script>
+{%- endif %}
+{%- if model.flags.cityc %}
+
+<script>
+  (function () {
+    const d = {{ model.charts.cityc | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-cityc"));
+    window.__bnSwitch("sw-cityc", function (i) {
+      const g = d.groups[i];
+      chart.setOption(window.GovEcharts.option({
+        color: [pal[1]],
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v + " יישובים"; } },
+        grid: { left: 16, right: 40, top: 8, bottom: 8, containLabel: true },
+        xAxis: { type: "value", minInterval: 1 },
+        yAxis: { type: "category", data: g.names, inverse: true },
+        series: [{ type: "bar", data: g.counts, barMaxWidth: 24, label: { show: true, position: "right" } }]
+      }), true);
+    });
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+</script>
+{%- endif %}
