@@ -167,37 +167,17 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
   the routine's actual commands are logged, and consider not copying the file into worktrees.
   (2026-11-11)
 
-- **Provider brief sections reach BRIEF.md unfenced.** CBS `brief_section` prints sheet cells
-  through `_md()`, which escapes only `|`; BoI `SERIES_NAME_HE` and CBS index `NAME_HE` go into
-  markdown tables raw. They come from official feeds, not CKAN, but a multi-line Excel header
-  cell breaks the table row or starts a line with `#`. Fix: collapse whitespace in every
-  provider cell, or fence each provider section as a whole in `_brief`. (2026-11-11)
-
 ## CBS reports (cbs_releases provider)
 
-- **The `chapter` filter only matches a file name's first chapter.** `CbsReleasesProvider.matching`
-  keeps a release only if a file starts with `<chapter>_`, but CBS names joint releases with
-  two chapters in either order (quality of life in cities: `33_25_007t1.xlsx`, then
-  `26_33_037t1.xlsx`) and has moved reports between chapters (`cbs-population-new-year`'s
-  2022-2023 editions are `11_`, not `01_`, so its `history_releases: 3` gets fewer editions).
-  A recipe whose report changes prefix silently stops seeing new editions. Fix: match the
-  chapter against every `_`-separated leading number token, or drop `chapter` where the regex
-  alone is unique (`cbs-quality-of-life-cities` already does). (2026-11-17)
-- **`cbs_index` leaves an old-base value at the minibus base switch.** In chapter `fa`
-  (432010 and most of its group codes), the May 2020 row carries the old-base value under the
-  new base, so `VALUE_CHAINED` jumps (133.1 where the new base gives 100) against the published
-  monthly `PERCENT`. `cbs-index-bus-inputs` re-links it in compute (`_relink`: a chained step
-  more than 1 point off the published change). The 6 older index recipes and the other new ones
-  check clean. Fix it in `services/providers/cbs_index.py` (link by `PERCENT` wherever the
-  chained step disagrees with it at a base change), then drop `_relink`. (2026-11-17)
-- **One failing index code fails its whole resource.** The CBS Index API answers HTTP 500 for
-  140743 (מוצרי טואלטיקה ורחצה), so `cbs-index-selected-consumer-prices` left it out. If a
-  code a recipe uses starts failing, the resource and the page sync fail (page kept last-good).
-  Fix: let a resource mark codes optional, or skip a code that 500s and log it. (2026-11-17)
-- **`cbs-foreign-trade-by-country` lists t6 and t8 but never reads them.** They are the NIS
-  twins of t5/t7, kept as downloads. Each is still fetched every run, and a missing stem fails
-  the whole page's sync (item above). Drop them from `source.json` if the downloads aren't
-  worth that, or mark them `"optional": true` (the flag exists now). (2026-11-05)
+- **Drop `_relink` from `cbs-index-bus-inputs` once the job is deployed.** `cbs_index` now
+  chains the minibus May 2020 row (old-base value under the new label) itself (`_carried`),
+  so the recipe's `_relink` repairs nothing; remove it, and its "repaired links" count, in a
+  recipe PR after the builder job runs that code. (2026-11-17)
+- **`cbs-index-selected-consumer-prices` could list 140743 again.** It was left out because
+  the CBS Index API 500s on its history from 01-2000 (still so on 2026-11-17; from 01-2015 it
+  answers). Once the job is deployed, add it with `"optional_codes": [140743]` and make
+  compute render without it, or give it its own resource with `"start": "01-2015"`.
+  (2026-11-17)
 - **Existing CBS recipes don't use the new provider features yet.** Once the job runs a build
   with them: mark the chart sheets that come and go `"optional": true`
   (`cbs-dwelling-transactions` t8, `cbs-construction-starts` t8–t14, `cbs-labour-force-survey`

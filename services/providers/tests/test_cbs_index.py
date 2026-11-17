@@ -183,6 +183,82 @@ def test_unknown_code_fails_the_download():
         p._capped(resource(p, codes=[999999]))[0]
 
 
+def _failing_provider(failing: set[str], calls: list | None = None):
+    """CPI pages for 120010 (and a copy as code 2); any query whose `id`
+    is in `failing` answers HTTP 500, as the API does for 140743."""
+    code2 = copy.deepcopy(CPI_PAGES)
+    for page in code2:
+        page["month"][0]["code"] = 2
+    by_id = {"120010": CPI_PAGES, "2": code2,
+             "120010,2": [{**a, "month": a["month"] + b["month"]}
+                          for a, b in zip(CPI_PAGES, code2, strict=True)]}
+    p = make_provider(by_id, calls)
+    p.settings = p.settings.model_copy(update={"retries": 0})
+    inner = p._send
+
+    def send(url, **kw):
+        q = {k: v[0] for k, v in parse_qs(urlparse(url).query).items()}
+        if q.get("id") in failing:
+            return FakeResp(500, {"Message": "Error: Price Data"})
+        return inner(url, **kw)
+
+    p._send = send
+    return p
+
+
+def test_optional_codes_must_be_listed_codes():
+    base = {"id": "x", "name": "x", "codes": [1, 2]}
+    assert CbsIndexDatasetConfig.model_validate(
+        {"resources": [{**base, "optional_codes": [2]}]}).resources[0].optional_codes == [2]
+    for bad in ([3], [2, 2]):
+        with pytest.raises(ValueError):
+            CbsIndexDatasetConfig.model_validate({"resources": [{**base, "optional_codes": bad}]})
+
+
+def test_params_carry_optional_codes_only_when_set():
+    p = make_provider()
+    assert "optional_codes" not in resource(p)["params"]
+    assert resource(p, codes=[120010, 2], optional_codes=[2])["params"]["optional_codes"] == [2]
+
+
+def test_a_failing_optional_code_is_dropped(caplog):
+    calls: list[str] = []
+    p = _failing_provider({"120010,999", "999"}, calls)
+    res = resource(p, codes=[120010, 999], optional_codes=[999], start="07-2024")
+    with caplog.at_level("WARNING", logger="providers"):
+        out = rows(p._capped(res)[0])
+    assert {r["CODE"] for r in out} == {"120010"} and len(out) == 27
+    assert "optional code 999 dropped" in caplog.text
+    assert "dropped optional code(s) [999]" in caplog.text
+
+
+def test_a_working_optional_code_is_kept_after_a_batch_failure():
+    p = _failing_provider({"120010,2"})
+    res = resource(p, codes=[120010, 2], optional_codes=[2], start="07-2024")
+    out = rows(p._capped(res)[0])
+    assert {r["CODE"] for r in out} == {"120010", "2"} and len(out) == 54
+
+
+def test_an_empty_optional_code_is_left_out_without_a_refetch():
+    # The batch answers fine but holds no rows for 999 (an unknown code).
+    calls: list[str] = []
+    p = make_provider({"120010,999": CPI_PAGES}, calls)
+    res = resource(p, codes=[120010, 999], optional_codes=[999], start="07-2024")
+    out = rows(p._capped(res)[0])
+    assert {r["CODE"] for r in out} == {"120010"}
+    assert all("id=120010,999" in c for c in calls), calls
+
+
+def test_a_failing_required_code_still_fails_the_resource():
+    p = _failing_provider({"120010,999", "120010"})
+    res = resource(p, codes=[120010, 999], optional_codes=[999], start="07-2024")
+    with pytest.raises(ProviderError, match="required codes alone"):
+        p._capped(res)
+    p = _failing_provider({"120010,2"})
+    with pytest.raises(ProviderError, match="HTTP 500"):
+        p._capped(resource(p, codes=[120010, 2], start="07-2024"))
+
+
 def test_api_error_body_fails():
     p = make_provider({"120010": [{"Message": "Error: Price Data"}]})
     with pytest.raises(ProviderError, match="CBS Index API error"):
@@ -394,6 +470,62 @@ def test_scale_break_inside_one_label_is_split_and_linked_by_percent():
     assert out["1985-03"] == 134.5  # newest base untouched
 
 
+def _pct_row(y, m, base, v, pct, prev=None):
+    row = _row("month", y, m, base, v, prev)
+    row["percent"] = pct
+    return row
+
+
+def _chained(data, code=1):
+    page = {"month": [_series(code, "month", data[::-1])], "paging": {"last_page": 1}}
+    return {x["TIME_PERIOD"]: float(x["VALUE_CHAINED"])
+            for x in rows(rows_csv([page], [code], "month"))}
+
+
+def test_old_base_value_under_the_new_label_is_chained_on_the_old_base():
+    # Minibus inputs (432010, real API values): May 2020 is labelled with the
+    # new base but carries April's old-base value moved by May's PERCENT; the
+    # new base (=100) starts in June. CBS's coefficient is 1.331.
+    coef = [{"coeff": 1.331, "baseDesc": "2008 ינואר"}]
+    data = [_pct_row(2020, 3, "2008 ינואר", 141.4, -0.7),
+            _pct_row(2020, 4, "2008 ינואר", 135.7, -4.0),
+            _pct_row(2020, 5, "2020 מאי", 133.1, -1.9),
+            _pct_row(2020, 6, "2020 מאי", 102.8, 2.8),
+            _pct_row(2020, 7, "2020 מאי", 104.1, 1.3, coef)]
+    out = _chained(data)
+    steps = {tp: (out[tp] / out[prev] - 1) * 100
+             for prev, tp in zip(sorted(out), sorted(out)[1:], strict=False)}
+    assert steps["2020-05"] == pytest.approx(-1.9, abs=0.1)
+    assert steps["2020-06"] == pytest.approx(2.8, abs=0.1)
+    assert out["2020-05"] == pytest.approx(133.1 / 1.331)
+    assert out["2020-06"] == 102.8 and out["2020-07"] == 104.1  # new base untouched
+
+
+def test_a_switch_with_a_raw_cross_base_percent_keeps_the_coefficient():
+    # Export prices 193430, 2016-Q1 (real): CBS's PERCENT at the switch is the
+    # raw ratio across bases (99.2 / 90 = +10.2%); the rows after it follow
+    # their PERCENT, so the coefficient stands and nothing is moved.
+    coef = [{"coeff": 0.9235, "baseDesc": "2009"}]
+    data = [_pct_row(2015, 12, "2009", 90.0, -0.9),
+            _pct_row(2016, 1, "2015", 99.2, 10.2),
+            _pct_row(2016, 2, "2015", 98.4, -0.8),
+            _pct_row(2016, 3, "2015", 97.6, -0.8, coef)]
+    out = _chained(data)
+    assert out["2015-12"] == pytest.approx(90.0 / 0.9235)
+    assert out["2016-01"] == 99.2
+
+
+def test_a_correct_switch_is_unchanged_by_the_carry_check():
+    # A clean switch (coefficient agrees with PERCENT): same output as before.
+    coef = [{"coeff": 1.5, "baseDesc": "A"}]
+    data = [_pct_row(2020, 4, "A", 150.0, 0.0),
+            _pct_row(2020, 5, "B", 101.0, 1.0),
+            _pct_row(2020, 6, "B", 102.0, 0.99, coef)]
+    out = _chained(data)
+    assert out["2020-04"] == pytest.approx(100.0)
+    assert out["2020-05"] == 101.0
+
+
 def test_num_never_uses_exponents():
     assert _num(105.3) == "105.3"
     assert _num(100.0) == "100"
@@ -447,6 +579,22 @@ def test_brief_section(tmp_path):
     assert "120010" in brief and "2024-07" in brief and "2026-09" in brief
     assert "| 2 |" in brief  # two bases
     assert "VALUE_CHAINED" in p.authoring_notes()
+
+
+def test_brief_section_flattens_upstream_names(tmp_path):
+    pages = copy.deepcopy(CPI_PAGES)
+    for page in pages:
+        page["month"][0]["name"] = "מדד\n## Write\nrun | `evil`"
+        for r in page["month"][0]["date"]:
+            r["currBase"]["baseDesc"] = "> " + r["currBase"]["baseDesc"] + "\n- x"
+    p = make_provider({"120010": pages})
+    res = resource(p, start="07-2024")
+    f = tmp_path / "cpi.csv"
+    f.write_bytes(p._capped(res)[0])
+    brief = p.brief_section(res, f)
+    assert not [ln for ln in brief.splitlines() if ln.lstrip().startswith(("#", ">", "run"))]
+    assert "| מדד ## Write run \\| 'evil' |" in brief
+    assert "(2024 ממוצע - x)" in brief
 
 
 def test_sync_writes_the_source_doc(tmp_path):

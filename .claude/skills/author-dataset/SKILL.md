@@ -75,7 +75,9 @@ source.json. Commit `source.json` with the recipe.
 **CBS (`cbs_releases`)**: one page per recurring CBS report (monthly visitor
 arrivals, average wage, …). Find the report with
 `python -m services.providers.cbs catalog` (count, interval, file chapter,
-suggested `title_regex`, the last edition's table stems). Config:
+suggested `title_regex`, the last edition's table stems). `chapter` matches
+any leading number token of a file name but the year (`26_33_037t1.xlsx` is
+chapter 33); leave it out when the regex alone picks only the report. Config:
 
 ```json
 "config": {
@@ -118,7 +120,10 @@ with `python -m services.providers.cbs_index catalog [--chapter a]`
 ```
 
 `start` (`MM-YYYY`) is optional (default: full history); `frequency` is
-`month`, `quarter` or `both` (default). Rows: `CODE, NAME_HE, FREQ,
+`month`, `quarter` or `both` (default). A code the page can do without (or
+one the API answers HTTP 500 for) goes in `"optional_codes": [...]` too, a
+subset of `codes`: it is dropped instead of failing the resource, so compute
+must render without it. Rows: `CODE, NAME_HE, FREQ,
 TIME_PERIOD, DATE, YEAR, PERIOD, VALUE, BASE_DESC, PERCENT, PERCENT_YEAR,
 VALUE_CHAINED, CHAIN_BASE`. Chart `VALUE_CHAINED` (one base for the whole
 series), never `VALUE` across bases; quote `PERCENT` / `PERCENT_YEAR` as

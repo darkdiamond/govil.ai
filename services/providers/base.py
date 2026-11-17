@@ -27,6 +27,7 @@ import hashlib
 import io
 import logging
 import os
+import re
 import threading
 import time
 from collections.abc import Callable, Mapping
@@ -201,6 +202,26 @@ def normalize_csv(data: bytes, sort_keys: tuple[str, ...] = (), *, count: bool =
     w.writerows(body)
     encoded = out.getvalue().encode("utf-8")
     return (encoded, len(body)) if count else encoded
+
+
+# A markdown block starter at the start of a cell: heading, quote, list bullet.
+_MD_STARTER = re.compile(r"^(?:[#>]+\s*|[-+*]\s+)+")
+
+
+def brief_cell(value, limit: int = 80) -> str:
+    """Upstream text made safe for one markdown table cell (or a span inside
+    one line) of BRIEF.md, for `brief_section`: all whitespace, newlines
+    included, collapsed to single spaces; backticks turned into `'` (so the
+    text can't open or close a code span or fence); a leading markdown block
+    starter (`#`, `>`, a `-`/`+`/`*` bullet) dropped; cut to `limit`
+    characters with `…`; then `|` escaped. Official feeds, but a multi-line
+    Excel header cell would otherwise break the table row or start a line
+    with `## …`."""
+    s = " ".join(str("" if value is None else value).split()).replace("`", "'")
+    s = _MD_STARTER.sub("", s)
+    if len(s) > limit:
+        s = s[: limit - 1].rstrip() + "…"
+    return s.replace("|", "\\|")
 
 
 def _csv_head(data: bytes, n: int) -> tuple[list[str], list[list[str]]]:

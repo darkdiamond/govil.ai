@@ -21,7 +21,13 @@ newest base (`VALUE_CHAINED`), once, so no recipe re-derives base linking.
 Some codes (seasonal fresh produce) lack coefficients for a switch; `_links`
 then links it with the published PERCENT or PERCENT_YEAR, and a switch with neither leaves
 VALUE_CHAINED blank for the older rows. A scale break hidden under one label
-(CBS's 1985 rows) is split off and linked by PERCENT (`_segments`).
+(CBS's 1985 rows) is split off and linked by PERCENT (`_segments`), and a row
+that carries the old base's value under the new base's label (minibus inputs,
+May 2020) is chained on the old base (`_carried`).
+
+**Optional codes.** All of a resource's codes go in one request, and the API
+answers HTTP 500 for some codes' history, failing all of them; codes listed
+in `optional_codes` are then fetched one by one and dropped if they fail.
 
 The catalog (`catalog/catalog` → chapters, `catalog/chapter?id=` → subjects,
 `catalog/subject?id=` → codes) is walked by the `catalog` CLI below.
@@ -43,7 +49,7 @@ from pathlib import Path
 from typing import ClassVar, Literal
 from urllib.parse import urlencode
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from .base import (
     Availability,
@@ -52,9 +58,12 @@ from .base import (
     ProviderFacts,
     ProviderResource,
     ProviderSettings,
+    ProviderTooLarge,
     SourceConfig,
     SourcePresentation,
     SourceProvider,
+    brief_cell,
+    log,
 )
 from .cbs import CbsReleasesProvider
 
@@ -66,6 +75,11 @@ _SIG_DIGITS = 7
 # A value ratio this far from the published PERCENT (either way) is a scale
 # break hidden under one base label, not rounding (see `_segments`).
 _SCALE_BREAK = 1.5
+# A step this far off its published PERCENT (as a ratio, ~1 point) is not
+# rounding; at a base switch it marks rows still carrying the old base's
+# value under the new label (`_carried`), at most this many in a row.
+_CARRY_TOL = 0.01
+_CARRY_MAX = 2
 
 COLUMNS = ("CODE", "NAME_HE", "FREQ", "TIME_PERIOD", "DATE", "YEAR", "PERIOD", "VALUE",
            "BASE_DESC", "PERCENT", "PERCENT_YEAR", "VALUE_CHAINED", "CHAIN_BASE")
@@ -100,6 +114,12 @@ class CbsIndexResource(BaseModel):
     # MM-YYYY; omitted = the whole history.
     start: str | None = Field(None, pattern=r"^(0[1-9]|1[0-2])-\d{4}$")
     frequency: Literal["month", "quarter", "both"] = "both"
+    # Codes (a subset of `codes`) the page can do without. All codes go in one
+    # request, and the API answers HTTP 500 for some codes' history (140743
+    # from 01-2000, 2026-11), which fails the whole request; a failing or
+    # empty optional code is dropped (and logged) instead of failing the
+    # resource. Compute must then cope with the code missing.
+    optional_codes: list[int] = Field(default_factory=list)
 
     @field_validator("codes")
     @classmethod
@@ -109,6 +129,15 @@ class CbsIndexResource(BaseModel):
         if any(c <= 0 for c in v):
             raise ValueError("codes must be positive")
         return v
+
+    @model_validator(mode="after")
+    def _optional_subset(self):
+        if len(self.optional_codes) != len(set(self.optional_codes)):
+            raise ValueError("optional_codes must be unique")
+        extra = sorted(set(self.optional_codes) - set(self.codes))
+        if extra:
+            raise ValueError(f"optional_codes {extra} are not in codes")
+        return self
 
 
 class CbsIndexDatasetConfig(ProviderDatasetConfig):
@@ -147,6 +176,57 @@ def _pct_link(old: dict, new: dict, pct) -> float | None:
     return c if c > 0 else None
 
 
+def _fits(old: dict, new: dict) -> bool | None:
+    """Whether `new`'s value follows `old`'s on one scale by `new`'s published
+    PERCENT (within `_CARRY_TOL`); None when a figure is missing."""
+    c = _pct_link(old, new, new.get("percent"))
+    return None if c is None else abs(c - 1) <= _CARRY_TOL
+
+
+def _carried(ds: list[tuple]) -> dict[int, str]:
+    """{row id: the older label} for rows that carry the old base's value under
+    the new base's label, in one frequency's rows sorted by date.
+
+    CBS's minibus input index (chapter `fa`, 432010 and its groups) labels May
+    2020 "2020 מאי" but publishes the old base's value there (133.1, the April
+    value moved by May's PERCENT), and the new base (=100) starts in June: the
+    June step contradicts its PERCENT by the whole coefficient. A run of rows
+    right after a label switch is moved back to the older label when each of
+    them follows its predecessor by PERCENT and the step out of the run, still
+    under the new label, doesn't. A switch whose PERCENT itself is off (CBS
+    sometimes publishes the raw cross-base ratio) has a consistent step after
+    it and is left to the coefficients."""
+    out: dict[int, str] = {}
+    per_year = 12 if ds and ds[0][1] == "month" else 4
+
+    def label(d: tuple) -> str | None:
+        return (d[5].get("currBase") or {}).get("baseDesc")
+
+    def consecutive(a: tuple, b: tuple) -> bool:
+        return (b[3] * per_year + b[4]) - (a[3] * per_year + a[4]) == 1
+
+    for i in range(1, len(ds)):
+        old_label, new_label = label(ds[i - 1]), label(ds[i])
+        if not old_label or not new_label or old_label == new_label:
+            continue
+        j = i
+        while j - i < _CARRY_MAX and j + 1 < len(ds):
+            if not consecutive(ds[j - 1], ds[j]) or not _fits(ds[j - 1][5], ds[j][5]):
+                break
+            nxt = ds[j + 1]
+            if label(nxt) != new_label or not consecutive(ds[j], nxt):
+                break
+            fit = _fits(ds[j][5], nxt[5])
+            if fit is None:
+                break
+            if not fit:
+                for d in ds[i:j + 1]:
+                    out[id(d[5])] = old_label
+                break
+            j += 1
+    return out
+
+
 def _segments(data_rows: list[tuple]) -> tuple[dict[int, str], dict[str, tuple[str, float]]]:
     """Each row's effective base, and the links between a base's own segments.
 
@@ -157,7 +237,8 @@ def _segments(data_rows: list[tuple]) -> tuple[dict[int, str], dict[str, tuple[s
     segment keeps the label (CBS's coefficients name it), older ones become
     `<label>#1`, `#2`, … linked by that PERCENT. Segments are numbered per
     frequency: a label's monthly and quarterly rows are the same base unless a
-    break splits them."""
+    break splits them. Rows `_carried` finds on the old base under the new
+    label count as the old label's."""
     eff: dict[int, str] = {}
     breaks: list[tuple[int, int, float]] = []  # (newer row id, older row id, coeff)
     starts: dict[tuple[str, str], list[tuple[str, list[int]]]] = defaultdict(list)
@@ -167,11 +248,16 @@ def _segments(data_rows: list[tuple]) -> tuple[dict[int, str], dict[str, tuple[s
     for ds in by_freq.values():
         ds.sort(key=lambda d: d[0])
         per_year = 12 if ds[0][1] == "month" else 4
+        carried = _carried(ds)
+
+        def lab(d: tuple, carried=carried) -> str | None:
+            return carried.get(id(d[5])) or (d[5].get("currBase") or {}).get("baseDesc")
+
         seg: list[int] = []
         for i, d in enumerate(ds):
-            label = (d[5].get("currBase") or {}).get("baseDesc")
+            label = lab(d)
             prev = ds[i - 1] if i else None
-            plabel = (prev[5].get("currBase") or {}).get("baseDesc") if prev else None
+            plabel = lab(prev) if prev else None
             split = prev is None or label != plabel
             if not split and (d[3] * per_year + d[4]) - (prev[3] * per_year + prev[4]) == 1:
                 c = _pct_link(prev[5], d[5], d[5].get("percent"))
@@ -300,9 +386,11 @@ def _newest(dated: list[tuple]) -> dict:
 
 
 def rows_csv(payload_pages: list[dict], codes: list[int], frequency: str,
-             chain_pages: list[dict] | None = None) -> bytes:
+             chain_pages: list[dict] | None = None,
+             optional: list[int] | tuple[int, ...] = ()) -> bytes:
     """The API's pages for one query → the normalized table (unsorted; the
-    caller's `normalize_csv` sorts). Raises when a requested code has no row.
+    caller's `normalize_csv` sorts). Raises when a requested code has no row,
+    unless it is in `optional` (then it is left out, with a warning).
 
     Each code's newest row usually carries the chain to every older base. The
     data pages may be fetched without `coef` (it multiplies the payload ~6x);
@@ -314,8 +402,16 @@ def rows_csv(payload_pages: list[dict], codes: list[int], frequency: str,
     by_code = _series_rows(payload_pages, freqs)
     chains = _series_rows(chain_pages, freqs) if chain_pages is not None else by_code
     missing = [c for c in codes if not by_code.get(c, {}).get("rows")]
+    required_missing = [c for c in missing if c not in optional]
+    if required_missing:
+        raise ProviderError(f"CBS index answered no {frequency} rows for code(s) "
+                            f"{required_missing}")
     if missing:
-        raise ProviderError(f"CBS index answered no {frequency} rows for code(s) {missing}")
+        log.warning("cbs_index: optional code(s) %s answered no %s rows, left out",
+                    missing, frequency)
+        codes = [c for c in codes if c not in missing]
+        if not codes:
+            raise ProviderError(f"CBS index answered no {frequency} rows for any code")
     out = io.StringIO(newline="")
     w = csv.writer(out, lineterminator="\n")
     w.writerow(COLUMNS)
@@ -409,8 +505,11 @@ class CbsIndexProvider(SourceProvider):
             update_frequency=source.update_frequency,
             source_url=source.source_url or self.HOME_URL,
             resources=[
+                # `optional_codes` only when set: the params of every other
+                # resource stay as they were before the field existed.
                 ProviderResource(id=r.id, name=r.name, format="CSV", url=self.download_url(r),
-                                 params=r.model_dump(exclude={"id", "name"}))
+                                 params=r.model_dump(exclude={"id", "name"} | (
+                                     set() if r.optional_codes else {"optional_codes"})))
                 for r in cfg.resources
             ],
         )
@@ -496,7 +595,50 @@ class CbsIndexProvider(SourceProvider):
     def download(self, resource: dict) -> bytes:
         r = self._resource(resource)
         try:
-            return rows_csv(self.pages(r), r.codes, r.frequency, self.chain_pages(r))
+            return rows_csv(self.pages(r), r.codes, r.frequency, self.chain_pages(r),
+                            r.optional_codes)
+        except ProviderTooLarge:
+            raise
+        except ProviderError as e:
+            if not r.optional_codes:
+                raise ProviderError(f"{r.id}: {e}") from e
+            first = e
+        # One code can fail the whole request: fetch the required codes
+        # together, then each optional code alone, dropping those that fail.
+        pages: list[dict] = []
+        chain: list[dict] = []
+        required = [c for c in r.codes if c not in r.optional_codes]
+        if required:
+            sub = r.model_copy(update={"codes": required, "optional_codes": []})
+            try:
+                pages += self.pages(sub)
+                chain += self.chain_pages(sub)
+            except ProviderError as e:
+                raise ProviderError(f"{r.id}: {e} (the required codes alone; the full "
+                                    f"request failed with: {first})") from e
+        kept, dropped = [], []
+        for c in r.optional_codes:
+            sub = r.model_copy(update={"codes": [c], "optional_codes": []})
+            try:
+                p, ch = self.pages(sub), self.chain_pages(sub)
+                rows_csv(p, [c], r.frequency, ch)  # the code must convert on its own
+            except ProviderTooLarge:
+                raise
+            except ProviderError as e:
+                dropped.append(c)
+                log.warning("provider %s: %s: optional code %s dropped: %s",
+                            self.key, r.id, c, e)
+                continue
+            kept.append(c)
+            pages += p
+            chain += ch
+        codes = [c for c in r.codes if c in required or c in kept]
+        if not codes:
+            raise ProviderError(f"{r.id}: every optional code failed (first: {first})")
+        log.warning("provider %s: %s: dropped optional code(s) %s; the full request "
+                    "failed with: %s", self.key, r.id, dropped, first)
+        try:
+            return rows_csv(pages, codes, r.frequency, chain)
         except ProviderError as e:
             raise ProviderError(f"{r.id}: {e}") from e
 
@@ -569,10 +711,12 @@ class CbsIndexProvider(SourceProvider):
                 out.write(f"\n… {len(stats) - _BRIEF_MAX_CODES} more not listed\n")
                 break
             lr = s["last_row"]
-            out.write(f"| {code} | {s['name']} | {freq} | {s['n']:,} | {s['first_tp']} | "
-                      f"{lr['TIME_PERIOD']} | {lr['VALUE']} ({lr['BASE_DESC']}) | "
-                      f"{lr['PERCENT']} / {lr['PERCENT_YEAR']} | {len(s['bases'])} | "
-                      f"{s['chain']} | {s['unchained']} |\n")
+            out.write(f"| {brief_cell(code)} | {brief_cell(s['name'])} | {brief_cell(freq)} | "
+                      f"{s['n']:,} | {brief_cell(s['first_tp'])} | "
+                      f"{brief_cell(lr['TIME_PERIOD'])} | {brief_cell(lr['VALUE'])} "
+                      f"({brief_cell(lr['BASE_DESC'])}) | {brief_cell(lr['PERCENT'])} / "
+                      f"{brief_cell(lr['PERCENT_YEAR'])} | {len(s['bases'])} | "
+                      f"{brief_cell(s['chain'])} | {s['unchained']} |\n")
         return out.getvalue()
 
     def authoring_notes(self) -> str:
@@ -593,7 +737,9 @@ class CbsIndexProvider(SourceProvider):
             "  never splice VALUE onto it.\n"
             "- CBS's 1985 rows (CPI, housing) are labelled \"1980 ממוצע\" but sit on a scale\n"
             "  100x smaller; the provider detects such breaks against PERCENT and chains them\n"
-            "  correctly, so VALUE_CHAINED needs no repair in compute.\n"
+            "  correctly, so VALUE_CHAINED needs no repair in compute. Likewise a row that\n"
+            "  carries the old base's value under the new label (minibus inputs, May 2020):\n"
+            "  BASE_DESC and VALUE stay as published, VALUE_CHAINED is right.\n"
             "- PERCENT (vs the previous period) and PERCENT_YEAR (vs the same period a year\n"
             "  earlier) are CBS's published changes, rounded to 0.1. Quote them as published;\n"
             "  a change recomputed from VALUE_CHAINED can differ by 0.1.\n"
@@ -606,6 +752,12 @@ class CbsIndexProvider(SourceProvider):
             "- The API answers HTTP 500 for some codes when the range reaches before the\n"
             "  code's real start (new dwellings, 70000, before 12-2018). Put such a code in\n"
             "  its own resource with a `start`, rather than shortening every series.\n"
+            "  Some codes 500 on part of their history whatever the start (140743 from\n"
+            "  01-2000, not from 01-2015; 2026-11). One failing code fails its whole\n"
+            "  resource, so list a code the page can do without in the resource's\n"
+            "  `optional_codes` (a subset of `codes`): when the request fails, each\n"
+            "  optional code is fetched alone and dropped if it fails or has no rows.\n"
+            "  Compute must then render without it (drop its row or chart).\n"
             "- Publication: CPI and most indices come out on the 15th (or the working day\n"
             "  before) for the previous month; housing prices lag about two months. Say which\n"
             "  period the latest figure covers (the latest TIME_PERIOD), not the run date.\n"

@@ -11,7 +11,8 @@ The release list is the media-release site's SharePoint list (open REST):
 
 One query per run serves every CBS page. A release's files live in
 `{base}/DocLib/<year>/<no>/`, named `<chapter>_<yy>_<no>t<N>.xlsx|xls|pdf`
-(`b.pdf` is the written report). The same report flips between `.xls`
+(`b.pdf` is the written report; the chapter and year tokens are sometimes
+swapped, see `file_chapters`). The same report flips between `.xls`
 (BIFF, cp1255) and `.xlsx` from one edition to the next, so tables are
 matched by stem (`t1`) and read with python-calamine, which reads both
 formats through one API.
@@ -55,9 +56,10 @@ from .base import (
     SourceConfig,
     SourcePresentation,
     SourceProvider,
+    brief_cell,
 )
 
-SITE = "https://www.cbs.gov.il"
+SITE ="https://www.cbs.gov.il"
 LIST_TITLE = "דפים"
 # ~1500 items reach ~3 years back (to 2022-11, measured 2026-11: 2.3 s,
 # 0.95 MB per run): 2–3 editions of a yearly report, a monthly report's full
@@ -108,8 +110,11 @@ class CbsReport(BaseModel):
     # exclude special editions with a lookahead, e.g. `^כניסות של מבקרים
     # לישראל ב(?!שנת)` (the yearly summary is also labelled monthly).
     title_regex: str = Field(min_length=1)
-    # File prefix (`28` in `28_26_345t1.xlsx`): a release whose folder has no
-    # file with it doesn't match.
+    # CBS chapter (`28` in `28_26_345t1.xlsx`): a release whose folder has no
+    # file naming it doesn't match. Matched against every leading number token
+    # but the year (`file_chapters`), so `26_33_037t1.xlsx` is chapter 33. A
+    # report CBS moved to another chapter (`cbs-population-new-year`: `11_`
+    # to 2023, `01_` since) matches only the editions under this one.
     chapter: str | None = Field(None, pattern=r"^\d{1,3}$")
     # CbsMMDInterval label: חודשי / רבעוני / שנתי / …
     interval: str | None = None
@@ -185,6 +190,27 @@ class Release:
     @property
     def page_url(self) -> str:
         return SITE + quote(self.file_ref)
+
+
+def file_chapters(name: str, year: str) -> list[str]:
+    """The chapter tokens of a release file's name: its leading `_`-separated
+    number tokens, less one that is the release year's last two digits.
+
+    CBS names files `<chapter>_<yy>_<no>…` (`28_26_345t1.xlsx`), but not
+    always in that order: quality of life in cities 2026 is `26_33_037t1.xlsx`
+    (chapter 33). Dropping the year token, wherever it sits, keeps a chapter
+    equal to the year from matching every release of that year, while a
+    chapter that is the year too (`26_26_347t1.xlsx`) still has its own
+    token. The last token (`345t1.xlsx`, `345b.pdf`) is never a chapter."""
+    lead = []
+    for tok in name.split("_")[:-1]:
+        if not tok.isdigit():
+            break
+        lead.append(tok)
+    yy = str(year)[-2:]
+    if yy in lead:
+        lead.remove(yy)
+    return lead
 
 
 def _parse_time(v: str | None) -> dt.datetime | None:
@@ -391,7 +417,8 @@ class CbsReleasesProvider(SourceProvider):
         out = []
         for rel in self.candidates(report):
             if report.chapter and not any(
-                f["Name"].startswith(f"{report.chapter}_") for f in self.folder_files(rel)
+                report.chapter in file_chapters(f["Name"], rel.year)
+                for f in self.folder_files(rel)
             ):
                 continue
             out.append(rel)
@@ -574,11 +601,11 @@ class CbsReleasesProvider(SourceProvider):
             out.write(f"- {len(rows)} matching release(s), newest first:\n\n")
             out.write("| RELEASE_NO | RELEASE_DATE | TITLE | HEADLINE |\n|---|---|---|---|\n")
             for r in sorted(rows, key=lambda r: r["RELEASE_DATE"], reverse=True):
-                out.write(f"| {r['RELEASE_NO']} | {r['RELEASE_DATE']} | {_md(r['TITLE'])} | "
-                          f"{_md(r['HEADLINE'])} |\n")
+                out.write(f"| {_md(r['RELEASE_NO'])} | {_md(r['RELEASE_DATE'])} | "
+                          f"{_md(r['TITLE'])} | {_md(r['HEADLINE'])} |\n")
             return out.getvalue()
         used = self._files_used.get(self._cache_key(resource)) or []
-        files = ", ".join(f"{n} `{f}`" for n, f in used)
+        files = ", ".join(f"{_md(n)} `{brief_cell(f, 200)}`" for n, f in used)
         if not files:
             files = "none (optional table, absent from every edition)" if p.get("optional") else "?"
         out.write(f"- table `{p.get('table')}`"
@@ -589,11 +616,12 @@ class CbsReleasesProvider(SourceProvider):
             groups[(r["RELEASE_DATE"], r["RELEASE_NO"], r["SHEET_NO"], r["SHEET"])].append(r)
         for (date, no, sheet_no, sheet), grp in sorted(groups.items(), reverse=True):
             cols = [c for c in grp[0] if c.startswith("C") and any(g[c] for g in grp)]
-            out.write(f"\n**{no} ({date}), sheet {sheet_no} `{sheet}`** — {len(grp)} rows"
+            out.write(f"\n**{_md(no)} ({_md(date)}), sheet {_md(sheet_no)} `{_md(sheet)}`** — "
+                      f"{len(grp)} rows"
                       + (f", first {_BRIEF_ROWS}" if len(grp) > _BRIEF_ROWS else "") + ":\n\n")
             out.write("| ROW | " + " | ".join(cols) + " |\n|---|" + "---|" * len(cols) + "\n")
             for g in grp[:_BRIEF_ROWS]:
-                out.write(f"| {g['ROW']} | " + " | ".join(_md(g[c]) for c in cols) + " |\n")
+                out.write(f"| {_md(g['ROW'])} | " + " | ".join(_md(g[c]) for c in cols) + " |\n")
         return out.getvalue()
 
     def authoring_notes(self) -> str:
@@ -653,8 +681,7 @@ class CbsReleasesProvider(SourceProvider):
 
 
 def _md(v: str) -> str:
-    v = (v or "").replace("|", "\\|")
-    return v if len(v) <= _BRIEF_CELL else v[: _BRIEF_CELL - 1] + "…"
+    return brief_cell(v, _BRIEF_CELL)
 
 
 # ── catalog CLI ──────────────────────────────────────────────────────────
@@ -738,7 +765,7 @@ def catalog(provider: CbsReleasesProvider, months: int = 12, min_count: int = 2,
                 names = [f["Name"] for f in provider.folder_files(last)]
             except ProviderError as e:
                 names, entry["error"] = [], str(e)
-            chapters = Counter(n.split("_", 1)[0] for n in names if "_" in n)
+            chapters = Counter(c for n in names for c in file_chapters(n, last.year))
             entry["chapter"] = chapters.most_common(1)[0][0] if chapters else ""
             entry["tables"] = sorted(
                 {m.group(1) + "." + m.group(2) for n in names
@@ -778,4 +805,5 @@ if __name__ == "__main__":
 
 
 __all__ = ["CbsDatasetConfig", "CbsReleasesProvider", "Release", "catalog", "cell_text",
+           "file_chapters",
            "grid_csv", "normalize_title", "workbook_grid"]
