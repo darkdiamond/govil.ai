@@ -30,11 +30,13 @@ This repo is public: describe a security gap by what to change, never by how to 
   once), but authors waste fix rounds on it. Fix: have `preview` restart the dev server, or
   touch the Tailwind config, when a newly rendered body adds unseen classes. (2026-11-09)
 
-- **Two live pages for the "חברה ורווחה" journal.** 1ba21c94 (legacy agent page) and e4c3e3d0
-  (recipe) are both active on data.gov.il and split the "חברה ורווחה" impressions (56 vs 14 a
-  week, both at position 7.3). Neither can 301 to the other while both exist upstream. Fix: if
-  the CSVs turn out to be the same journal index, give 1ba21c94 a recipe that points readers to
-  the other page, or add a successor entry once one of them is removed. (2026-11-06)
+- **Check the "חברה ורווחה" GSC split around 2026-12-15.** 1ba21c94 and e4c3e3d0 split the
+  query's impressions (56 vs 14 a week, both at position 7.3). They hold different data:
+  1ba21c94's CSV is the English edition (English titles, authors and abstract PDFs, 2021 on),
+  e4c3e3d0 the full Hebrew index, so no successor or redirect. On 2026-11-17 1ba21c94 got a
+  recipe positioned as the English edition ("Society and Welfare: תקצירים באנגלית"), linking to
+  e4c3e3d0, which now links back. If the two still share the Hebrew query at the same position,
+  rethink the English page's title. (2026-11-17)
 - **Legacy pages with search traffic and no recipe** (GSC, 7 days to 2026-11-05): 945b3682,
   2987efb0, 3a4c012f, 8b3d9aa2 (dff8a168, 13 clicks, waits on its 667MB SHP: see the top-100
   map pages item). 1d2d0ec1 and 65dafbb0 got recipes 2026-11-06, 51227f7b in #381 (2026-11-09) and
