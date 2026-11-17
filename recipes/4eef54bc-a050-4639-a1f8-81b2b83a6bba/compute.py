@@ -107,11 +107,12 @@ def _name_key(s):
     """Join key for authority names across report years. The authority-code
     columns swap meaning between years (see coverage.json), so authorities are
     joined by name; this folds the spelling drift a re-typed name can carry:
-    gershayim/geresh vs ASCII or typographic quotes, spaces around hyphens,
-    runs of whitespace."""
+    gershayim/geresh vs ASCII or typographic quotes, a hyphen or maqaf vs a
+    space (the 2018 report spells "\u05de\u05d2'\u05d3 \u05d0\u05dc \u05db\u05e8\u05d5\u05dd" and "\u05d9\u05d4\u05d5\u05d3 - \u05de\u05d5\u05e0\u05d5\u05e1\u05d5\u05df" where
+    later ones have "\u05de\u05d2'\u05d3 \u05d0\u05dc-\u05db\u05e8\u05d5\u05dd" and "\u05d9\u05d4\u05d5\u05d3-\u05de\u05d5\u05e0\u05d5\u05e1\u05d5\u05df"), runs of whitespace."""
     s = s.str.replace(r"[\u05f4\u201c\u201d\u201e]", '"', regex=True)
     s = s.str.replace(r"[\u05f3\u2018\u2019`]", "'", regex=True)
-    s = s.str.replace(r"\s*[-\u2010\u2013]\s*", "-", regex=True)
+    s = s.str.replace(r"[-\u05be\u2010-\u2013]", " ", regex=True)
     return s.str.replace(r"\s+", " ", regex=True).str.strip()
 
 
@@ -140,13 +141,15 @@ def _load(frames):
     long["year"] = long["year"].astype(int)
     # One display name per authority: the spelling of its newest data year
     # (ties: the alphabetically first, so the pick doesn't depend on row order).
-    long["key"] = _name_key(long["name"])
-    latest_name = (long.sort_values(["key", "year", "name"], ascending=[True, False, True],
-                                    kind="stable")
+    # Folded on the distinct (name, year) pairs, not on every cell row.
+    spell = long[["name", "year"]].drop_duplicates()
+    spell["key"] = _name_key(spell["name"])
+    latest_name = (spell.sort_values(["key", "year", "name"], ascending=[True, False, True],
+                                     kind="stable")
                    .drop_duplicates("key")
                    .set_index("key")["name"])
-    long["name"] = long["key"].map(latest_name)
-    long = long.drop(columns="key")
+    canon = dict(zip(spell["name"], spell["key"].map(latest_name)))
+    long["name"] = long["name"].map(canon)
     long["metric"] = long["code"].map(lambda c: CODE_MAP[c][0])
     long["cur"] = long["code"].map(lambda c: CODE_MAP[c][1])
     # Own report first; ties (a year published twice) break on value.

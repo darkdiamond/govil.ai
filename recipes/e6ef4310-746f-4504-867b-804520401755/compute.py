@@ -175,6 +175,10 @@ def _prepare(raw):
     rel = pd.Series(pd.NaT, index=df.index, dtype="datetime64[ns]")
     mask = months.notna() & df["insp"].notna()
     for m in sorted(months[mask].unique()):
+        if m >= 12 * 584:
+            # Longer than the whole ns range: no expiry fits, and the bound
+            # below would itself overflow.
+            continue
         # insp + m months must still fit the ns Series it is written into.
         sel = mask & (months == m) & (df["insp"] <= pd.Timestamp.max - pd.DateOffset(months=int(m)))
         rel[sel] = df.loc[sel, "insp"] + pd.DateOffset(months=int(m))
