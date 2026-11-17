@@ -1,0 +1,298 @@
+{% import "gov.j2" as gov %}
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+{{ gov.lede(model.labels.lede) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("external-link", "ההודעה האחרונה של הלמ\"ס") }}
+  <p class="m-0 text-sm text-subtle mb-2">{{ model.release.title }} · פורסמה {{ model.release.date }}</p>
+{%- if model.release.headline %}
+  <p class="m-0 mb-3 font-semibold text-ink-deep">{{ model.release.headline }}</p>
+{%- endif %}
+  <p class="m-0 text-sm flex flex-wrap gap-4">
+    <a href="{{ model.release.url }}" target="_blank" rel="noopener">להודעה המלאה באתר הלמ"ס</a>
+{%- if model.release.pdf %}
+    <a href="{{ model.release.pdf }}" target="_blank" rel="noopener">לדוח המלא (PDF)</a>
+{%- endif %}
+  </p>
+</section>
+
+<div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
+{%- for key in ["academic", "academic_chg", "women", "men", "arab", "income_acad"] %}
+{%- if model.kpis[key] is defined %}
+  {{ gov.kpi(model.kpis[key], model.labels[key ~ "_kpi"]) }}
+{%- endif %}
+{%- endfor %}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "רמת ההשכלה של בני " ~ model.labels.ages ~ " לאורך השנים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.mix_note }}</p>
+  {{ gov.chart("chart-mix", model.labels.mix_aria, "h-72 md:h-96") }}
+  {{ gov.table("רמת ההשכלה של בני " ~ model.labels.ages ~ " לפי שנה (אחוזים)", model.labels.mix_cols, model.tables.mix, ltr=(1, 2, 3, 4)) }}
+</section>
+
+{%- if model.flags.detail %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "התעודה הגבוהה ביותר: תואר ראשון, שני ושלישי, בגרות") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.detail_note }}</p>
+  {{ gov.chart("chart-detail", model.labels.detail_aria, "h-80 md:h-[460px]") }}
+  {{ gov.table("רמת השכלה מפורטת של בני " ~ model.labels.ages ~ " (אחוזים)", model.labels.detail_cols, model.tables.detail, ltr=range(1, model.labels.detail_cols | length) | list) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.sex %}
+<section class="card p-5 mb-6">
+  {{ gov.head("chart-bar", "השכלה אקדמית בקרב נשים וגברים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.sex_note }}</p>
+  {{ gov.chart("chart-sex", model.labels.sex_aria, "h-72 md:h-96") }}
+  {{ gov.table("שיעור בעלי השכלה אקדמית ונמוכה לפי מין (אחוזים)", ["שנה", "אקדמית, גברים (%)", "אקדמית, נשים (%)", "השכלה נמוכה, גברים (%)", "השכלה נמוכה, נשים (%)"], model.tables.sex, ltr=(1, 2, 3, 4)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.groups %}
+<section class="card p-5 mb-6">
+  {{ gov.head("chart-bar", "רמת ההשכלה לפי קבוצת אוכלוסייה ומין") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.groups_note }}</p>
+  {{ gov.chart("chart-groups", model.labels.groups_aria, "h-80 md:h-96") }}
+  {{ gov.table("רמת ההשכלה לפי קבוצת אוכלוסייה ומין (אחוזים)", model.labels.groups_cols, model.tables.groups, ltr=(1, 2, 3, 4)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.gtrend %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "השכלה אקדמית בקרב יהודים וערבים לאורך השנים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.gtrend_note }}</p>
+  {{ gov.chart("chart-gtrend", model.labels.gtrend_aria, "h-72 md:h-80") }}
+  {{ gov.table("שיעור בעלי השכלה אקדמית לפי קבוצת אוכלוסייה ושנה (אחוזים)", ["שנה", "אקדמית, יהודים ואחרים (%)", "אקדמית, ערבים (%)", "השכלה נמוכה, ערבים (%)"], model.tables.gtrend, ltr=(1, 2, 3)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.stream %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "השכלה לפי פיקוח בית הספר: ממלכתי, ממלכתי-דתי וחרדי") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.stream_note }}</p>
+  {{ gov.chart("chart-stream", model.labels.stream_aria, "h-72 md:h-80") }}
+  {{ gov.table("שיעור בעלי השכלה אקדמית לפי פיקוח ומין (אחוזים)", model.labels.stream_cols, model.tables.stream, ltr=range(1, model.labels.stream_cols | length) | list) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.religion %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "השכלה אקדמית בחברה הערבית לפי דת ומין") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.religion_note }}</p>
+  {{ gov.chart("chart-religion", model.labels.religion_aria, "h-72 md:h-80") }}
+  {{ gov.table("שיעור בעלי השכלה אקדמית בקרב ערבים לפי דת ומין (אחוזים)", model.labels.religion_cols, model.tables.religion, ltr=range(1, model.labels.religion_cols | length) | list) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.muslim %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "השכלה אקדמית בקרב מוסלמים ומוסלמיות לאורך השנים") }}
+  <p class="m-0 text-sm text-subtle mb-3">שיעור בעלי ההשכלה האקדמית בקרב גברים ונשים מוסלמים בני {{ model.labels.ages }}, בשנים שבהודעה.</p>
+  {{ gov.chart("chart-muslim", model.labels.muslim_aria, "h-64 md:h-80") }}
+  {{ gov.table("שיעור בעלי השכלה אקדמית בקרב מוסלמים לפי מין (אחוזים)", ["שנה", "גברים (%)", "נשים (%)"], model.tables.muslim, ltr=(1, 2)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.yrs %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "מספר שנות הלימוד") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.yrs_note }}</p>
+  {{ gov.chart("chart-yrs", model.labels.yrs_aria, "h-72 md:h-96") }}
+  {{ gov.table("התפלגות מספר שנות הלימוד של בני " ~ model.labels.ages ~ " (אחוזים)", model.labels.yrs_cols, model.tables.yrs, ltr=range(0, model.labels.yrs_cols | length) | list) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.income %}
+<section class="card p-5 mb-6">
+  {{ gov.head("trending-up", "השכלה והכנסה מעבודה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.income_note }}</p>
+  {{ gov.chart("chart-income", model.labels.income_aria, "h-72 md:h-96") }}
+  {{ gov.table("הכנסה חודשית ממוצעת מעבודה לפי רמת השכלה וסוג הכנסה (ש\"ח)", model.labels.income_cols, model.tables.income, ltr=range(1, model.labels.income_cols | length) | list) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.incd %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "שכר לפי תואר: ראשון, שני ושלישי") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.incd_note }}</p>
+  {{ gov.chart("chart-incd", model.labels.incd_aria, "h-80 md:h-96") }}
+  {{ gov.table("הכנסה חודשית ממוצעת לפי רמת השכלה מפורטת (ש\"ח)", model.labels.incd_cols, model.tables.incd, ltr=range(1, model.labels.incd_cols | length) | list) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.incgap %}
+<section class="card p-5 mb-6">
+  {{ gov.head("chart-bar", "פערי הכנסה לפי מין וקבוצת אוכלוסייה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.incgap_note }}</p>
+  {{ gov.chart("chart-incgap", model.labels.incgap_aria, "h-72 md:h-96") }}
+  {{ gov.table("הכנסה חודשית ממוצעת מעבודה לפי רמת השכלה, מין וקבוצת אוכלוסייה (ש\"ח)", model.labels.incgap_cols, model.tables.incgap, ltr=(1, 2, 3, 4)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.employ %}
+<section class="card p-5 mb-6">
+  {{ gov.head("chart-bar", "רמת ההשכלה של מועסקים ושל מי שאינם מועסקים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.employ_note }}</p>
+  {{ gov.chart("chart-employ", model.labels.employ_aria, "h-64 md:h-72") }}
+  {{ gov.table("רמת ההשכלה לפי מצב תעסוקה (אחוזים)", model.labels.employ_cols, model.tables.employ, ltr=(1, 2, 3, 4)) }}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("tag", "על הנתונים") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm text-subtle marker:text-brand">
+    <li>הנתונים מתוך ההודעה לתקשורת של הלשכה המרכזית לסטטיסטיקה על רמת ההשכלה של בני {{ model.labels.ages }}, לפי מרשם ההשכלה של הלמ"ס. המרשם מצרף נתונים מנהליים על תעודות בגרות, תארים אקדמיים ולימודים על-תיכוניים.</li>
+    <li>"רמת השכלה" היא התעודה הגבוהה ביותר שאדם קיבל. "השכלה נמוכה" כוללת את מי שלא סיימו בית ספר תיכון ואת מי שאין עליהם מידע במרשם.</li>
+    <li>ההכנסה מעבודה היא הכנסה ממוצעת לחודש מנתוני הרשויות: לשכירים, ההכנסה השנתית חלקי מספר חודשי העבודה; לעצמאים, ההכנסה השנתית חלקי שנים-עשר. חלק מנתוני העצמאים טרם דווחו בעת הפרסום.</li>
+    <li>ההודעה מתפרסמת אחת לכמה זמן, והלוחות שבה משתנים בין ההודעות. העמוד מציג את הלוחות שמופיעים בהודעה האחרונה.</li>
+  </ul>
+</section>
+
+<script>
+  (function () {
+    const C = {{ model.charts | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const lvColors = [pal[0], pal[2], pal[1], pal[6]];
+    const pct = (v) => v == null ? "" : Number(v).toFixed(1) + "%";
+    const nis = (v) => v == null ? "" : Math.round(v).toLocaleString("he-IL") + " ש\"ח";
+    const mount = (id, opt) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const chart = echarts.init(el);
+      chart.setOption(window.GovEcharts.option(opt));
+      window.addEventListener("resize", () => chart.resize());
+    };
+    const stacked = (id, d, horizontal) => {
+      const cat = { type: "category", data: d.x || d.cats, inverse: !!horizontal,
+        axisLabel: horizontal ? { width: 110, overflow: "break", fontSize: 11 } : {} };
+      const val = { type: "value", max: 100, axisLabel: { formatter: "{value}%" } };
+      mount(id, {
+        color: lvColors,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: pct },
+        legend: { top: 0 },
+        grid: { left: 16, right: 16, top: 64, bottom: 8, containLabel: true },
+        xAxis: horizontal ? val : cat,
+        yAxis: horizontal ? cat : val,
+        series: d.names.map((n, k) => ({ type: "bar", stack: "a", name: n, data: d.series[k],
+          label: { show: true, formatter: (p) => p.value >= 6 ? Number(p.value).toFixed(0) + "%" : "", fontSize: 11, color: "#fff" } }))
+      });
+    };
+    const grouped = (id, d, fmt, colors, horizontal) => {
+      const cat = { type: "category", data: d.cats, inverse: !!horizontal,
+        axisLabel: { width: horizontal ? 110 : 80, overflow: "break", fontSize: 11, interval: 0 } };
+      const val = { type: "value", axisLabel: { formatter: (v) => fmt === pct ? v + "%" : Number(v).toLocaleString("he-IL") } };
+      mount(id, {
+        color: colors,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: fmt },
+        legend: { top: 0 },
+        grid: { left: 16, right: 16, top: 56, bottom: 8, containLabel: true },
+        xAxis: horizontal ? val : cat,
+        yAxis: horizontal ? cat : val,
+        series: d.names.map((n, k) => ({ type: "bar", name: n, data: d.series[k] }))
+      });
+    };
+
+    stacked("chart-mix", C.mix, false);
+
+    if (C.detail) {
+      mount("chart-detail", {
+        color: [pal[6], pal[2], pal[0]],
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: pct },
+        legend: { top: 0 },
+        grid: { left: 16, right: 40, top: 32, bottom: 8, containLabel: true },
+        xAxis: { type: "value", axisLabel: { formatter: "{value}%" } },
+        yAxis: { type: "category", data: C.detail.names, inverse: true, axisLabel: { width: 120, overflow: "break", fontSize: 11 } },
+        series: C.detail.years.map((y, k) => ({ type: "bar", name: y, data: C.detail.series[k],
+          label: { show: k === C.detail.years.length - 1, position: "right", formatter: (p) => p.value == null ? "" : Number(p.value).toFixed(1) + "%", fontSize: 10 } }))
+      });
+    }
+
+    if (C.sex) {
+      mount("chart-sex", {
+        color: [pal[0], pal[1], pal[0], pal[1]],
+        tooltip: { trigger: "axis", valueFormatter: pct },
+        legend: { top: 0 },
+        grid: { left: 16, right: 16, top: 64, bottom: 8, containLabel: true },
+        xAxis: { type: "category", data: C.sex.x },
+        yAxis: { type: "value", axisLabel: { formatter: "{value}%" } },
+        series: [
+          { type: "bar", name: "אקדמית: גברים", data: C.sex.m },
+          { type: "bar", name: "אקדמית: נשים", data: C.sex.f },
+          { type: "line", name: "נמוכה: גברים", data: C.sex.m_low, lineStyle: { type: "dashed", width: 2 } },
+          { type: "line", name: "נמוכה: נשים", data: C.sex.f_low, lineStyle: { type: "dashed", width: 2 } }
+        ]
+      });
+    }
+
+    if (C.groups) stacked("chart-groups", C.groups, true);
+
+    if (C.gtrend) {
+      mount("chart-gtrend", {
+        color: [pal[0], pal[2], pal[2]],
+        tooltip: { trigger: "axis", valueFormatter: pct },
+        legend: { top: 0 },
+        grid: { left: 16, right: 16, top: 56, bottom: 8, containLabel: true },
+        xAxis: { type: "category", data: C.gtrend.x },
+        yAxis: { type: "value", axisLabel: { formatter: "{value}%" } },
+        series: [
+          { type: "bar", name: "אקדמית: יהודים ואחרים", data: C.gtrend.jews },
+          { type: "bar", name: "אקדמית: ערבים", data: C.gtrend.arabs },
+          { type: "line", name: "נמוכה: ערבים", data: C.gtrend.arabs_low, lineStyle: { type: "dashed", width: 2 } }
+        ]
+      });
+    }
+
+    if (C.stream) grouped("chart-stream", C.stream, pct, [pal[6], pal[0], pal[1]], false);
+    if (C.religion) grouped("chart-religion", C.religion, pct, [pal[6], pal[0], pal[1]], false);
+
+    if (C.muslim) {
+      mount("chart-muslim", {
+        color: [pal[0], pal[1]],
+        tooltip: { trigger: "axis", valueFormatter: pct },
+        legend: { top: 0 },
+        grid: { left: 16, right: 24, top: 40, bottom: 8, containLabel: true },
+        xAxis: { type: "category", data: C.muslim.x },
+        yAxis: { type: "value", axisLabel: { formatter: "{value}%" } },
+        series: [
+          { type: "line", name: "גברים מוסלמים", data: C.muslim.m, lineStyle: { width: 3 },
+            label: { show: true, formatter: (p) => Number(p.value).toFixed(1) + "%" } },
+          { type: "line", name: "נשים מוסלמיות", data: C.muslim.f, lineStyle: { width: 3 },
+            label: { show: true, position: "bottom", formatter: (p) => Number(p.value).toFixed(1) + "%" } }
+        ]
+      });
+    }
+
+    if (C.yrs) {
+      mount("chart-yrs", {
+        color: [pal[0], pal[1], pal[2], pal[9]],
+        tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toFixed(2) + "%" },
+        legend: { top: 0 },
+        grid: { left: 16, right: 16, top: 56, bottom: 24, containLabel: true },
+        xAxis: { type: "category", data: C.yrs.x, name: "שנות לימוד", nameLocation: "middle", nameGap: 26 },
+        yAxis: { type: "value", axisLabel: { formatter: "{value}%" } },
+        series: C.yrs.names.map((n, k) => ({ type: "line", name: n, data: C.yrs.series[k], showSymbol: false, lineStyle: { width: 2.5, type: k >= 2 ? "dashed" : "solid" } }))
+      });
+    }
+
+    if (C.income) grouped("chart-income", C.income, nis, [pal[0], pal[6], pal[1]], false);
+
+    if (C.incd) {
+      mount("chart-incd", {
+        color: [pal[0]],
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: nis },
+        grid: { left: 16, right: 64, top: 8, bottom: 8, containLabel: true },
+        xAxis: { type: "value", axisLabel: { show: false }, splitLine: { show: false } },
+        yAxis: { type: "category", data: C.incd.cats, inverse: true, axisLabel: { width: 120, overflow: "break", fontSize: 11 } },
+        series: [{ type: "bar", data: C.incd.values,
+          label: { show: true, position: "right", formatter: (p) => Math.round(p.value).toLocaleString("he-IL") } }]
+      });
+    }
+
+    if (C.incgap) grouped("chart-incgap", C.incgap, nis, [pal[0], pal[2], pal[1], pal[6]], false);
+    if (C.employ) stacked("chart-employ", C.employ, true);
+  })();
+</script>

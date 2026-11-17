@@ -1,0 +1,249 @@
+{% import "gov.j2" as gov %}
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+{{ gov.lede(model.labels.lede) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("external-link", "ההודעה האחרונה של הלמ\"ס") }}
+  <p class="m-0 text-sm text-subtle mb-2">{{ model.labels.release.title }} · פורסמה {{ model.labels.release.date }}</p>
+{%- if model.labels.release.headline %}
+  <p class="m-0 mb-3 font-semibold text-ink-deep">{{ model.labels.release.headline }}</p>
+{%- endif %}
+  <p class="m-0 text-sm flex flex-wrap gap-4">
+    <a href="{{ model.labels.release.url }}" target="_blank" rel="noopener">להודעה המלאה באתר הלמ"ס</a>
+{%- if model.labels.release.pdf %}
+    <a href="{{ model.labels.release.pdf }}" target="_blank" rel="noopener">לדוח המלא (PDF)</a>
+{%- endif %}
+  </p>
+</section>
+
+<div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
+  {{ gov.kpi(model.kpis.total, model.labels.total_kpi) }}
+{%- if model.kpis.change is defined %}
+  {{ gov.kpi(model.kpis.change, model.labels.change_kpi) }}
+{%- endif %}
+{%- if model.kpis.nonres is defined %}
+  {{ gov.kpi(model.kpis.nonres, model.labels.nonres_kpi) }}
+{%- endif %}
+{%- if model.kpis.conv is defined %}
+  {{ gov.kpi(model.kpis.conv, model.labels.conv_kpi) }}
+{%- endif %}
+{%- if model.kpis.recid is defined %}
+  {{ gov.kpi(model.kpis.recid, model.labels.recid_kpi) }}
+{%- endif %}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "מספר העומדים לדין לאורך השנים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.trend_note }}</p>
+  {{ gov.chart("chart-trend", model.labels.trend_aria, "h-72 md:h-96") }}
+  {{ gov.table("עומדים לדין לפי תושבות ושנת פסק דין", ["שנת פסק דין", "תושבי ישראל", "אינם תושבי ישראל", "סך הכל"], model.tables.trend, ltr=(0, 1, 2, 3)) }}
+</section>
+
+{%- if model.flags.get("offence") %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "קבוצת העבירה החמורה ביותר") }}
+  <p class="m-0 text-sm text-subtle mb-3">התפלגות העומדים לדין בשנת {{ model.labels.offence_year }} לפי קבוצת העבירה החמורה ביותר שבגינה עמדו לדין (אחוזים), בכלל העומדים לדין, בקרב תושבי ישראל ובקרב מי שאינם תושבי ישראל. תא ריק: הנתון אינו מתפרסם.</p>
+  {{ gov.chart("chart-offence", model.labels.offence_aria, "h-[520px]") }}
+  {{ gov.table("עומדים לדין לפי קבוצת העבירה החמורה ביותר ותושבות (אחוזים)", ["קבוצת עבירה", "סך הכל", "תושבי ישראל", "אינם תושבי ישראל"], model.tables.offence, ltr=(1, 2, 3)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.get("off_years") %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "הרכב העבירות לאורך השנים") }}
+  <p class="m-0 text-sm text-subtle mb-3">חלקה של כל קבוצת עבירה מכלל העומדים לדין, בכל שנת פסק דין שבהודעות האחרונות.</p>
+  {{ gov.chart("chart-off-years", model.labels.off_years_aria, "h-[520px]") }}
+  {{ gov.table("עומדים לדין לפי קבוצת עבירה ושנת פסק דין (אחוזים)", model.labels.off_years_cols, model.tables.off_years, ltr=range(1, model.labels.off_years_cols | length) | list) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.get("conv") %}
+<section class="card p-5 mb-6">
+  {{ gov.head("circle-check", "אחוז המורשעים") }}
+  <p class="m-0 text-sm text-subtle mb-3">מתוך העומדים לדין שקיבלו פסק דין, אחוז מי שהורשעו, לפי גיל אחריות פלילית (מבוגרים וקטינים), תושבות ומין ({{ model.labels.conv_span }}).</p>
+  {{ gov.chart("chart-conv", model.labels.conv_aria, "h-72 md:h-80") }}
+  {{ gov.table("אחוז המורשעים בקרב העומדים לדין לפי קבוצה ושנה", model.labels.conv_cols, model.tables.conv, ltr=range(1, model.labels.conv_cols | length) | list) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.get("recid") %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "אחוז המועדים") }}
+  <p class="m-0 text-sm text-subtle mb-3">מועד הוא עומד לדין שהורשע בעבר. אחוז המועדים מתוך העומדים לדין, לפי גיל אחריות פלילית, תושבות ומין ({{ model.labels.recid_span }}).</p>
+  {{ gov.chart("chart-recid", model.labels.recid_aria, "h-72 md:h-80") }}
+  {{ gov.table("אחוז המועדים בקרב העומדים לדין לפי קבוצה ושנה", model.labels.recid_cols, model.tables.recid, ltr=range(1, model.labels.recid_cols | length) | list) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.get("minors") %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "קטינים העומדים לדין") }}
+  <p class="m-0 text-sm text-subtle mb-3">התפלגות הקטינים שעמדו לדין בשנת {{ model.labels.minors_year }} לפי קבוצת העבירה החמורה ביותר (אחוזים). תא ריק: הנתון אינו מתפרסם בשל מיעוט מקרים.</p>
+  {{ gov.chart("chart-minors", model.labels.minors_aria, "h-[460px]") }}
+  {{ gov.table("קטינים העומדים לדין לפי קבוצת העבירה החמורה ביותר ותושבות (אחוזים)", ["קבוצת עבירה", "סך הכל", "תושבי ישראל", "אינם תושבי ישראל"], model.tables.minors, ltr=(1, 2, 3)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.get("sex") %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "גברים ונשים") }}
+  <p class="m-0 text-sm text-subtle mb-3">חלקם של גברים ונשים בקרב העומדים לדין בשנת {{ model.labels.sex_year }}, בכלל העומדים לדין ולפי גיל אחריות פלילית ותושבות.</p>
+  {{ gov.chart("chart-sex", model.labels.sex_aria, "h-72 md:h-80") }}
+  {{ gov.table("עומדים לדין לפי מין (אחוזים)", ["קבוצה", "גברים", "נשים"], model.tables.sex, ltr=(1, 2)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.get("edu") %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "השכלה") }}
+  <p class="m-0 text-sm text-subtle mb-3">התעודה הגבוהה ביותר של תושבי ישראל בני 25 עד 69 שעמדו לדין בשנת {{ model.labels.edu_year }}, לצד ההתפלגות בכלל התושבים בגילים אלה (לפי מרשם ההשכלה של הלמ"ס).</p>
+  {{ gov.chart("chart-edu", model.labels.edu_aria, "h-80 md:h-96") }}
+  {{ gov.table("התעודה הגבוהה ביותר: עומדים לדין וכלל התושבים (אחוזים)", ["תעודה", "עומדים לדין", "כלל התושבים"], model.tables.edu, ltr=(1, 2)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.get("edu_off") %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "השכלה לפי קבוצת עבירה") }}
+  <p class="m-0 text-sm text-subtle mb-3">התעודה הגבוהה ביותר של העומדים לדין בני 25 עד 69 (תושבי ישראל) בשנת {{ model.labels.edu_off_year }}, בקבוצות עבירה נבחרות.</p>
+  {{ gov.chart("chart-edu-off", model.labels.edu_off_aria, "h-[460px]") }}
+  {{ gov.table("העומדים לדין לפי התעודה הגבוהה ביותר וקבוצת עבירה (אחוזים)", model.labels.edu_off_cols, model.tables.edu_off, ltr=range(1, model.labels.edu_off_cols | length) | list) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.get("pop") %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "תושבי ישראל העומדים לדין לפי קבוצת אוכלוסייה") }}
+  <p class="m-0 text-sm text-subtle mb-3">התפלגות תושבי ישראל שעמדו לדין בין יהודים ואחרים לבין ערבים, בשנות פסק דין נבחרות. זוהי חלוקה של העומדים לדין עצמם, ולא שיעור מתוך האוכלוסייה; הנתונים אינם מסבירים את ההבדלים.</p>
+  {{ gov.chart("chart-pop", model.labels.pop_aria, "h-72 md:h-80") }}
+  {{ gov.table("תושבי ישראל העומדים לדין לפי קבוצת אוכלוסייה (אחוזים)", ["שנת פסק דין", "יהודים ואחרים", "ערבים"], model.tables.popgrp, ltr=(0, 1, 2)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.get("ses") %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "אשכול חברתי-כלכלי של יישוב המגורים") }}
+  <p class="m-0 text-sm text-subtle mb-3">התפלגות תושבי ישראל שעמדו לדין בשנת {{ model.labels.ses_year }} לפי האשכול החברתי-כלכלי של יישוב המגורים (אשכול נמוך: רמה חברתית-כלכלית נמוכה), בכלל העומדים לדין ולפי קבוצת אוכלוסייה.</p>
+  {{ gov.chart("chart-ses", model.labels.ses_aria, "h-72 md:h-80") }}
+  {{ gov.table("תושבי ישראל העומדים לדין לפי אשכול חברתי-כלכלי (אחוזים)", model.labels.ses_cols, model.tables.ses, ltr=range(0, model.labels.ses_cols | length) | list) }}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("tag", "על הנתונים") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm text-subtle marker:text-brand">
+    <li>הנתונים מתוך ההודעות לתקשורת "עומדים לדין במשפטים פליליים" של הלשכה המרכזית לסטטיסטיקה (הלמ"ס). השנה היא שנת פסק הדין: כל אדם נספר בשנה שבה ניתן פסק הדין במשפטו.</li>
+    <li>קבוצת העבירה היא העבירה החמורה ביותר שבגינה עמד האדם לדין. קטינים ומבוגרים מוגדרים לפי גיל האחריות הפלילית.</li>
+    <li>הלמ"ס מעדכנת נתוני שנים קודמות בכל הודעה; בכל שנה מוצג הנתון מההודעה החדשה ביותר. התרשימים בהודעה משתנים משנה לשנה, והעמוד מציג את מה שהופיע בהודעה האחרונה ומשווה לשנים קודמות רק במה שהופיע גם בהן.</li>
+    <li>העמוד מציג נתונים מצרפיים בלבד. ההבדלים בין קבוצות הם תיאור של העומדים לדין, ואינם מלמדים על סיבותיהם.</li>
+  </ul>
+</section>
+
+<script>
+  (function () {
+    const pal = window.GOVIL_PALETTE;
+    const pct = (v) => v == null ? "לא מתפרסם" : v.toFixed(1) + "%";
+    const cnt = (v) => v == null ? "–" : v.toLocaleString("he-IL");
+    function mk(id, opt) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const chart = echarts.init(el);
+      chart.setOption(window.GovEcharts.option(opt));
+      window.addEventListener("resize", () => chart.resize());
+    }
+    function grouped(id, d, horizontal, colors) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const cat = { type: "category", data: d.x, axisLabel: horizontal ? { width: 130, overflow: "break" } : { interval: 0, width: Math.max(40, Math.floor((el.clientWidth - 60) / d.x.length) - 8), overflow: "break" } };
+      const val = { type: "value", splitNumber: 4, axisLabel: { formatter: (v) => v + "%", hideOverlap: true } };
+      mk(id, {
+        color: colors || [pal[0], pal[2], pal[1], pal[3]],
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: pct },
+        legend: { top: 0 },
+        grid: { left: 16, right: 24, top: 40, bottom: 16, containLabel: true },
+        xAxis: horizontal ? val : cat,
+        yAxis: horizontal ? Object.assign({ inverse: true }, cat) : val,
+        series: d.series.map((s) => ({ type: "bar", name: s.name, data: s.data, barMaxWidth: 26 }))
+      });
+    }
+    function stacked(id, cats, parts) {
+      mk(id, {
+        color: parts.map((p) => p.color),
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: pct },
+        legend: { top: 0, right: 0, orient: "vertical", itemGap: 6, tooltip: { show: true }, textStyle: { width: Math.max(200, document.getElementById(id).clientWidth - 60), overflow: "truncate" } },
+        grid: { left: 16, right: 24, top: parts.length * 22 + 16, bottom: 16, containLabel: true },
+        xAxis: { type: "value", max: 100, interval: 25, axisLabel: { formatter: (v) => v + "%", hideOverlap: true } },
+        yAxis: { type: "category", inverse: true, data: cats, axisLabel: { width: 130, overflow: "break" } },
+        series: parts.map((p) => ({ type: "bar", stack: "s", name: p.name, data: p.data, barMaxWidth: 28 }))
+      });
+    }
+
+    const tr = {{ model.charts.trend | tojson }};
+    mk("chart-trend", {
+      color: [pal[0], pal[2]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: cnt },
+      legend: { top: 0 },
+      grid: { left: 16, right: 24, top: 40, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: tr.x, axisLabel: { interval: 0, rotate: document.getElementById("chart-trend").clientWidth < 500 ? 45 : 0 } },
+      yAxis: { type: "value", splitNumber: 4, axisLabel: { formatter: (v) => v >= 1000 ? (v / 1000) + " אלף" : v, hideOverlap: true } },
+      series: [
+        { type: "bar", stack: "t", name: "תושבי ישראל", data: tr.res, barMaxWidth: 40 },
+        { type: "bar", stack: "t", name: "אינם תושבי ישראל", data: tr.nonres, barMaxWidth: 40 }
+      ]
+    });
+{%- if model.flags.get("offence") %}
+    grouped("chart-offence", {{ model.charts.offence | tojson }}, true);
+{%- endif %}
+{%- if model.flags.get("off_years") %}
+    grouped("chart-off-years", {{ model.charts.off_years | tojson }}, true, [pal[6], pal[2], pal[0], pal[1]]);
+{%- endif %}
+{%- if model.flags.get("conv") %}
+    grouped("chart-conv", {{ model.charts.conv | tojson }}, false, [pal[6], pal[2], pal[0], pal[1]]);
+{%- endif %}
+{%- if model.flags.get("recid") %}
+    grouped("chart-recid", {{ model.charts.recid | tojson }}, false, [pal[6], pal[2], pal[0], pal[1]]);
+{%- endif %}
+{%- if model.flags.get("minors") %}
+    grouped("chart-minors", {{ model.charts.minors | tojson }}, true);
+{%- endif %}
+{%- if model.flags.get("sex") %}
+    (function () {
+      const d = {{ model.charts.sex | tojson }};
+      stacked("chart-sex", d.x, [{ name: "גברים", data: d.men, color: pal[1] }, { name: "נשים", data: d.women, color: pal[2] }]);
+    })();
+{%- endif %}
+{%- if model.flags.get("edu") %}
+    grouped("chart-edu", {{ model.charts.edu | tojson }}, true, [pal[0], "#c3cfe7"]);
+{%- endif %}
+{%- if model.flags.get("edu_off") %}
+    (function () {
+      const d = {{ model.charts.edu_off | tojson }};
+      const cols = [pal[1], pal[0], pal[2], pal[6], pal[5]];
+      stacked("chart-edu-off", d.x, d.series.map((s, i) => ({ name: s.name, data: s.data, color: cols[i % cols.length] })));
+    })();
+{%- endif %}
+{%- if model.flags.get("pop") %}
+    (function () {
+      const d = {{ model.charts.popgrp | tojson }};
+      mk("chart-pop", {
+        color: [pal[1], pal[2]],
+        tooltip: { trigger: "axis", valueFormatter: pct },
+        legend: { top: 0 },
+        grid: { left: 16, right: 24, top: 40, bottom: 16, containLabel: true },
+        xAxis: { type: "category", data: d.x },
+        yAxis: { type: "value", max: 100, interval: 25, axisLabel: { formatter: (v) => v + "%" } },
+        series: [
+          { type: "bar", stack: "p", name: "יהודים ואחרים", data: d.jews, barMaxWidth: 40 },
+          { type: "bar", stack: "p", name: "ערבים", data: d.arabs, barMaxWidth: 40 }
+        ]
+      });
+    })();
+{%- endif %}
+{%- if model.flags.get("ses") %}
+    grouped("chart-ses", {{ model.charts.ses | tojson }}, false, [pal[0], pal[1], pal[2], pal[3]]);
+{%- endif %}
+  })();
+</script>

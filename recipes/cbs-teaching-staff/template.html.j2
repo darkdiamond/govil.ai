@@ -1,0 +1,158 @@
+{% import "gov.j2" as gov %}
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+{{ gov.lede(model.labels.lede) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("external-link", "ההודעה האחרונה של הלמ\"ס") }}
+  <p class="m-0 text-sm text-subtle mb-2">{{ model.release.title }} · פורסמה {{ model.release.date }}</p>
+{%- if model.release.headline %}
+  <p class="m-0 mb-3 text-ink-deep">{{ model.release.headline }}</p>
+{%- endif %}
+  <p class="m-0 text-sm flex flex-wrap gap-4">
+    <a href="{{ model.release.url }}" target="_blank" rel="noopener">להודעה המלאה באתר הלמ"ס</a>
+{%- if model.release.pdf %}
+    <a href="{{ model.release.pdf }}" target="_blank" rel="noopener">לדוח המלא (PDF)</a>
+{%- endif %}
+  </p>
+</section>
+
+{%- if model.kpi_order %}
+<div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
+{%- for key in model.kpi_order %}
+  {{ gov.kpi(model.kpis[key], model.labels[key ~ "_kpi"]) }}
+{%- endfor %}
+</div>
+{%- endif %}
+
+{{ gov.insights(model.insights) }}
+
+{%- if model.flags.level %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "מורים, תלמידים, כיתות ומשרות: השינוי לפי שלב חינוך") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.level_note }}</p>
+  {{ gov.chart("chart-level", model.labels.level_aria, "h-72 md:h-96") }}
+  {{ gov.table("אחוז השינוי לפי שלב חינוך", model.labels.level_cols, model.tables.level, ltr=range(1, model.labels.level_cols | length) | list) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.sector %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "חינוך עברי וחינוך ערבי") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.sector_note }}</p>
+  {{ gov.chart("chart-sector", model.labels.sector_aria, "h-72 md:h-80") }}
+  {{ gov.table("אחוז השינוי לפי מגזר", model.labels.sector_cols, model.tables.sector, ltr=range(1, model.labels.sector_cols | length) | list) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.match %}
+<section class="card p-5 mb-6">
+  {{ gov.head("circle-check", "התאמה למקצוע: עברית, מתמטיקה ואנגלית") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.match_note }}</p>
+  {{ gov.chart("chart-match", model.labels.match_aria, "h-[600px] md:h-[420px]") }}
+  {{ gov.table("שיעורי התאמה למקצוע לפי שלב חינוך ומקצוע", model.labels.match_cols, model.tables.match, ltr=(1, 2, 3)) }}
+</section>
+{%- endif %}
+
+{%- for t in model.charts.ses %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "התאמה למקצוע בהוראת " ~ t.subject ~ " לפי רקע התלמידים") }}
+  <p class="m-0 text-sm text-subtle mb-3">שיעור המורים {{ t.subject_in }} שהוכשרו להוראת המקצוע, לפי אשכול המדד החברתי-כלכלי של התלמידים, בשנת {{ t.ly }} (הטבלה משווה גם ל-{{ t.fy }}). לפי הודעת {{ t.year }}.</p>
+  {{ gov.chart("chart-ses-" ~ loop.index0, t.aria, "h-72 md:h-80") }}
+  {{ gov.table("שיעורי התאמה למקצוע בהוראת " ~ t.subject ~ " לפי רקע חברתי-כלכלי", ["שלב חינוך ואשכול", t.fy, t.ly], t.rows, ltr=(1, 2)) }}
+</section>
+{%- endfor %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("tag", "על הנתונים") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm text-subtle marker:text-brand">
+    <li>הנתונים מתוך ההודעות השנתיות לתקשורת של הלשכה המרכזית לסטטיסטיקה על עובדי ההוראה במערכת החינוך. קובצי הנתונים של ההודעות כוללים רק את הנתונים שמאחורי התרשימים, ולכן העמוד מציג שיעורי שינוי ואחוזים ולא את מספרי המורים עצמם. המספרים המלאים מופיעים בהודעה ובדוח באתר הלמ"ס.</li>
+    <li>אחוז השינוי מחושב בין שנת הלימודים הראשונה בטווח לשנה האחרונה בו. "משרות מלאות" הן היקף ההוראה הכולל בתרגום למשרות מלאות, כך שגידול במורים שגדול מהגידול במשרות פירושו שהיקף המשרה הממוצע קטן.</li>
+    <li>"התאמה למקצוע" היא אחוז המורים המלמדים מקצוע שהוכשרו להוראתו.</li>
+    <li>התרשימים בהודעה משתנים משנה לשנה. כל נושא מוצג מתוך ההודעה האחרונה שכוללת אותו, ושנת ההודעה מצוינת בכל תרשים.</li>
+  </ul>
+</section>
+
+<script>
+{%- if model.flags.level %}
+  (function () {
+    const d = {{ model.charts.level | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-level"));
+    chart.setOption(window.GovEcharts.option({
+      color: pal,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => v == null ? "" : Number(v).toFixed(1) + "%" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 48, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.levels, axisLabel: { interval: 0, width: 72, overflow: "break" } },
+      yAxis: { type: "value", axisLabel: { formatter: (v) => v + "%" } },
+      series: d.series.map((s) => ({ type: "bar", name: s.name, data: s.data }))
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.sector %}
+  (function () {
+    const d = {{ model.charts.sector | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-sector"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[2], pal[1]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => v == null ? "" : Number(v).toFixed(1) + "%" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.measures, axisLabel: { interval: 0 } },
+      yAxis: { type: "value", axisLabel: { formatter: (v) => v + "%" } },
+      series: d.series.map((s) => ({ type: "bar", name: s.name, data: s.data }))
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.match %}
+  (function () {
+    const d = {{ model.charts.match | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const el = document.getElementById("chart-match");
+    const chart = echarts.init(el);
+    const n = d.panels.length;
+    function build() {
+      const narrow = el.clientWidth < 640;
+      const grids = [], xs = [], ys = [], titles = [], series = [];
+      d.panels.forEach((p, i) => {
+        const g = narrow
+          ? { left: 8, right: 8, top: (8 + i * (88 / n) + 6) + "%", height: (88 / n - 12) + "%", containLabel: true }
+          : { top: 70, bottom: 24, left: ((n - 1 - i) * 100 / n + 2) + "%", width: (100 / n - 4) + "%", containLabel: true };
+        grids.push(g);
+        titles.push({ text: p.level, textStyle: { fontSize: 13, fontWeight: 600 }, left: narrow ? "center" : ((n - 1 - i) * 100 / n + 50 / n) + "%", textAlign: "center", top: narrow ? (8 + i * (88 / n)) + "%" : 40 });
+        xs.push({ type: "category", gridIndex: i, data: d.years, axisLabel: { fontSize: 10 } });
+        ys.push({ type: "value", gridIndex: i, min: 0, max: 100, axisLabel: { formatter: (v) => v + "%", fontSize: 10 } });
+        p.series.forEach((s, k) => series.push({ type: "line", name: s.name, xAxisIndex: i, yAxisIndex: i, data: s.data, showSymbol: false, lineStyle: { width: 2.5 }, color: pal[k] }));
+      });
+      chart.setOption(window.GovEcharts.option({
+        tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toFixed(1) + "%" },
+        legend: { top: 0, data: d.subjects },
+        title: titles, grid: grids, xAxis: xs, yAxis: ys, series: series
+      }), true);
+    }
+    build();
+    window.addEventListener("resize", () => { build(); chart.resize(); });
+  })();
+{%- endif %}
+{%- for t in model.charts.ses %}
+  (function () {
+    const d = {{ t | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-ses-{{ loop.index0 }}"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[3], pal[1], pal[0]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => v == null ? "" : Number(v).toFixed(1) + "%" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.levels, axisLabel: { interval: 0, width: 72, overflow: "break" } },
+      yAxis: { type: "value", min: 0, max: 100, axisLabel: { formatter: (v) => v + "%" } },
+      series: d.series.map((s) => ({ type: "bar", name: s.name, data: s.data }))
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endfor %}
+</script>

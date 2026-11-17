@@ -1,0 +1,312 @@
+{% import "gov.j2" as gov %}
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+{{ gov.lede(model.labels.lede) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("external-link", "ההודעה האחרונה של הלמ\"ס") }}
+  <p class="m-0 text-sm text-subtle mb-2">{{ model.release.title }} · פורסמה {{ model.release.date }}</p>
+{%- if model.release.headline %}
+  <p class="m-0 mb-3 font-semibold text-ink-deep">{{ model.release.headline }}</p>
+{%- endif %}
+  <p class="m-0 text-sm flex flex-wrap gap-4">
+    <a href="{{ model.release.url }}" target="_blank" rel="noopener">להודעה המלאה באתר הלמ"ס</a>
+{%- if model.release.pdf %}
+    <a href="{{ model.release.pdf }}" target="_blank" rel="noopener">לדוח המלא (PDF)</a>
+{%- endif %}
+  </p>
+</section>
+
+<div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
+{%- for key in ["total", "yoy", "foreign", "women", "origin_top"] %}
+{%- if model.kpis[key] is defined %}
+  {{ gov.kpi(model.kpis[key], model.labels[key ~ "_kpi"]) }}
+{%- endif %}
+{%- endfor %}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("trending-up", "מספר החוקרים בבתר-דוקטורט לאורך השנים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.trend_note }}</p>
+  {{ gov.chart("chart-trend", model.labels.trend_aria, "h-72 md:h-96") }}
+  {{ gov.table("חוקרים בבתר-דוקטורט לפי שנה", ["שנה", "סך הכל", "ישראלים", "זרים", "נשים", "גברים"], model.tables.trend, ltr=(1, 2, 3, 4, 5)) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("chart-bar", "חוקרים וחוקרות: נשים וגברים בבתר-דוקטורט") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.gender_note }}</p>
+  {{ gov.chart("chart-gender", model.labels.gender_aria, "h-64 md:h-80") }}
+  {{ gov.table("נשים וגברים בבתר-דוקטורט לפי שנה", ["שנה", "סך הכל", "ישראלים", "זרים", "נשים", "גברים"], model.tables.trend, ltr=(1, 2, 3, 4, 5)) }}
+</section>
+
+{%- if model.flags.change %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "מי נוסף ומי עזב: השינוי בשנה האחרונה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.change_note }}</p>
+  {{ gov.chart("chart-change", model.labels.change_aria, "h-64 md:h-72") }}
+  {{ gov.table("שינוי במספר החוקרים לפי אזרחות ומין", ["קבוצה", "שינוי"], model.tables.change, ltr=(1,)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.uni %}
+<section class="card p-5 mb-6">
+  {{ gov.head("building-2", "חוקרים בבתר-דוקטורט לפי אוניברסיטה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.uni_note }}</p>
+  {{ gov.chart("chart-uni", model.labels.uni_aria, "h-[460px]") }}
+  {{ gov.table("אחוז מהחוקרים בבתר-דוקטורט לפי אוניברסיטה", model.labels.uni_cols, model.tables.uni, ltr=range(1, model.labels.uni_cols | length) | list) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.origin %}
+<section class="card p-5 mb-6">
+  {{ gov.head("map-pin", "חוקרים זרים לפי ארץ מוצא") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.origin_note }}</p>
+  {{ gov.chart("chart-origin", model.labels.origin_aria, "h-[420px]") }}
+  {{ gov.table("אחוז מהחוקרים הזרים לפי ארץ מוצא", model.labels.origin_cols, model.tables.origin, ltr=range(1, model.labels.origin_cols | length) | list) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.fields %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "תחומי המחקר ושיעור החוקרים הזרים בכל תחום") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.fields_note }}</p>
+  {{ gov.chart("chart-fields", model.labels.fields_aria, "h-[560px]") }}
+  {{ gov.table("מחקרי בתר-דוקטורט וחוקרים זרים לפי תחום מחקר", ["תחום מחקר", "אחוז מכלל המחקרים", "שיעור החוקרים הזרים"], model.tables.fields, ltr=(1, 2)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.place %}
+<section class="card p-5 mb-6">
+  {{ gov.head("info", "איפה קיבלו החוקרים את התואר השלישי") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.place_note }}</p>
+  {{ gov.chart("chart-place", model.labels.place_aria, "h-[560px]") }}
+  {{ gov.table("מקום קבלת התואר השלישי לפי תחום מחקר", ["תחום מחקר", "תואר מישראל", "תואר מחו\"ל"], model.tables.place, ltr=(1, 2)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.gap %}
+<section class="card p-5 mb-6">
+  {{ gov.head("chart-bar", "חוקרים וחוקרות ישראלים לפי תחום מחקר") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.gap_note }}</p>
+  {{ gov.chart("chart-gap", model.labels.gap_aria, "h-[560px]") }}
+  {{ gov.table("הפער בין חוקרים לחוקרות ישראלים לפי תחום מחקר", ["תחום מחקר", "הפער לטובת", "הפער באחוזים"], model.tables.gap, ltr=(2,)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.us %}
+<section class="card p-5 mb-6">
+  {{ gov.head("trending-up", "השוואה לארה\"ב: שיעור הזרים בבתר-דוקטורט") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.us_note }}</p>
+  {{ gov.chart("chart-us", model.labels.us_aria, "h-72 md:h-96") }}
+  {{ gov.table("מינויים לבתר-דוקטורט בארה\"ב ושיעור הזרים בישראל", ["שנה", "מינויים בארה\"ב", "מחזיקי ויזה זמנית", "שיעור בארה\"ב", "שיעור הזרים בישראל"], model.tables.us, ltr=(1, 2, 3, 4)) }}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("tag", "על הנתונים") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm text-subtle marker:text-brand">
+    <li>הנתונים מתוך ההודעה השנתית לתקשורת של הלשכה המרכזית לסטטיסטיקה על בעלי תואר שלישי שעסקו במחקר בתר-דוקטורט (פוסט-דוקטורט) באוניברסיטאות בישראל. הסדרה השנתית מגיעה מההודעה האחרונה, והחלוקה לפי אוניברסיטה וארץ מוצא מצרפת את ההודעות של השנים האחרונות.</li>
+    <li>חוקר זר הוא חוקר שאינו אזרח ישראל. שיעור הזרים וחלקן של האוניברסיטאות ושל ארצות המוצא מחושבים מתוך המספרים והאחוזים שפרסמה הלמ"ס.</li>
+    <li>החלוקה לתחומי מחקר היא הקבצה של מקצועות לימוד לתחומי מחקר אקדמיים. מדעי הרפואה הביו-רפואיים נכללים במדעים ביולוגיים, ולא ברפואה.</li>
+    <li>הפער בין חוקרים לחוקרות מתייחס לחוקרים הישראלים בלבד, ומוצג כפי שפרסמה הלמ"ס. הגדרת הפער השתנתה בין ההודעות, ולכן מוצגת רק השנה האחרונה.</li>
+    <li>נתוני ארה"ב הם של ה-NSF (National Center for Science and Engineering Statistics), כפי שצורפו להודעת הלמ"ס, ומתייחסים למינויים לבתר-דוקטורט במדע, הנדסה ובריאות. מחזיקי ויזה זמנית הם מי שאינם אזרחי ארה"ב או תושבי קבע בה.</li>
+  </ul>
+</section>
+
+<script>
+  (function () {
+    const d = {{ model.charts.trend | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-trend"));
+    const n = (v) => v == null ? "" : v.toLocaleString("he-IL");
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[5]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+        formatter: (ps) => { const i = ps[0].dataIndex; return d.x[i] + "<br>" + ps.map((p) => p.marker + p.seriesName + ": " + n(p.value)).join("<br>") + "<br>סך הכל: " + n(d.total[i]); } },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 64, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", min: 0, axisLabel: { formatter: (v) => v.toLocaleString("he-IL") } },
+      series: [
+        { type: "bar", name: "ישראלים", stack: "t", data: d.israeli, barMaxWidth: 56 },
+        { type: "bar", name: "זרים", stack: "t", data: d.foreign, barMaxWidth: 56,
+          label: { show: true, position: "top", color: "#0c3058", fontSize: 10, rotate: chart.getWidth() < 520 ? 90 : 0, align: chart.getWidth() < 520 ? "left" : "center", verticalAlign: "middle", formatter: (p) => n(d.total[p.dataIndex]) } }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+  (function () {
+    const d = {{ model.charts.trend | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-gender"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[1], pal[6]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : v.toLocaleString("he-IL") },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x, boundaryGap: false },
+      yAxis: { type: "value", min: 0, axisLabel: { formatter: (v) => v.toLocaleString("he-IL") } },
+      series: [
+        { type: "line", name: "גברים", data: d.men, symbolSize: 7 },
+        { type: "line", name: "נשים", data: d.women, symbolSize: 7 }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- if model.flags.change %}
+  (function () {
+    const d = {{ model.charts.change | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-change"));
+    const s = (v) => (v > 0 ? "+" : "") + v.toLocaleString("he-IL");
+    chart.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: s },
+      grid: { left: 16, right: 48, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3,
+        min: (e) => e.min < 0 ? Math.floor(e.min * 1.3) : 0,
+        max: (e) => e.max > 0 ? Math.ceil(e.max * 1.3) : 0,
+        axisLabel: { formatter: (v) => Math.round(v).toLocaleString("he-IL") } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLine: { onZero: false } },
+      series: [{ type: "bar", barMaxWidth: 40,
+        data: d.values.map((v) => ({ value: v, itemStyle: { color: v >= 0 ? pal[0] : "#dc3545" },
+          label: { position: v >= 0 ? "right" : "left" } })),
+        label: { show: true, color: "#0c3058", formatter: (p) => s(p.value) } }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.uni %}
+  (function () {
+    const d = {{ model.charts.uni | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-uni"));
+    const k = d.years.length;
+    chart.setOption(window.GovEcharts.option({
+      color: d.years.map((_, i) => pal[Math.min(6, 3 * (k - 1 - i))]),
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => v == null ? "" : v.toFixed(1) + "%" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 48, top: 40, bottom: 8, containLabel: true },
+      xAxis: { type: "value", axisLabel: { formatter: (v) => v + "%" } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 110, overflow: "break" } },
+      series: d.years.map((y, i) => ({ type: "bar", name: y, data: d.series[i],
+        label: { show: i === k - 1, position: "right", formatter: (p) => p.value == null ? "" : p.value.toFixed(1) + "%" } }))
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.origin %}
+  (function () {
+    const d = {{ model.charts.origin | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-origin"));
+    const k = d.years.length;
+    chart.setOption(window.GovEcharts.option({
+      color: d.years.map((_, i) => pal[Math.min(6, 3 * (k - 1 - i))]),
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => v == null ? "–" : v.toFixed(1) + "%" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 48, top: 40, bottom: 8, containLabel: true },
+      xAxis: { type: "value", axisLabel: { formatter: (v) => v + "%" } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 90, overflow: "break" } },
+      series: d.years.map((y, i) => ({ type: "bar", name: y, data: d.series[i],
+        label: { show: i === k - 1, position: "right", formatter: (p) => p.value == null ? "" : p.value.toFixed(1) + "%" } }))
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.fields %}
+  (function () {
+    const d = {{ model.charts.fields | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-fields"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[6]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => v == null ? "" : v.toFixed(1) + "%" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 48, top: 40, bottom: 8, containLabel: true },
+      xAxis: { type: "value", max: 100, interval: 25, axisLabel: { formatter: (v) => v + "%" } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 120, overflow: "truncate" } },
+      series: [
+        { type: "bar", name: "אחוז מכלל המחקרים", data: d.share,
+          label: { show: true, position: "right", formatter: (p) => p.value.toFixed(1) + "%" } },
+        { type: "bar", name: "שיעור החוקרים הזרים בתחום", data: d.foreign }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.place %}
+  (function () {
+    const d = {{ model.charts.place | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-place"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[6]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => v == null ? "" : v.toFixed(1) + "%" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 8, containLabel: true },
+      xAxis: { type: "value", max: 100, interval: 25, axisLabel: { formatter: (v) => v + "%" } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 120, overflow: "truncate" } },
+      series: [
+        { type: "bar", name: "תואר מחו\"ל", stack: "p", data: d.abroad,
+          label: { show: true, color: "#fff", formatter: (p) => p.value >= 15 ? p.value.toFixed(0) + "%" : "" } },
+        { type: "bar", name: "תואר מישראל", stack: "p", data: d.israel }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.gap %}
+  (function () {
+    const d = {{ model.charts.gap | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-gap"));
+    const who = (v) => v >= 0 ? "לטובת הגברים" : "לטובת הנשים";
+    chart.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+        formatter: (ps) => { const p = ps.find((x) => x.seriesIndex === 2); if (!p) return ""; return echarts.format.encodeHTML(d.names[p.dataIndex]) + "<br>פער " + who(p.value) + ": " + Math.abs(p.value).toFixed(1) + "%"; } },
+      color: [pal[1], pal[6]],
+      legend: { top: 0, data: ["פער לטובת הנשים", "פער לטובת הגברים"] },
+      grid: { left: 16, right: 16, top: 40, bottom: 24, containLabel: true },
+      xAxis: { type: "value", splitNumber: 4,
+        min: (e) => -Math.ceil(Math.max(-e.min, e.max) * 1.5),
+        max: (e) => Math.ceil(Math.max(-e.min, e.max) * 1.5),
+        axisLabel: { show: false }, splitLine: { show: false } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLine: { onZero: true }, axisTick: { show: false }, axisLabel: { show: false } },
+      series: [
+        { type: "bar", name: "פער לטובת הנשים", data: [] },
+        { type: "bar", name: "פער לטובת הגברים", data: [] },
+        { type: "bar", barMaxWidth: 24, barGap: "-100%",
+          data: d.values.map((v) => ({ value: v, itemStyle: { color: v >= 0 ? pal[6] : pal[1] },
+            label: { position: v >= 0 ? "right" : "left" } })),
+          label: { show: true, color: "#0c3058", formatter: (p) => Math.abs(p.value).toFixed(1) + "%" } },
+        { type: "bar", barGap: "-100%", silent: true, tooltip: { show: false },
+          data: d.values.map((v) => ({ value: 0, label: { position: v >= 0 ? "left" : "right" } })),
+          label: { show: true, color: "#0c3058", fontSize: 11, width: Math.max(90, chart.getWidth() / 2 - 24), overflow: "truncate", formatter: (p) => d.names[p.dataIndex] } }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.us %}
+  (function () {
+    const d = {{ model.charts.us | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-us"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[6], pal[0]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "–" : v.toFixed(1) + "%" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x, boundaryGap: false },
+      yAxis: { type: "value", scale: true, axisLabel: { formatter: (v) => v + "%" } },
+      series: [
+        { type: "line", name: "ארה\"ב: מחזיקי ויזה זמנית", data: d.us, showSymbol: false, connectNulls: false },
+        { type: "line", name: "ישראל: חוקרים זרים", data: d.il, symbolSize: 7, connectNulls: false }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+</script>

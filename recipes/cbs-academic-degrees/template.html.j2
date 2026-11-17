@@ -1,0 +1,226 @@
+{% import "gov.j2" as gov %}
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+{{ gov.lede(model.labels.lede) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("external-link", "ההודעה האחרונה של הלמ\"ס") }}
+  <p class="m-0 text-sm text-subtle mb-2">{{ model.release.title }} · פורסמה {{ model.release.date }}</p>
+{%- if model.release.headline %}
+  <p class="m-0 mb-3 font-semibold text-ink-deep">{{ model.release.headline }}</p>
+{%- endif %}
+  <p class="m-0 text-sm flex flex-wrap gap-4">
+    <a href="{{ model.release.url }}" target="_blank" rel="noopener">להודעה המלאה באתר הלמ"ס</a>
+{%- if model.release.pdf %}
+    <a href="{{ model.release.pdf }}" target="_blank" rel="noopener">לדוח המלא (PDF)</a>
+{%- endif %}
+  </p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+{%- for key in ["total", "change", "women", "group0"] %}
+{%- if model.kpis[key] is defined %}
+  {{ gov.kpi(model.kpis[key], model.labels[key ~ "_kpi"]) }}
+{%- endif %}
+{%- endfor %}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "מקבלי תארים לפי שנה וסוג מוסד") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.trend_note }}</p>
+  {{ gov.chart("chart-trend", model.labels.trend_aria, "h-72 md:h-96") }}
+  {{ gov.table("מקבלי תארים לפי שנת לימודים וסוג מוסד", model.labels.trend_cols, model.tables.trend, ltr=range(0, model.labels.trend_cols | length) | list) }}
+</section>
+
+{%- if model.flags.get("degree") %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "מקבלי תארים לפי תואר: ראשון, שני, שלישי ותעודה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.degree_note }}</p>
+  {{ gov.chart("chart-degree", model.labels.degree_aria, "h-72 md:h-80") }}
+  {{ gov.table("מקבלי תארים לפי תואר", model.labels.degree_cols, model.tables.degree, ltr=range(1, model.labels.degree_cols | length) | list) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.get("field") %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "מקבלי תארים לפי תחום לימוד") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.field_note }}</p>
+  {{ gov.chart("chart-field", model.labels.field_aria, "h-[460px]") }}
+  {{ gov.table("מקבלי תארים לפי תחום לימוד", model.labels.field_cols, model.tables.field, ltr=range(1, model.labels.field_cols | length) | list) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.get("women_field") %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "אחוז הנשים בקרב מקבלי התארים לפי תחום לימוד") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.women_field_note }}</p>
+  {{ gov.chart("chart-women-field", model.labels.women_field_aria, "h-[420px]") }}
+  {{ gov.table("אחוז הנשים לפי תחום לימוד", model.labels.women_field_cols, model.tables.women_field, ltr=range(1, model.labels.women_field_cols | length) | list) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.get("women_degree") or model.flags.get("women_inst") %}
+<div class="grid gap-6 md:grid-cols-2 mb-6">
+{%- if model.flags.get("women_degree") %}
+<section class="card p-5">
+  {{ gov.head("database", "אחוז הנשים לפי תואר") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.women_degree_note }}</p>
+  {{ gov.chart("chart-women-degree", model.labels.women_degree_aria, "h-72 md:h-80") }}
+  {{ gov.table("אחוז הנשים לפי תואר", model.labels.women_degree_cols, model.tables.women_degree, ltr=range(1, model.labels.women_degree_cols | length) | list) }}
+</section>
+{%- endif %}
+{%- if model.flags.get("women_inst") %}
+<section class="card p-5">
+  {{ gov.head("database", "אחוז הנשים לפי סוג מוסד") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.women_inst_note }}</p>
+  {{ gov.chart("chart-women-inst", model.labels.women_inst_aria, "h-72 md:h-80") }}
+  {{ gov.table("אחוז הנשים לפי סוג מוסד", model.labels.women_inst_cols, model.tables.women_inst, ltr=range(1, model.labels.women_inst_cols | length) | list) }}
+</section>
+{%- endif %}
+</div>
+{%- endif %}
+
+{%- if model.flags.get("groups_trend") %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "קבוצות אוכלוסייה בקרב מקבלי התארים לאורך השנים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.groups_trend_note }}</p>
+  {{ gov.chart("chart-groups-trend", model.labels.groups_trend_aria, "h-72 md:h-80") }}
+  {{ gov.table("חלקן של קבוצות אוכלוסייה בקרב כלל מקבלי התארים", model.labels.groups_trend_cols, model.tables.groups_trend, ltr=range(0, model.labels.groups_trend_cols | length) | list) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.get("groups_inst") %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "קבוצות אוכלוסייה לפי סוג מוסד") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.groups_inst_note }}</p>
+  {{ gov.chart("chart-groups-inst", model.labels.groups_inst_aria, "h-72 md:h-80") }}
+  {{ gov.table("אחוז קבוצות אוכלוסייה לפי סוג מוסד", model.labels.groups_inst_cols, model.tables.groups_inst, ltr=range(1, model.labels.groups_inst_cols | length) | list) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.get("groups_degree") %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "קבוצות אוכלוסייה לפי תואר") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.groups_degree_note }}</p>
+  {{ gov.chart("chart-groups-degree", model.labels.groups_degree_aria, "h-72 md:h-80") }}
+  {{ gov.table("אחוז קבוצות אוכלוסייה לפי תואר", model.labels.groups_degree_cols, model.tables.groups_degree, ltr=range(1, model.labels.groups_degree_cols | length) | list) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.get("groups_field") %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "קבוצות אוכלוסייה לפי תחום לימוד") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.groups_field_note }}</p>
+  {{ gov.chart("chart-groups-field", model.labels.groups_field_aria, "h-[420px]") }}
+  {{ gov.table("אחוז קבוצות אוכלוסייה לפי תחום לימוד", model.labels.groups_field_cols, model.tables.groups_field, ltr=range(1, model.labels.groups_field_cols | length) | list) }}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("tag", "על הנתונים") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm text-subtle marker:text-brand">
+    <li>הנתונים מתוך ההודעות לתקשורת "מקבלי תארים אקדמיים" של הלשכה המרכזית לסטטיסטיקה (הלמ"ס). הן כוללות את מי שקיבלו תואר אקדמי (ראשון, שני או שלישי) או תעודה אקדמית (תעודת הוראה או תעודה אחרת) בטקסי הענקת התארים של המוסדות להשכלה גבוהה בישראל באותה שנת לימודים. שנות הלימודים בעמוד: {{ model.labels.years }}.</li>
+    <li>סוגי המוסדות לפי סיווג הלמ"ס בהודעה. אחוז הנשים ואחוז כל קבוצת אוכלוסייה בקרב כלל מקבלי התארים (במדדים ובתרשים הרב-שנתי) מחושבים בעמוד מאחוז הקבוצה בכל סוג מוסד ומספר מקבלי התארים בו.</li>
+    <li>קבוצות האוכלוסייה מוצגות כפי שהלמ"ס מגדירה אותן, והן אינן בהכרח נפרדות זו מזו. הלמ"ס מפרסמת חלק מהפילוחים רק לחלק מהתארים או מהתחומים.</li>
+    <li>כל הודעה מציגה את השנה האחרונה ואת השנה שקדמה לה. כשהודעה חדשה מתקנת נתון של שנה קודמת, העמוד מציג את הנתון המעודכן.</li>
+  </ul>
+</section>
+
+<script>
+  (function () {
+    const pal = window.GOVIL_PALETTE;
+    const num = (v) => v == null ? "לא פורסם" : Math.round(v).toLocaleString("en-US");
+    const pct = (v) => v == null ? "לא פורסם" : v.toFixed(1) + "%";
+    const brk = { width: 120, overflow: "break" };
+    function init(id) {
+      const el = document.getElementById(id);
+      if (!el) return null;
+      const chart = echarts.init(el);
+      window.addEventListener("resize", () => chart.resize());
+      return chart;
+    }
+    function bars(id, d, horizontal, fmtv, opts) {
+      const chart = init(id);
+      if (!chart) return;
+      opts = opts || {};
+      const cat = horizontal
+        ? { type: "category", inverse: true, data: d.x, axisLabel: brk }
+        : { type: "category", data: d.x, axisLabel: { interval: 0, width: 70, overflow: "break" } };
+      const val = { type: "value", splitNumber: 4, axisLabel: { formatter: opts.axis || ((v) => v.toLocaleString("en-US")), hideOverlap: true } };
+      chart.setOption(window.GovEcharts.option({
+        color: opts.colors || [pal[3], pal[0], pal[2], pal[5], pal[7]],
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: fmtv },
+        legend: Object.assign({ top: 0, type: "scroll" }, opts.single ? { selectedMode: "single" } : {}),
+        grid: { left: 16, right: 24, top: 40, bottom: 16, containLabel: true },
+        xAxis: horizontal ? val : cat,
+        yAxis: horizontal ? cat : val,
+        series: d.series.map((s, i) => Object.assign({ type: "bar", name: s.name, data: s.data, barMaxWidth: 26 },
+          opts.line && i === d.series.length - 1 ? { markLine: opts.line } : {}))
+      }));
+    }
+    const half = { silent: true, symbol: "none", label: { show: false }, lineStyle: { color: "#6c757d", type: "dashed" }, data: [{ xAxis: 50 }] };
+    const halfV = { silent: true, symbol: "none", label: { show: false }, lineStyle: { color: "#6c757d", type: "dashed" }, data: [{ yAxis: 50 }] };
+    const pctAxis = (v) => v + "%";
+
+    (function () {
+      const d = {{ model.charts.trend | tojson }};
+      const chart = init("chart-trend");
+      if (!chart) return;
+      chart.setOption(window.GovEcharts.option({
+        color: pal,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: num },
+        legend: { top: 0, type: "scroll" },
+        grid: { left: 16, right: 24, top: 48, bottom: 16, containLabel: true },
+        xAxis: { type: "category", data: d.x },
+        yAxis: { type: "value", splitNumber: 4, axisLabel: { formatter: (v) => v.toLocaleString("en-US"), hideOverlap: true } },
+        series: d.series.map((s, i) => ({
+          type: "bar", stack: "t", name: s.name, data: s.data, barMaxWidth: 64,
+          label: i === d.series.length - 1 ? { show: true, position: "top", color: "#0c3058", formatter: (p) => num(d.total[p.dataIndex]) } : undefined
+        }))
+      }));
+    })();
+{%- if model.flags.get("degree") %}
+    bars("chart-degree", {{ model.charts.degree | tojson }}, true, num);
+{%- endif %}
+{%- if model.flags.get("field") %}
+    bars("chart-field", {{ model.charts.field | tojson }}, true, num);
+{%- endif %}
+{%- if model.flags.get("women_field") %}
+    bars("chart-women-field", {{ model.charts.women_field | tojson }}, true, pct, { axis: pctAxis, line: half });
+{%- endif %}
+{%- if model.flags.get("women_degree") %}
+    bars("chart-women-degree", {{ model.charts.women_degree | tojson }}, true, pct, { axis: pctAxis, line: half });
+{%- endif %}
+{%- if model.flags.get("women_inst") %}
+    bars("chart-women-inst", {{ model.charts.women_inst | tojson }}, false, pct, { axis: pctAxis, line: halfV });
+{%- endif %}
+{%- if model.flags.get("groups_trend") %}
+    (function () {
+      const d = {{ model.charts.groups_trend | tojson }};
+      const chart = init("chart-groups-trend");
+      if (!chart) return;
+      chart.setOption(window.GovEcharts.option({
+        color: pal,
+        tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "לא פורסם" : v.toFixed(2) + "%" },
+        legend: { top: 0, type: "scroll", selectedMode: "single" },
+        grid: { left: 16, right: 24, top: 48, bottom: 16, containLabel: true },
+        xAxis: { type: "category", data: d.x },
+        yAxis: { type: "value", scale: true, splitNumber: 4, axisLabel: { formatter: pctAxis, hideOverlap: true } },
+        series: d.series.map((s) => ({ type: "line", name: s.name, data: s.data, symbolSize: 8, connectNulls: false,
+          label: { show: true, position: "top", formatter: (p) => p.value == null ? "" : p.value.toFixed(1) + "%" } }))
+      }));
+    })();
+{%- endif %}
+{%- if model.flags.get("groups_inst") %}
+    bars("chart-groups-inst", {{ model.charts.groups_inst | tojson }}, false, pct, { axis: pctAxis, single: true, colors: pal });
+{%- endif %}
+{%- if model.flags.get("groups_degree") %}
+    bars("chart-groups-degree", {{ model.charts.groups_degree | tojson }}, true, pct, { axis: pctAxis, single: true, colors: pal });
+{%- endif %}
+{%- if model.flags.get("groups_field") %}
+    bars("chart-groups-field", {{ model.charts.groups_field | tojson }}, true, pct, { axis: pctAxis, single: true, colors: pal });
+{%- endif %}
+  })();
+</script>

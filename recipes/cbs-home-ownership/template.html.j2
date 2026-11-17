@@ -1,0 +1,355 @@
+{% import "gov.j2" as gov %}
+{%- macro callout(key) -%}
+{%- if model.callouts[key] is defined %}
+  <p class="m-0 mb-3 text-sm font-semibold text-ink-deep">{{ model.callouts[key] }}</p>
+{%- endif %}
+{%- endmacro %}
+{%- set tenure_cols = ["בעלות (%)", "שכירות (%)", "דיור מוגן (%)"] %}
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+{{ gov.lede(model.labels.lede) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("external-link", "ההודעה האחרונה של הלמ\"ס") }}
+  <p class="m-0 text-sm text-subtle mb-2">{{ model.release.title }} · פורסמה {{ model.release.date }}</p>
+{%- if model.release.headline %}
+  <p class="m-0 mb-3 text-ink-deep">{{ model.release.headline }}</p>
+{%- endif %}
+  <p class="m-0 text-sm flex flex-wrap gap-4">
+    <a href="{{ model.release.url }}" target="_blank" rel="noopener">להודעה המלאה באתר הלמ"ס</a>
+{%- if model.release.pdf %}
+    <a href="{{ model.release.pdf }}" target="_blank" rel="noopener">לדוח המלא (PDF)</a>
+{%- endif %}
+  </p>
+</section>
+
+<div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
+{%- for key in ["dwellings", "rent", "rent_chg", "own", "public"] %}
+{%- if model.kpis[key] is defined %}
+  {{ gov.kpi(model.kpis[key], model.labels[key ~ "_kpi"]) }}
+{%- endif %}
+{%- endfor %}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "דירות למגורים ואחוז הדירות בשכירות") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.trend_note }}</p>
+  {{ gov.chart("chart-trend", model.labels.trend_aria, "h-72 md:h-96") }}
+  {{ gov.table("דירות למגורים ודירות בשכירות לפי שנה", ["שנה", "דירות למגורים", "דירות בשכירות", "% בשכירות"], model.tables.trend, ltr=(0, 1, 2, 3)) }}
+</section>
+
+{%- if model.flags.district %}
+<section class="card p-5 mb-6">
+  {{ gov.head("map-pin", "בעלות ושכירות לפי מחוז") }}
+  <p class="m-0 text-sm text-subtle mb-3">התפלגות הדירות לפי צורת החזקה בכל מחוז, באחוזים, מהשכירות הגבוהה לנמוכה.</p>
+  {{ gov.chart("chart-district", model.labels.district_aria, "h-72 md:h-80") }}
+  {{ gov.table("צורת החזקה בדירה לפי מחוז (אחוזים)", ["מחוז"] + tenure_cols, model.tables.district, ltr=(1, 2, 3)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.age %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "בעלות על דירה לפי גיל") }}
+  <p class="m-0 text-sm text-subtle mb-3">צורת החזקה בדירה לפי קבוצת הגיל של המחזיק בה, באחוזים.</p>
+  {{ callout("age") }}
+  {{ gov.chart("chart-age", model.labels.age_aria, "h-72 md:h-80") }}
+  {{ gov.table("צורת החזקה בדירה לפי קבוצת גיל (אחוזים)", ["קבוצת גיל"] + tenure_cols, model.tables.age, ltr=(0, 1, 2, 3)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.age_trend %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "גרים בשכירות לפי גיל, לאורך השנים") }}
+  <p class="m-0 text-sm text-subtle mb-3">אחוז הגרים בשכירות בכל קבוצת גיל, לפי שנה.</p>
+  {{ gov.chart("chart-age-trend", model.labels.age_trend_aria, "h-64 md:h-80") }}
+  {{ gov.table("אחוז הגרים בשכירות לפי קבוצת גיל ושנה", model.labels.age_trend_cols, model.tables.age_trend, ltr=range(0, model.labels.age_trend_cols | length) | list) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.cities %}
+<section class="card p-5 mb-6">
+  {{ gov.head("map-pin", "אחוז הדירות בשכירות ביישובים הגדולים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.cities_note }}</p>
+  {{ gov.chart("chart-cities", model.labels.cities_aria, "h-[560px] md:h-[620px]") }}
+  {{ gov.table("אחוז הדירות בשכירות ביישובים הגדולים", model.labels.cities_cols, model.tables.cities, ltr=(1, 2, 3)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.loclist %}
+<section class="card p-5 mb-6">
+  {{ gov.head("search", "אחוז הדירות בשכירות בכל יישוב") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.loclist_note }}</p>
+  <details>
+    <summary class="text-sm text-subtle">הצג את כל היישובים</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">דירות ודירות בשכירות לפי יישוב</caption>
+      <thead><tr>{% for c in model.labels.loclist_cols %}<th scope="col">{{ c }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in model.tables.loclist %}
+        <tr><th scope="row">{{ r[0] }}</th><td dir="ltr">{{ r[1] }}</td><td dir="ltr">{{ r[2] }}</td><td dir="ltr">{{ r[3] }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{%- endif %}
+
+{%- if model.flags.group %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "בעלות ושכירות לפי קבוצת אוכלוסייה") }}
+  <p class="m-0 text-sm text-subtle mb-3">צורת החזקה בדירה לפי קבוצת האוכלוסייה של המחזיק בה, באחוזים.</p>
+  {{ gov.chart("chart-group", model.labels.group_aria, "h-56 md:h-64") }}
+  {{ gov.table("צורת החזקה בדירה לפי קבוצת אוכלוסייה (אחוזים)", ["קבוצת אוכלוסייה"] + tenure_cols, model.tables.group, ltr=(1, 2, 3)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.arab %}
+<section class="card p-5 mb-6">
+  {{ gov.head("map-pin", "שכירות בקרב מחזיקים ערבים לפי יישוב") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.arab_note }}</p>
+  {{ callout("arab") }}
+  {{ gov.chart("chart-arab", model.labels.arab_aria, "h-[520px] md:h-[560px]") }}
+  {{ gov.table("אחוז הדירות בשכירות בקרב מחזיקים ערבים לפי יישוב", ["יישוב", "% בשכירות"], model.tables.arab, ltr=(1,)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.jt %}
+<section class="card p-5 mb-6">
+  {{ gov.head("map-pin", "ירושלים ותל אביב-יפו: שכירות לפי גיל") }}
+  <p class="m-0 text-sm text-subtle mb-3">אחוז הדירות בשכירות לפי קבוצת הגיל של המחזיק בדירה, בשתי הערים הגדולות.</p>
+  {{ gov.chart("chart-jt", model.labels.jt_aria, "h-64 md:h-80") }}
+  {{ gov.table("אחוז הדירות בשכירות לפי גיל המחזיק, ירושלים ותל אביב-יפו", ["קבוצת גיל", "ירושלים (%)", "תל אביב-יפו (%)"], model.tables.jt, ltr=(0, 1, 2)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.turn_city or model.flags.turn_age %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "תחלופת שוכרים") }}
+  <p class="m-0 text-sm text-subtle mb-3">אחוז הדירות שבהן התחלפו השוכרים {{ model.labels.turn_period }}.</p>
+  {{ callout("turn_age") }}
+  <div class="grid gap-6 md:grid-cols-2">
+{%- if model.flags.turn_city %}
+    <div>
+      <h3 class="m-0 mb-2 text-base font-semibold text-ink-deep">בערים הגדולות</h3>
+      {{ gov.chart("chart-turn-city", model.labels.turn_city_aria, "h-64 md:h-80") }}
+      {{ gov.table("אחוז הדירות שבהן התחלפו שוכרים, לפי עיר", ["עיר", "תחלופה (%)"], model.tables.turn_city, ltr=(1,)) }}
+    </div>
+{%- endif %}
+{%- if model.flags.turn_age %}
+    <div>
+      <h3 class="m-0 mb-2 text-base font-semibold text-ink-deep">לפי גיל השוכר</h3>
+      {{ gov.chart("chart-turn-age", model.labels.turn_age_aria, "h-64 md:h-80") }}
+      {{ gov.table("אחוז הדירות שבהן התחלפו שוכרים, לפי גיל השוכר", ["קבוצת גיל", "תחלופה (%)"], model.tables.turn_age, ltr=(0, 1)) }}
+    </div>
+{%- endif %}
+  </div>
+</section>
+{%- endif %}
+
+{%- if model.flags.public or model.flags.public_district %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "הדיור הציבורי") }}
+  <p class="m-0 text-sm text-subtle mb-3">מספר הדירות בדיור הציבורי ובדיור המוגן הציבורי (באלפים), והתפלגותן בין המחוזות.</p>
+  {{ callout("public_district") }}
+  <div class="grid gap-6 md:grid-cols-2">
+{%- if model.flags.public %}
+    <div>
+      {{ gov.chart("chart-public", model.labels.public_aria, "h-64 md:h-80") }}
+      {{ gov.table("דירות בדיור הציבורי לפי שנה (אלפים)", ["שנה", "סך הכל", "דיור ציבורי", "דיור מוגן ציבורי"], model.tables.public, ltr=(0, 1, 2, 3)) }}
+    </div>
+{%- endif %}
+{%- if model.flags.public_district %}
+    <div>
+      {{ gov.chart("chart-public-district", model.labels.public_district_aria, "h-64 md:h-80") }}
+      {{ gov.table("התפלגות הדיור הציבורי לפי מחוז (אחוזים)", ["מחוז", "% מהדיור הציבורי"], model.tables.public_district, ltr=(1,)) }}
+    </div>
+{%- endif %}
+  </div>
+</section>
+{%- endif %}
+
+{%- if model.flags.eu %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "שכירות בישראל לעומת אירופה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.eu_note }}</p>
+  {{ gov.chart("chart-eu", model.labels.eu_aria, "h-[720px] md:h-[820px]") }}
+  {{ gov.table("אחוז משקי הבית בשכירות לפי מדינה", ["מדינה", "% בשכירות"], model.tables.eu, ltr=(1,)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.building %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "שכירות לפי גודל הבניין") }}
+  <p class="m-0 text-sm text-subtle mb-3">אחוז הדירות בשכירות בערים הגדולות, לפי מספר הדירות במבנה.</p>
+  {{ gov.chart("chart-building", model.labels.building_aria, "h-64 md:h-80") }}
+  {{ gov.table("אחוז הדירות בשכירות לפי מספר הדירות במבנה", ["דירות במבנה", "% בשכירות"], model.tables.building, ltr=(0, 1)) }}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("tag", "על הנתונים") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm text-subtle marker:text-brand">
+    <li>הנתונים מתוך ההודעה לתקשורת של הלשכה המרכזית לסטטיסטיקה על בעלות על דירה. הם עובדו ממרשם הדירות והמבנים של הלמ"ס, שמבוסס על נתוני הארנונה שהרשויות המקומיות מוסרות.</li>
+    <li>הדירות מסווגות לפי צורת החזקה של המחזיק בדירה: בעלות, שכירות או דיור מוגן. הדיור הציבורי מוצג בנפרד, בדירות ובאלפים.</li>
+    <li>שינויים במספר הדירות או באחוז השכירות ביישוב מסוים בין השנים נובעים לעתים משינוי ברישום הארנונה של הרשות (סיווג נכסים, החלפת ספק, טיוב רשומות), ולא רק משינוי בפועל.</li>
+    <li>ההשוואה לאירופה מבוססת על סקר של Eurostat ומתייחסת למשקי בית, ולא לדירות, ולכן אינה זהה לנתוני המרשם.</li>
+    <li>הלוחות בהודעה משתנים בין הפרסומים. העמוד מציג את הלוחות שמופיעים בהודעה האחרונה.</li>
+  </ul>
+</section>
+
+<script>
+  (function () {
+    const pal = window.GOVIL_PALETTE;
+    const pct = (v) => v == null ? "" : Number(v).toFixed(1) + "%";
+    const draw = (id, option) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const chart = echarts.init(el);
+      chart.setOption(window.GovEcharts.option(option));
+      window.addEventListener("resize", () => chart.resize());
+    };
+    const tenure = (id, d, horizontal) => {
+      const cat = { type: "category", data: horizontal ? d.y : d.x, inverse: !!horizontal, axisLabel: { width: 96, overflow: "break" } };
+      const val = { type: "value", max: 100, axisLabel: { formatter: "{value}%" } };
+      const bar = (name, data, k, label) => ({ type: "bar", stack: "t", name: name, data: data, barMaxWidth: 36,
+        itemStyle: { color: pal[k] },
+        label: { show: label, position: "inside", color: "#fff", formatter: (p) => p.value >= 12 ? Math.round(p.value) + "%" : "" } });
+      draw(id, {
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: pct },
+        legend: { top: 0 },
+        grid: { left: 16, right: 16, top: 36, bottom: 8, containLabel: true },
+        xAxis: horizontal ? val : cat,
+        yAxis: horizontal ? cat : val,
+        series: [bar("בעלות", d.own, 0, true), bar("שכירות", d.rent, 2, true), bar("דיור מוגן", d.assisted, 5, false)]
+      });
+    };
+    const hbar = (id, d, color, extra) => {
+      draw(id, Object.assign({
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: pct },
+        grid: { left: 16, right: 48, top: 8, bottom: 8, containLabel: true },
+        xAxis: { type: "value", axisLabel: { formatter: "{value}%" } },
+        yAxis: { type: "category", data: d.y, inverse: true, axisLabel: { width: 104, overflow: "truncate", fontSize: 11 } },
+        series: [{ type: "bar", name: "אחוזים", data: d.v, itemStyle: { color: color }, barMaxWidth: 22,
+          label: { show: true, position: "right", formatter: (p) => pct(p.value) } }]
+      }, extra || {}));
+    };
+
+    const t = {{ model.charts.trend | tojson }};
+    draw("chart-trend", {
+      tooltip: { trigger: "axis" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: t.x },
+      yAxis: [
+        { type: "value", axisLabel: { formatter: (v) => Number(v).toLocaleString("he-IL") } },
+        { type: "value", scale: true, splitLine: { show: false }, axisLabel: { formatter: "{value}%" } }
+      ],
+      series: [
+        { type: "bar", name: "דירות למגורים (אלפים)", data: t.tot, itemStyle: { color: pal[0] },
+          tooltip: { valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL") + " אלף" } },
+        { type: "line", name: "אחוז הדירות בשכירות", yAxisIndex: 1, data: t.pct, itemStyle: { color: pal[2] },
+          lineStyle: { width: 3 }, symbolSize: 6, tooltip: { valueFormatter: pct } }
+      ]
+    });
+{%- if model.flags.district %}
+    tenure("chart-district", {{ model.charts.district | tojson }}, true);
+{%- endif %}
+{%- if model.flags.age %}
+    tenure("chart-age", {{ model.charts.age | tojson }}, false);
+{%- endif %}
+{%- if model.flags.group %}
+    tenure("chart-group", {{ model.charts.group | tojson }}, true);
+{%- endif %}
+{%- if model.flags.age_trend %}
+    const at = {{ model.charts.age_trend | tojson }};
+    draw("chart-age-trend", {
+      tooltip: { trigger: "axis", valueFormatter: pct },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: at.x },
+      yAxis: { type: "value", axisLabel: { formatter: "{value}%" } },
+      series: at.series.map((s, k) => ({ type: "line", name: "גיל " + s.name, data: s.data, symbolSize: 6,
+        lineStyle: { width: 3 }, itemStyle: { color: pal[[2, 0, 4, 6][k % 4]] } }))
+    });
+{%- endif %}
+{%- if model.flags.cities %}
+    const c = {{ model.charts.cities | tojson }};
+    draw("chart-cities", {
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: pct },
+      legend: { top: 0 },
+      grid: { left: 16, right: 48, top: 36, bottom: 8, containLabel: true },
+      xAxis: { type: "value", axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", data: c.y, inverse: true, axisLabel: { width: 104, overflow: "truncate", fontSize: 11 } },
+      series: [
+        { type: "bar", name: {{ model.labels.y1 | tojson }}, data: c.now, itemStyle: { color: pal[2] }, barMaxWidth: 18,
+          label: { show: true, position: "right", fontSize: 10, formatter: (p) => pct(p.value) } },
+        { type: "scatter", name: {{ model.labels.y0 | tojson }}, data: c.then, symbol: "diamond", symbolSize: 10, itemStyle: { color: pal[0] } }
+      ]
+    });
+{%- endif %}
+{%- if model.flags.arab %}
+    hbar("chart-arab", {{ model.charts.arab | tojson }}, pal[2]);
+{%- endif %}
+{%- if model.flags.jt %}
+    const jt = {{ model.charts.jt | tojson }};
+    draw("chart-jt", {
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: pct },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: jt.x },
+      yAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+      series: [
+        { type: "bar", name: "ירושלים", data: jt.j, itemStyle: { color: pal[0] }, barMaxWidth: 28 },
+        { type: "bar", name: "תל אביב-יפו", data: jt.t, itemStyle: { color: pal[2] }, barMaxWidth: 28 }
+      ]
+    });
+{%- endif %}
+{%- if model.flags.turn_city %}
+    hbar("chart-turn-city", {{ model.charts.turn_city | tojson }}, pal[4]);
+{%- endif %}
+{%- if model.flags.turn_age %}
+    hbar("chart-turn-age", {{ model.charts.turn_age | tojson }}, pal[4]);
+{%- endif %}
+{%- if model.flags.public %}
+    const pb = {{ model.charts.public | tojson }};
+    draw("chart-public", {
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toFixed(1) + " אלף" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: pb.x },
+      yAxis: { type: "value" },
+      series: [
+        { type: "bar", stack: "p", name: "דיור ציבורי", data: pb.pub, itemStyle: { color: pal[0] } },
+        { type: "bar", stack: "p", name: "דיור מוגן ציבורי", data: pb.asst, itemStyle: { color: pal[5] } }
+      ]
+    });
+{%- endif %}
+{%- if model.flags.public_district %}
+    hbar("chart-public-district", {{ model.charts.public_district | tojson }}, pal[0]);
+{%- endif %}
+{%- if model.flags.eu %}
+    const eu = {{ model.charts.eu | tojson }};
+    draw("chart-eu", {
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: pct },
+      grid: { left: 16, right: 48, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: "value", axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", data: eu.y, inverse: true, axisLabel: { width: 110, overflow: "break", lineHeight: 12, fontSize: 11 } },
+      series: [{ type: "bar", name: "משקי בית בשכירות", barMaxWidth: 14,
+        data: eu.v.map((v, i) => ({ value: v, itemStyle: { color: eu.isr[i] ? pal[2] : (eu.avg[i] ? pal[1] : pal[0]) } })),
+        label: { show: true, position: "right", fontSize: 10, formatter: (p) => pct(p.value) } }]
+    });
+{%- endif %}
+{%- if model.flags.building %}
+    const bd = {{ model.charts.building | tojson }};
+    draw("chart-building", {
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: pct },
+      grid: { left: 16, right: 16, top: 16, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: bd.x },
+      yAxis: { type: "value", axisLabel: { formatter: "{value}%" } },
+      series: [{ type: "bar", name: "% בשכירות", data: bd.v, itemStyle: { color: pal[0] }, barMaxWidth: 36 }]
+    });
+{%- endif %}
+  })();
+</script>

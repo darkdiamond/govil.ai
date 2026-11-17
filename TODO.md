@@ -175,24 +175,25 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
 
 ## CBS reports (cbs_releases provider)
 
-- **25 CBS reports still have no page.** 35 yearly reports are done (2026-11-17, PR #503). Left,
-  as recipe ids to use: yearly `cbs_releases` reports: `cbs-hotel-finances` (הכנסות, הוצאות ורווח
-  מלונות התיירות), `cbs-agriculture`, `cbs-dwellings-buildings`, `cbs-home-ownership`,
-  `cbs-academic-degrees`, `cbs-teaching-staff` (1 table), `cbs-education-attainment` (רמת
-  ההשכלה, רב שנתי), `cbs-pregnancy-termination`, `cbs-criminal-defendants` (עומדים לדין),
-  `cbs-criminal-convictions` (מורשעים בדין), `cbs-foreign-residents`,
-  `cbs-quality-of-life-cities`, `-districts`, `-gender-gaps`, `-jewish-arab-gaps`,
-  `cbs-vehicle-km` (נסועה), `cbs-driving-licences`, `cbs-public-transport-validations`,
-  `cbs-postdocs` (בָּתַר-דוקטורט, with niqqud). `cbs_index` pages: commercial construction
-  inputs (chapter ca), road and bridge inputs (d), agriculture inputs (e), bus inputs (f + fa),
-  industry export prices (ba; check overlap with `cbs-index-producer-prices` and
-  `cbs-trade-price-indices`), selected consumer prices (chapter a, subject 40). Find each
-  report's regex, chapter and tables with `catalog --months 38`. What the batch learned:
-  declare every stem plus 3 spare `optional` ones and find each table by its title (CBS
-  renumbers them); check the regex against the whole release list (sibling reports share
-  prefixes); `history_releases` > 1 when each edition holds one year; never a private
-  `cbs._*` helper (the guard rejects it); `seo.title`/`name` fixed strings; holiday collections
-  ("לרגל …", "לקט נתונים") stay out. (2026-11-05)
+- **The `chapter` filter only matches a file name's first chapter.** `CbsReleasesProvider.matching`
+  keeps a release only if a file starts with `<chapter>_`, but CBS names joint releases with
+  two chapters in either order (quality of life in cities: `33_25_007t1.xlsx`, then
+  `26_33_037t1.xlsx`) and has moved reports between chapters (`cbs-population-new-year`'s
+  2022-2023 editions are `11_`, not `01_`, so its `history_releases: 3` gets fewer editions).
+  A recipe whose report changes prefix silently stops seeing new editions. Fix: match the
+  chapter against every `_`-separated leading number token, or drop `chapter` where the regex
+  alone is unique (`cbs-quality-of-life-cities` already does). (2026-11-17)
+- **`cbs_index` leaves an old-base value at the minibus base switch.** In chapter `fa`
+  (432010 and most of its group codes), the May 2020 row carries the old-base value under the
+  new base, so `VALUE_CHAINED` jumps (133.1 where the new base gives 100) against the published
+  monthly `PERCENT`. `cbs-index-bus-inputs` re-links it in compute (`_relink`: a chained step
+  more than 1 point off the published change). The 6 older index recipes and the other new ones
+  check clean. Fix it in `services/providers/cbs_index.py` (link by `PERCENT` wherever the
+  chained step disagrees with it at a base change), then drop `_relink`. (2026-11-17)
+- **One failing index code fails its whole resource.** The CBS Index API answers HTTP 500 for
+  140743 (מוצרי טואלטיקה ורחצה), so `cbs-index-selected-consumer-prices` left it out. If a
+  code a recipe uses starts failing, the resource and the page sync fail (page kept last-good).
+  Fix: let a resource mark codes optional, or skip a code that 500s and log it. (2026-11-17)
 - **`cbs-foreign-trade-by-country` lists t6 and t8 but never reads them.** They are the NIS
   twins of t5/t7, kept as downloads. Each is still fetched every run, and a missing stem fails
   the whole page's sync (item above). Drop them from `source.json` if the downloads aren't

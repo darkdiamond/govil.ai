@@ -1,0 +1,259 @@
+{% import "gov.j2" as gov %}
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+{{ gov.lede(model.labels.lede) }}
+
+<div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
+{%- for key in ["level", "mom", "yoy", "lines", "mini", "fuel"] %}
+{%- if model.kpis[key] is defined %}
+  {{ gov.kpi(model.kpis[key], model.labels[key ~ "_kpi"]) }}
+{%- endif %}
+{%- endfor %}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+<section id="recent" class="card p-5 mb-6">
+  {{ gov.head("calendar", "המדדים בחודשים האחרונים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.recent_note }}</p>
+  {{ gov.chart("chart-recent", model.labels.recent_aria, "h-72 md:h-96") }}
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.recent_caption }}</caption>
+      <thead><tr>{% for c in model.tables.recent_cols %}<th scope="col">{{ c }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in model.tables.recent %}
+        <tr>{% for v in r %}{% if loop.first %}<th scope="row">{{ v }}</th>{% else %}<td dir="ltr">{{ v }}</td>{% endif %}{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+{%- if model.flags.compare %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "אוטובוסים, קווים קבועים ואוטובוסים זעירים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.compare_note }}</p>
+  {{ gov.chart("chart-compare", model.labels.compare_aria, "h-72 md:h-96") }}
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.compare_caption }}</caption>
+      <thead><tr><th scope="col">חודש</th>{% for c in model.tables.compare_cols %}<th scope="col">{{ c }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in model.tables.compare %}
+        <tr>{% for v in r %}{% if loop.first %}<th scope="row">{{ v }}</th>{% else %}<td dir="ltr">{{ v }}</td>{% endif %}{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+{%- endif %}
+
+{%- if model.flags.cmp %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "אותו סעיף, שלושה מדדים: מה התייקר בשנה האחרונה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.cmp_note }}</p>
+  {{ gov.chart("chart-cmp", model.labels.cmp_aria, "h-[560px] md:h-[520px]") }}
+  {{ gov.table(model.labels.cmp_caption, ["סעיף", "אוטובוסים", "קווים קבועים", "אוטובוסים זעירים"], model.tables.cmp, ltr=(1, 2, 3)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.fvw %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "דלק מול שכר הנהגים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.fvw_note }}</p>
+  {{ gov.chart("chart-fvw", model.labels.fvw_aria, "h-72 md:h-96") }}
+  {{ gov.table(model.labels.fvw_caption, ["חודש", "דלק", "שכר נהגים", "המדד הכללי"], model.tables.fvw, ltr=(1, 2, 3)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.rebased %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "הקבוצות הראשיות במדד האוטובוסים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.rebased_note }}</p>
+  {{ gov.chart("chart-rebased", model.labels.rebased_aria, "h-80 md:h-96") }}
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.rebased_caption }}</caption>
+      <thead><tr><th scope="col">חודש</th>{% for c in model.tables.rebased_cols %}<th scope="col">{{ c }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in model.tables.rebased %}
+        <tr>{% for v in r %}{% if loop.first %}<th scope="row">{{ v }}</th>{% else %}<td dir="ltr">{{ v }}</td>{% endif %}{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "מדד האוטובוסים לאורך השנים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.history_note }}</p>
+  {{ gov.chart("chart-history", model.labels.history_aria, "h-72 md:h-96") }}
+  {{ gov.table(model.labels.history_caption, ["שנה", model.labels.history_level_col, "שינוי שנתי (דצמבר לדצמבר)"], model.tables.annual_all, ltr=(1, 2)) }}
+</section>
+
+{%- if model.flags.groups %}
+<section id="groups" class="card p-5 mb-6">
+  {{ gov.head("list", "כל הקבוצות בשלושת המדדים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.groups_note }}</p>
+{%- for g in model.tables.groups %}
+  <h3 class="text-base font-semibold text-ink-deep mt-4 mb-2">{{ g.title }}</h3>
+  <div class="overflow-x-auto">
+  <table class="w-full text-sm">
+    <caption class="sr-only">{{ g.title }}: שינוי חודשי ושנתי לפי קבוצה</caption>
+    <thead><tr><th scope="col">קבוצה</th><th scope="col">שינוי חודשי</th><th scope="col">שינוי שנתי</th>{% if model.labels.cum_col %}<th scope="col">{{ model.labels.cum_col }}</th>{% endif %}</tr></thead>
+    <tbody>
+{%- for r in g.rows %}
+      <tr><th scope="row" class="{% if r.depth == 0 %}font-semibold{% elif r.depth == 2 %}font-normal ps-6{% else %}font-normal ps-3{% endif %}">{{ r.name }}</th><td dir="ltr">{{ r.p }}</td><td dir="ltr">{{ r.py }}</td>{% if model.labels.cum_col %}<td dir="ltr">{{ r.cum }}</td>{% endif %}</tr>
+{%- endfor %}
+    </tbody>
+  </table>
+  </div>
+{%- endfor %}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("tag", "על המדד") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm text-subtle marker:text-brand">
+    <li>מדד מחירי התשומה באוטובוסים של הלשכה המרכזית לסטטיסטיקה מודד את השינוי במחירים שמשלמים מפעילי אוטובוסים על התשומות של הפעלת השירות: שכר, אנרגיה ודלק, רכישת כלי רכב, אחזקה ותיקונים, אחזקת מבנים, מסים, אגרות וביטוח. המדד אינו כולל שירותי דיור, ואינו מודד את מחיר הנסיעה לנוסע.</li>
+    <li>מדד האוטובוסים של כלל האוכלוסייה מכסה את כל ענף האוטובוסים, ומדד הקווים הקבועים מתייחס לקווי השירות הסדירים בתחבורה הציבורית. מדד האוטובוסים הזעירים הציבוריים מתייחס למוניות שירות, ומתפרסם גם בגרסה ללא שכר, שהסדרה שלה ארוכה יותר, וגם בגרסה עם שכר.</li>
+    <li>{{ model.labels.base_note }}</li>
+    <li>השינוי החודשי והשנתי הם כפי שפרסמה הלמ"ס, מעוגלים לעשירית האחוז. חוזים ותעריפים בענף מוצמדים לעיתים למדדים אלה; אופן ההצמדה נקבע בחוזה או בהחלטת הרגולטור, והעמוד מציג נתונים בלבד.</li>
+  </ul>
+</section>
+
+<script>
+  (function () {
+    const d = {{ model.charts.recent | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-recent"));
+    const pct = (v) => (v == null ? "–" : (v > 0 ? "+" : "") + Number(v).toFixed(1) + "%");
+    const lineColors = [pal[4], pal[2], pal[7]];
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0]].concat(lineColors),
+      tooltip: { trigger: "axis", valueFormatter: pct },
+      legend: { top: 0, type: "scroll" },
+      grid: { left: 16, right: 16, top: 48, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { rotate: 45 } },
+      yAxis: { type: "value", axisLabel: { formatter: (v) => v + "%" } },
+      series: [
+        { type: "bar", name: "שינוי חודשי (אוטובוסים)", data: d.mom.map((v) => ({ value: v, itemStyle: { color: v < 0 ? pal[6] : pal[0] } })) }
+      ].concat(d.lines.map((l, i) => ({ type: "line", name: "שנתי: " + l.name, data: l.data, symbolSize: 4, connectNulls: false, lineStyle: { width: 2, color: lineColors[i % 3] }, itemStyle: { color: lineColors[i % 3] } })))
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+</script>
+{%- if model.flags.compare %}
+<script>
+  (function () {
+    const d = {{ model.charts.compare | tojson }};
+    const chart = echarts.init(document.getElementById("chart-compare"));
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: (v) => Number(v).toFixed(1) },
+      legend: { top: 0, type: "scroll" },
+      grid: { left: 16, right: 16, top: 48, bottom: 64, containLabel: true },
+      xAxis: { type: "time" },
+      yAxis: { type: "value", scale: true },
+      dataZoom: [{ type: "inside" }, { type: "slider", bottom: 8, height: 20 }],
+      series: d.lines.map((l, i) => ({ type: "line", showSymbol: false, name: l.name, data: l.data, lineStyle: { width: i === 0 ? 3 : 2 } }))
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+</script>
+{%- endif %}
+{%- if model.flags.cmp %}
+<script>
+  (function () {
+    const d = {{ model.charts.cmp | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-cmp"));
+    const fmtp = (v) => (v == null ? "–" : (v > 0 ? "+" : "") + Number(v).toFixed(1) + "%");
+    const wide = window.innerWidth >= 640;
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[2], pal[4]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: fmtp },
+      legend: { top: 0 },
+      grid: { left: 16, right: 48, top: 36, bottom: 16, containLabel: true },
+      xAxis: { type: "value", axisLabel: { show: wide, formatter: (v) => v + "%" } },
+      yAxis: { type: "category", data: d.names, inverse: true },
+      series: [
+        { type: "bar", name: "אוטובוסים", data: d.bus, label: { show: wide, position: "right", formatter: (p) => fmtp(p.value) } },
+        { type: "bar", name: "קווים קבועים", data: d.lines, label: { show: wide, position: "right", formatter: (p) => fmtp(p.value) } },
+        { type: "bar", name: "אוטובוסים זעירים", data: d.mini, label: { show: wide, position: "right", formatter: (p) => fmtp(p.value) } }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+</script>
+{%- endif %}
+{%- if model.flags.fvw %}
+<script>
+  (function () {
+    const d = {{ model.charts.fvw | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-fvw"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[4], pal[0], pal[7]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => (v == null ? "–" : Number(v).toFixed(1) + "%") },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 36, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", axisLabel: { formatter: (v) => v + "%" } },
+      dataZoom: [{ type: "inside" }, { type: "slider", bottom: 8, height: 20 }],
+      series: [
+        { type: "line", showSymbol: false, name: "דלק", data: d.fuel },
+        { type: "line", showSymbol: false, name: "שכר נהגים", data: d.drv },
+        { type: "line", showSymbol: false, name: "המדד הכללי", data: d.gen, lineStyle: { type: "dashed" } }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+</script>
+{%- endif %}
+{%- if model.flags.rebased %}
+<script>
+  (function () {
+    const d = {{ model.charts.rebased | tojson }};
+    const chart = echarts.init(document.getElementById("chart-rebased"));
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: (v) => Number(v).toFixed(1) },
+      legend: { top: 0, type: "scroll" },
+      grid: { left: 16, right: 16, top: 48, bottom: 64, containLabel: true },
+      xAxis: { type: "time" },
+      yAxis: { type: "value", scale: true },
+      dataZoom: [{ type: "inside" }, { type: "slider", bottom: 8, height: 20 }],
+      series: d.lines.map((l, i) => ({ type: "line", showSymbol: false, name: l.name, data: l.data, lineStyle: { width: i === 0 ? 3 : 1.5 } }))
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+</script>
+{%- endif %}
+<script>
+  (function () {
+    const d = {{ model.charts.history | tojson }};
+    const chart = echarts.init(document.getElementById("chart-history"));
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: (v) => Number(v).toFixed(1) },
+      grid: { left: 16, right: 16, top: 24, bottom: 64, containLabel: true },
+      xAxis: { type: "time" },
+      yAxis: { type: "value", scale: true },
+      dataZoom: [{ type: "inside" }, { type: "slider", bottom: 8, height: 20 }],
+      series: [{ type: "line", showSymbol: false, name: "מדד האוטובוסים", data: d }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+</script>
