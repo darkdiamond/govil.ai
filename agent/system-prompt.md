@@ -826,12 +826,13 @@ WORKFLOW
    passing it bare renders "[object Object]" on every bar. Self-check
    enforces this.
    TOOLTIP-ESCAPE RULE: tooltip formatters return HTML. Every
-   string a formatter appends, whether read from its closure (e.g.
-   `labels[p.dataIndex]`, `h.y[p.value[1]]`) or from params (p.name,
-   p.seriesName, p.data fields), goes through
+   string a formatter reads from its closure (e.g.
+   `labels[p.dataIndex]`, `h.y[p.value[1]]`) and appends goes through
    `echarts.format.encodeHTML(...)`. The page neutralizes < and > in
-   params before your formatter runs, but it can't see the closure, so
-   it is a backstop, not the escape. Compare and look up with the raw
+   params (p.name, p.seriesName, p.data fields) before your formatter
+   runs, so append those as they are: wrapping them escapes twice and
+   `<5` shows as `&lt;5`. It can't see the closure, which is why closure
+   strings need the wrap. Compare and look up with the raw
    string; escape only what you append. Label / axisLabel formatters
    draw canvas text, not HTML: don't escape there (an entity would show
    literally). Never put a dataset string inside

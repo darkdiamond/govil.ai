@@ -167,15 +167,16 @@ and the cost is paid once. Go deeper:
 - 4–8 insights across the page, each a real finding with numbers.
 - Interactivity ECharts gives for free (dataZoom on long series, legend
   toggles, tooltips with units) — no custom JS frameworks, no network calls.
-- **Every string an ECharts tooltip formatter appends goes through
-  `echarts.format.encodeHTML(...)`**: one it reads from its closure
-  (`h.y[p.value[1]]`, `names[p.dataIndex]`, `labels[p.dataIndex]`,
-  `cats[p.value[0]]`, a field of `d.rows[p.dataIndex]`) and one it reads
-  from `params` (`p.name`, `p.seriesName`, `p.data.note`). Formatters return
-  HTML and model strings come from CKAN cells. gov-echarts.js neutralizes
-  `<`/`>` in `params` before the formatter runs, but it can't see the
-  closure, so it is a backstop, not the escape. Numbers need none; compare
-  and look up with the raw string, escape only what you append. Don't
+- **Every string an ECharts tooltip formatter reads from its closure and
+  appends goes through `echarts.format.encodeHTML(...)`** (`h.y[p.value[1]]`,
+  `names[p.dataIndex]`, `labels[p.dataIndex]`, `cats[p.value[0]]`, a field of
+  `d.rows[p.dataIndex]`). Formatters return HTML and model strings come from
+  CKAN cells. gov-echarts.js neutralizes `<`/`>` in `params` (`p.name`,
+  `p.seriesName`, `p.data.note`) before the formatter runs, so append those
+  as they are: wrapping them escapes twice and a label like `<5` shows as
+  `&lt;5`. It can't see the closure, which is why closure strings need the
+  wrap. Numbers need none; compare and look up with the raw string, escape
+  only what you append. Don't
   escape in `label`/`axisLabel` formatters: those draw canvas text, not
   HTML, so an entity would show literally (`ת&quot;א`).
   `recipes/39ffaf87-c67a-4eeb-91cc-edfc79b4dd8e/template.html.j2` (heatmap

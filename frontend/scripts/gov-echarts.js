@@ -185,32 +185,58 @@
     var pr = Object.getPrototypeOf(v);
     return pr === null || Object.getPrototypeOf(pr) === null;
   }
-  // Past the depth cap the walk stops, but a string down there must not slip
-  // through: the subtree is checked in one JSON pass and, when it holds a
-  // < or >, replaced by an escaped JSON copy. One that can't be serialized
-  // (a cycle) is dropped (null): fail closed.
+  // Past the depth cap a string must not slip through either. The subtree is
+  // scanned once (cycle-safe, each node visited once, the same arrays and
+  // plain objects the walk descends into): a clean one is returned as is,
+  // even when cyclic; one holding a < or > is walked to the end with the same
+  // copy-on-write escape, so Dates, NaN and class instances keep their type.
+  // A dirty subtree with a cycle can't be copied safely and is dropped
+  // (null): fail closed.
+  function scanBeyondCap(v, st, onPath, done) {
+    if (typeof v === "string") {
+      if (/[<>]/.test(v)) st.dirty = true;
+      return;
+    }
+    if (!v || typeof v !== "object") return;
+    if (!Array.isArray(v) && !isPlainObject(v)) return;
+    if (onPath.has(v)) {
+      st.cyclic = true;
+      return;
+    }
+    if (done.has(v)) return;
+    onPath.add(v);
+    var keys = Array.isArray(v) ? v : Object.keys(v);
+    for (var i = 0; i < keys.length; i++) {
+      scanBeyondCap(Array.isArray(v) ? v[i] : v[keys[i]], st, onPath, done);
+    }
+    onPath.delete(v);
+    done.add(v);
+  }
   function escapeBeyondCap(v) {
     if (!Array.isArray(v) && !isPlainObject(v)) return v;
-    var json;
+    var st = { dirty: false, cyclic: false };
     try {
-      json = JSON.stringify(v);
+      scanBeyondCap(v, st, new Set(), new Set());
     } catch (e) {
       return null;
     }
-    if (json === undefined || !/[<>]/.test(json)) return v;
-    return JSON.parse(json, function (k, x) {
-      return typeof x === "string" ? escapeText(x) : x;
-    });
+    if (!st.dirty) return v;
+    if (st.cyclic) return null;
+    try {
+      return escapeDeep(v, 0, true);
+    } catch (e) {
+      return null;
+    }
   }
-  function escapeDeep(v, depth) {
+  function escapeDeep(v, depth, uncapped) {
     if (typeof v === "string") return /[<>]/.test(v) ? escapeText(v) : v;
     if (!v || typeof v !== "object") return v;
-    if (depth >= DEEP_MAX_DEPTH) return escapeBeyondCap(v);
+    if (!uncapped && depth >= DEEP_MAX_DEPTH) return escapeBeyondCap(v);
     var out = null;
     var i, e;
     if (Array.isArray(v)) {
       for (i = 0; i < v.length; i++) {
-        e = escapeDeep(v[i], depth + 1);
+        e = escapeDeep(v[i], depth + 1, uncapped);
         if (e !== v[i]) {
           if (!out) out = v.slice();
           out[i] = e;
@@ -221,7 +247,7 @@
     if (!isPlainObject(v)) return v;
     var keys = Object.keys(v);
     for (i = 0; i < keys.length; i++) {
-      e = escapeDeep(v[keys[i]], depth + 1);
+      e = escapeDeep(v[keys[i]], depth + 1, uncapped);
       if (e !== v[keys[i]]) {
         if (!out) out = Object.assign({}, v);
         out[keys[i]] = e;
@@ -275,16 +301,16 @@
     return Array.isArray(v) ? v : v ? [v] : [];
   }
   // Tree, treemap and sunburst items nest under `children`; each level may
-  // carry its own `tooltip`. Bounded so a cyclic or absurdly deep tree can't
-  // hang the page.
-  var TREE_MAX_DEPTH = 20;
-  function secureItemTooltips(items, depth) {
+  // carry its own `tooltip`, at any depth. Each item is visited once, so a
+  // cyclic or shared tree can't hang the page and no level is left unwrapped.
+  function secureItemTooltips(items, seen) {
     if (!Array.isArray(items)) return;
-    depth = depth || 0;
+    seen = seen || new Set();
     items.forEach(function (d) {
-      if (!d || typeof d !== "object") return;
+      if (!d || typeof d !== "object" || seen.has(d)) return;
+      seen.add(d);
       if (d.tooltip) secureTooltip(d.tooltip);
-      if (depth < TREE_MAX_DEPTH) secureItemTooltips(d.children, depth + 1);
+      secureItemTooltips(d.children, seen);
     });
   }
   // Top-level components that accept their own `tooltip` block.

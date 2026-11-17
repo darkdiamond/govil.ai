@@ -297,7 +297,7 @@ test("a clean subtree past the depth cap is returned as is", () => {
   assert.equal(seen, deep);
 });
 
-test("an unserializable (cyclic) subtree past the cap fails closed", () => {
+test("a cyclic subtree past the cap that holds a < or > fails closed", () => {
   const { window } = loadGovEcharts();
   let seen = "unset";
   const o = window.GovEcharts.option({
@@ -356,6 +356,60 @@ test("a cyclic children tree does not hang the belt", () => {
   chart.setOption({ series: [{ type: "tree", data: [node] }] });
   assert.equal(
     captured[0].series[0].data[0].tooltip.formatter({ name: "<b>" }),
+    "&lt;b&gt;"
+  );
+});
+
+test("a clean cyclic subtree past the cap is returned as is", () => {
+  const { window } = loadGovEcharts();
+  let seen;
+  const o = window.GovEcharts.option({
+    tooltip: {
+      formatter: (p) => {
+        seen = p.data.a.b.c.d.e;
+        return "";
+      },
+    },
+  });
+  const cyc = { label: "נקי" };
+  cyc.self = cyc;
+  o.tooltip.formatter({ data: { a: { b: { c: { d: { e: cyc } } } } } });
+  assert.equal(seen, cyc);
+});
+
+test("escaping past the cap keeps Dates, NaN and undefined as they are", () => {
+  const { window } = loadGovEcharts();
+  let seen;
+  const o = window.GovEcharts.option({
+    tooltip: {
+      formatter: (p) => {
+        seen = p.data.a.b.c.d.e;
+        return "";
+      },
+    },
+  });
+  const when = new Date(0);
+  const e = { label: evil, when, n: NaN, u: undefined };
+  o.tooltip.formatter({ data: { a: { b: { c: { d: { e } } } } } });
+  assert.ok(!seen.label.includes("<img"));
+  assert.equal(seen.when, when);
+  assert.ok(Number.isNaN(seen.n));
+  assert.ok("u" in seen);
+  assert.equal(e.label, evil, "chart data not mutated");
+});
+
+test("tooltips deeper than 20 tree levels are wrapped; a branching cycle is visited once", () => {
+  const { window, captured } = loadGovEcharts();
+  const chart = window.echarts.init({});
+  const leaf = { name: "leaf", tooltip: { formatter: (p) => p.name } };
+  let node = leaf;
+  for (let i = 0; i < 30; i++) node = { name: "n" + i, children: [node] };
+  const loop = { name: "loop", tooltip: { formatter: (p) => p.name } };
+  loop.children = [loop, loop, loop, loop];
+  chart.setOption({ series: [{ type: "tree", data: [node, loop] }] });
+  assert.equal(leaf.tooltip.formatter({ name: "<b>" }), "&lt;b&gt;");
+  assert.equal(
+    captured[0].series[0].data[1].tooltip.formatter({ name: "<b>" }),
     "&lt;b&gt;"
   );
 });
