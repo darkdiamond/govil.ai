@@ -32,6 +32,15 @@
   {{ gov.table(model.labels.years_caption, ["שנה", "סך הכול", "תיירים", "תיירים בדרך האוויר", "תיירים בדרך היבשה", "מבקרי יום"], model.tables.years, ltr=(1, 2, 3, 4, 5)) }}
 </section>
 
+{%- if model.flags.annual %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "כניסות מבקרים מאז " ~ model.charts.annual.x[0]) }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.annual_note }}</p>
+  {{ gov.chart("chart-annual", model.labels.annual_aria, "h-64 md:h-80") }}
+  {{ gov.table(model.labels.annual_caption, ["שנה", "מבקרים (מיליונים)"], model.tables.annual, ltr=(1,)) }}
+</section>
+{%- endif %}
+
 {%- if model.flags.air %}
 <section class="card p-5 mb-6">
   {{ gov.head("database", "תיירים בדרך האוויר בכל חודש") }}
@@ -61,14 +70,14 @@
   {{ gov.head("map-pin", "מאילו ארצות מגיעים התיירים") }}
   <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.countries_note }}</p>
   {{ gov.chart("chart-countries", model.labels.countries_aria, "h-80 md:h-[460px]") }}
-  {{ gov.table(model.labels.countries_caption, ["ארץ אזרחות", "מתחילת השנה", model.labels.countries_month_col, "אחוז מהתיירים"], model.tables.countries, ltr=(1, 2, 3)) }}
+  {{ gov.table(model.labels.countries_caption, ["ארץ אזרחות", model.labels.countries_ytd_col, model.labels.countries_month_col, "אחוז מהתיירים"], model.tables.countries, ltr=(1, 2, 3)) }}
 </section>
 
 {%- if model.flags.continents %}
 <section class="card p-5 mb-6">
   {{ gov.head("map-pin", "תיירים לפי יבשת") }}
   {{ gov.chart("chart-continents", model.labels.continents_aria, "h-72 md:h-80") }}
-  {{ gov.table(model.labels.continents_caption, ["יבשת", "מתחילת השנה", "אחוז מהתיירים"], model.tables.continents, ltr=(1, 2)) }}
+  {{ gov.table(model.labels.continents_caption, ["יבשת", model.labels.countries_ytd_col, "אחוז מהתיירים"], model.tables.continents, ltr=(1, 2)) }}
 </section>
 {%- endif %}
 
@@ -110,6 +119,22 @@
     }));
     window.addEventListener("resize", () => chart.resize());
   })();
+{%- if model.flags.annual %}
+  (function () {
+    const d = {{ model.charts.annual | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-annual"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL", { maximumFractionDigits: 2 }) + " מיליון" },
+      grid: { left: 16, right: 16, top: 24, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value" },
+      series: [{ type: "line", data: d.y, showSymbol: true, symbolSize: 6, areaStyle: { opacity: 0.08 } }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
 {%- if model.flags.air %}
   (function () {
     const d = {{ model.charts.air | tojson }};

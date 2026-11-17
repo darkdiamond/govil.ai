@@ -1,15 +1,25 @@
 """יציאות ישראלים לחו"ל: CBS's monthly release on Israelis' departures abroad.
 
 Inputs are CBS grid tables (one row per sheet row, cells C01..Cnn) from the
-newest edition of the release:
-  t1  departures (total and by air): yearly since 2015, year to date, and
-      monthly since two years back with seasonally adjusted and trend data
-  t2  departures by age group, with the share of men: yearly and monthly
-  t3  departures, and those of Israelis living abroad ("homeland visits"):
-      yearly since 2019 and monthly
-  t4  departures by route and border crossing, year to date, three years
-  t5  departures by air, monthly since 2018 (chart data)
-  releases  the edition list (number, date, headline, link)
+newest edition of the release. The regular monthly edition and the January
+year-end edition ("… בשנת YYYY") number their tables differently, so every
+stem t1..t9 is optional and each table is recognised by its header text,
+never by its stem:
+  main     departures (total and by air): yearly since 2015, year to date
+           (regular edition only), and monthly with seasonally adjusted and
+           trend data (t1 in both layouts)
+  ages     departures by age group, with the share of men (t2)
+  abroad   departures, and those of Israelis living abroad ("homeland
+           visits"), yearly and monthly (t3)
+  routes   departures by route and border crossing, year to date (the whole
+           year in the year-end edition), three years (t4)
+  air      departures by air, monthly since 2018, chart data (t5; t6 in the
+           2026 year-end edition)
+  long     year-end only (2026 on): yearly departures since 2010, millions
+  releases the edition list (number, date, headline, link)
+
+In the year-end edition the latest month is December and the "year to
+date" figures are the full year, so the page states them as the year.
 
 Header rows are found by their labels and raise when missing, so a
 redesigned table fails the refresh as recipe_failed and keeps the last
@@ -36,6 +46,43 @@ def _stop(rows, start, text):
 
 
 # ── tables ───────────────────────────────────────────────────────────────
+
+
+def _kind(rows):
+    """Which of the release's tables this grid is, from its header text."""
+    cells = {c for r in rows for c in r}
+
+    def has(text):
+        return any(text in c for c in cells)
+
+    if has("change in trend") and has("Thereof: By air"):
+        return "main"
+    if has("Total Departures") and has("% הזכרים"):
+        return "ages"
+    if has("ביקורי מולדת") or "מזה: של" in cells:
+        return "abroad"
+    if "דרך מעבר" in cells:
+        return "routes"
+    if "Original data" in cells and "Trend" in cells:
+        return "air"
+    if "מיליונים" in cells and "שנה" in cells and "יציאות" in cells:
+        return "long"
+    return None
+
+
+def _tables(frames):
+    """{kind: rows} over every non-empty t<n> input; the lowest stem wins."""
+    out = {}
+    names = sorted((n for n in frames if re.fullmatch(r"t\d+", n)), key=lambda n: int(n[1:]))
+    for n in names:
+        if frames[n].empty:
+            continue
+        rows = cbs.grid(frames[n], n)
+        k = _kind(rows)
+        if k and k not in out:
+            out[k] = rows
+    return out
+
 
 
 def _t1(rows):
@@ -203,6 +250,20 @@ def _t5(rows):
             for i, y, m in cbs.monthly_runs(rows, h + 1, len(rows), orig)]
 
 
+def _long(rows):
+    """Yearly departures in millions (year-end chart data): [(year, millions)]."""
+    h = next((i for i, r in enumerate(rows) if "שנה" in r and "יציאות" in r), None)
+    if h is None:
+        return []
+    ycol, vcol = rows[h].index("שנה"), rows[h].index("יציאות")
+    out = {}
+    for r in rows[h + 1:]:
+        y, v = cbs.cell(r, ycol), cbs.val(r, vcol)
+        if cbs.YEAR.match(y) and v is not None:
+            out[int(y)] = v
+    return sorted(out.items())
+
+
 # ── formatting ───────────────────────────────────────────────────────────
 
 
@@ -223,6 +284,12 @@ def _range(end, year):
     if end == 1:
         return f"ינואר {year}"
     return f"ינואר עד {fmt.MONTHS_HE[end - 1]} {year}"
+
+
+def _when(end, year):
+    """The period a year-to-date block covers: the whole year when it ends in
+    December (the year-end edition), else January to its last month."""
+    return f"שנת {year}" if end == 12 else _range(end, year)
 
 
 def _chg(new, old):
@@ -256,11 +323,16 @@ def compute(frames):
         raise ValueError("releases: no edition listed")
     latest_rel = rel.iloc[-1]
 
-    years, ytd, monthly = _t1(cbs.grid(frames["t1"], "t1"))
-    ages, age_years, age_months = _t2(cbs.grid(frames["t2"], "t2"))
-    ab_years, ab_months = _t3(cbs.grid(frames["t3"], "t3"))
-    t4_years, t4_end, routes = _t4(cbs.grid(frames["t4"], "t4"))
-    air = _t5(cbs.grid(frames["t5"], "t5"))
+    tabs = _tables(frames)
+    for k in ("main", "ages", "abroad", "routes"):
+        if k not in tabs:
+            raise ValueError(f"no {k} table in the newest edition")
+    years, ytd, monthly = _t1(tabs["main"])
+    ages, age_years, age_months = _t2(tabs["ages"])
+    ab_years, ab_months = _t3(tabs["abroad"])
+    t4_years, t4_end, routes = _t4(tabs["routes"])
+    air = _t5(tabs["air"]) if "air" in tabs else []
+    long_run = _long(tabs["long"]) if "long" in tabs else []
     if not monthly:
         raise ValueError("t1: no monthly rows")
     if not years:
@@ -275,10 +347,23 @@ def compute(frames):
     ytd_now = ytd[-1] if ytd else None
     ytd_prev = next((y for y in reversed(ytd[:-1]) if ytd_now and y["end"] == ytd_now["end"]
                      and y["year"] == ytd_now["year"] - 1), None)
+    # The year-end edition: the latest month is December and the year's
+    # total is a yearly row, with no year-to-date rows. Its "year to date"
+    # is the full year, against the full year before.
+    full_year = (not ytd and lt[1] == 12 and years[-1]["year"] == lt[0])
+    if full_year:
+        ytd_now = {**years[-1], "end": 12}
+        ytd_prev = next((y for y in years if y["year"] == lt[0] - 1), None)
     ytd_chg = _chg(ytd_now["total"], ytd_prev["total"]) if ytd_prev else None
 
     peak = max(years, key=lambda y: (y["total"], y["year"]))
     last_year = years[-1]
+    # With the full year in the KPIs, a record year would repeat the same
+    # number as the peak; show the record it broke instead.
+    prior = [y for y in years if y["year"] < last_year["year"]]
+    peak_kpi = peak
+    if full_year and peak["year"] == last_year["year"] and prior:
+        peak_kpi = max(prior, key=lambda y: (y["total"], y["year"]))
 
     # ── KPIs ─────────────────────────────────────────────────────────────
     kpis, labels = {}, {}
@@ -292,15 +377,18 @@ def compute(frames):
     if ytd_now:
         kpis["ytd"] = {"value": ytd_now["total"], "display": _k(ytd_now["total"]),
                        "tone": _tone(ytd_chg)}
-        labels["ytd_kpi"] = (f"יציאות מתחילת השנה, {_range(ytd_now['end'], ytd_now['year'])} "
+        labels["ytd_kpi"] = (f"יציאות בכל שנת {ytd_now['year']} (אלפים)" if full_year else
+                             f"יציאות מתחילת השנה, {_range(ytd_now['end'], ytd_now['year'])} "
                              f"(אלפים)")
     if ytd_chg is not None:
         kpis["ytd_chg"] = {"value": round(ytd_chg, 4), "display": fmt.signed_pct(ytd_chg),
                            "tone": _tone(ytd_chg)}
-        labels["ytd_chg_kpi"] = f"שינוי לעומת התקופה המקבילה ב-{ytd_prev['year']}"
-    kpis["peak"] = {"value": peak["total"], "display": _k(peak["total"]),
-                    "tone": "ok" if peak["year"] == last_year["year"] else "info"}
-    labels["peak_kpi"] = f"יציאות בשנת השיא, {peak['year']} (אלפים)"
+        labels["ytd_chg_kpi"] = (f"שינוי לעומת {ytd_prev['year']}" if full_year else
+                                 f"שינוי לעומת התקופה המקבילה ב-{ytd_prev['year']}")
+    kpis["peak"] = {"value": peak_kpi["total"], "display": _k(peak_kpi["total"]),
+                    "tone": "ok" if peak_kpi["year"] == last_year["year"] else "info"}
+    labels["peak_kpi"] = (f"השיא הקודם, {peak_kpi['year']} (אלפים)" if peak_kpi is not peak
+                          else f"יציאות בשנת השיא, {peak['year']} (אלפים)")
 
     # ── charts + tables ──────────────────────────────────────────────────
     charts, tables, flags = {}, {}, {}
@@ -337,6 +425,25 @@ def compute(frames):
                           "max": max(a["orig"] for a in air)}
         tables["heat"] = [[str(y)] + [_k(air_by_t[(y, m)]["orig"]) if (y, m) in air_by_t else ""
                                       for m in range(1, 13)] for y in air_years]
+
+    # Year-end edition: the yearly series back to 2010 (millions), shown when
+    # it reaches further back than the main table's yearly rows.
+    flags["long"] = len(long_run) >= 3 and long_run[0][0] < years[0]["year"]
+    if flags["long"]:
+        charts["long"] = {"x": [str(y) for y, _ in long_run],
+                          "v": [round(v, 2) for _, v in long_run]}
+        tables["long"] = [[str(y), fmt.num_he(v, 1)] for y, v in reversed(long_run)]
+        (y0, v0), (y1, v1) = long_run[0], long_run[-1]
+        top = max(long_run, key=lambda p: (p[1], p[0]))
+        labels.update({
+            "long_note": (f"יציאות ישראלים לחו\"ל בכל שנה מאז {y0}, במיליונים, מתוך ההודעה "
+                          f"השנתית של הלמ\"ס: מ-{fmt.num_he(v0, 1)} מיליון ב-{y0} ל-"
+                          f"{fmt.num_he(v1, 1)} מיליון ב-{y1}"
+                          + (", השיא בתקופה." if top[0] == y1 else
+                             f". השיא בתקופה: {fmt.num_he(top[1], 1)} מיליון ב-{top[0]}.")),
+            "long_aria": f"יציאות לחו\"ל לפי שנה במיליונים, {y0} עד {y1}",
+            "long_caption": f"יציאות ישראלים לחו\"ל לפי שנה, {y0} עד {y1} (מיליונים)",
+        })
 
     # Age groups.
     age_he = [_age_he(a) for a in ages]
@@ -421,7 +528,7 @@ def compute(frames):
         charts["modes"] = [{"name": r["name"], "value": r["ytd"][-1]} for r in modes]
         tables["modes"] = [[r["name"], _k(r["ytd"][-1]), fmt.pct(r["ytd"][-1] / g_now)
                             if g_now else ""] for r in modes]
-        labels["modes_caption"] = f"יציאות לפי דרך היציאה, {_range(t4_end, t4_years[-1])} (אלפים)"
+        labels["modes_caption"] = f"יציאות לפי דרך היציאה, {_when(t4_end, t4_years[-1])} (אלפים)"
 
     # ── insights ─────────────────────────────────────────────────────────
     insights = []
@@ -434,7 +541,13 @@ def compute(frames):
         add("month", f"ב{_mname(lt)} יצאו ישראלים לחו\"ל {_k(last['orig'])} אלף פעמים, "
                      f"{_word(month_chg)} של {fmt.pct(abs(month_chg))} לעומת "
                      f"{_mname(prev['t'])} ({_k(prev['orig'])} אלף).")
-    if ytd_chg is not None:
+    if ytd_chg is not None and full_year:
+        # A record year's change is already in the peak sentence.
+        if peak["year"] != last_year["year"]:
+            add("ytd", f"בכל שנת {ytd_now['year']} נרשמו {_k(ytd_now['total'])} אלף יציאות, "
+                       f"{_word(ytd_chg)} של {fmt.pct(abs(ytd_chg))} לעומת {ytd_prev['year']} "
+                       f"({_k(ytd_prev['total'])} אלף).")
+    elif ytd_chg is not None:
         add("ytd", f"מתחילת השנה ({_range(ytd_now['end'], ytd_now['year'])}) נרשמו "
                    f"{_k(ytd_now['total'])} אלף יציאות, {_word(ytd_chg)} של "
                    f"{fmt.pct(abs(ytd_chg))} לעומת התקופה המקבילה ב-{ytd_prev['year']} "
@@ -480,7 +593,9 @@ def compute(frames):
             hi = max(moves, key=lambda a: (a["chg"], a["label"]))
             lo = min(moves, key=lambda a: (a["chg"], a["label"]))
             span = _range(age_ytd_span[1], age_ytd_span[0])
-            text = (f"לפי גיל, השינוי הגדול ביותר מתחילת השנה ({span}) הוא בקבוצת "
+            when = (f"ב-{age_ytd_span[0]} לעומת {age_ytd_span[0] - 1}" if age_ytd_span[1] == 12
+                    else f"מתחילת השנה ({span})")
+            text = (f"לפי גיל, השינוי הגדול ביותר {when} הוא בקבוצת "
                     f"הגיל {hi['label']}: {_word(hi['chg'])} של {fmt.pct(abs(hi['chg']))}")
             if lo is not hi and (lo["chg"] < 0) != (hi["chg"] < 0):
                 text += (f", ואילו בקבוצת הגיל {lo['label']} נרשמה {_word(lo['chg'])} של "
@@ -502,17 +617,24 @@ def compute(frames):
     if land and land["ytd"][-1] and g_now:
         lc = _chg(land["ytd"][-1], land["ytd"][-2])
         if lc is not None and abs(lc) >= AGE_MOVE:
-            add("land", f"{fmt.pct(land['ytd'][-1] / g_now)} מהיציאות מתחילת "
-                        f"{t4_years[-1]} היו דרך מעברי היבשה ({_k(land['ytd'][-1])} אלף), "
-                        f"{_word(lc)} של {fmt.pct(abs(lc))} לעומת התקופה המקבילה "
-                        f"ב-{t4_years[-2]}.")
+            if t4_end == 12:
+                add("land", f"{fmt.pct(land['ytd'][-1] / g_now)} מהיציאות ב-{t4_years[-1]} "
+                            f"היו דרך מעברי היבשה ({_k(land['ytd'][-1])} אלף), {_word(lc)} של "
+                            f"{fmt.pct(abs(lc))} לעומת {t4_years[-2]}.")
+            else:
+                add("land", f"{fmt.pct(land['ytd'][-1] / g_now)} מהיציאות מתחילת "
+                            f"{t4_years[-1]} היו דרך מעברי היבשה ({_k(land['ytd'][-1])} אלף), "
+                            f"{_word(lc)} של {fmt.pct(abs(lc))} לעומת התקופה המקבילה "
+                            f"ב-{t4_years[-2]}.")
 
     # ── text ─────────────────────────────────────────────────────────────
     rel_date = pd.Timestamp(latest_rel["RELEASE_DATE"])
     release = {"no": latest_rel["RELEASE_NO"], "date": fmt.d_he(rel_date),
                "title": latest_rel["TITLE"], "headline": latest_rel["HEADLINE"],
                "url": latest_rel["PAGE_URL"], "pdf": latest_rel["REPORT_PDF_URL"]}
-    t4_span = _range(t4_end, t4_years[-1]).replace(f" {t4_years[-1]}", "")
+    t4_span = ("כל השנה" if t4_end == 12
+               else _range(t4_end, t4_years[-1]).replace(f" {t4_years[-1]}", ""))
+    t4_list = fmt.join_he(str(y) for y in t4_years)
     labels.update({
         "lede": (f"כמה פעמים יוצאים ישראלים לחו\"ל בכל חודש, באיזה גיל ודרך אילו מעברי "
                  f"גבול. הנתונים מתוך ההודעה החודשית של הלשכה המרכזית לסטטיסטיקה "
@@ -528,13 +650,13 @@ def compute(frames):
         "recent_caption": "יציאות ישראלים לחו\"ל לפי חודש (אלפים)",
         "routes_caption": f"יציאות לפי דרך ומעבר גבול, {t4_span} (אלפים)",
         "routes_chg_col": f"שינוי {t4_years[-2]} עד {t4_years[-1]}",
-        "crossings_note": (f"יציאות דרך מעברי היבשה והים בחודשים {t4_span} של "
-                           f"{fmt.join_he(str(y) for y in t4_years)}."
+        "crossings_note": ((f"יציאות דרך מעברי היבשה והים בשנים {t4_list}." if t4_end == 12
+                            else f"יציאות דרך מעברי היבשה והים בחודשים {t4_span} של {t4_list}.")
                            + (f" נמלי התעופה ({_k(air_mode['ytd'][-1])} אלף ב-{t4_years[-1]}) "
                               f"מופיעים רק בטבלה, כדי שמעברי היבשה ייראו בתרשים."
                               if air_mode else "")),
         "crossings_aria": f"יציאות לפי מעבר גבול ביבשה ובים, {t4_span}, שלוש שנים",
-        "modes_aria": f"יציאות לפי דרך היציאה, {t4_span} {t4_years[-1]}",
+        "modes_aria": f"יציאות לפי דרך היציאה, {_when(t4_end, t4_years[-1])}",
         "span": f"{years[0]['year']}-{lt[0]}",
     })
     if air:
@@ -564,8 +686,19 @@ def compute(frames):
             "male_aria": f"גברים ונשים מהיציאות לחו\"ל לפי קבוצת גיל, {ay['year']}",
             "male_caption": f"יציאות לפי קבוצת גיל ומין, {ay['year']}",
         })
-    if flags["age_ytd"]:
+    if flags["age_ytd"] and age_ytd_span[1] == 12:
+        ay0, ay1 = age_ytd_span[0] - 1, age_ytd_span[0]
         labels.update({
+            "age_ytd_head": f"קבוצות הגיל: {ay1} לעומת {ay0}",
+            "age_ytd_note": f"יציאות לחו\"ל לפי קבוצת גיל בכל שנת {ay1}, לעומת שנת {ay0}.",
+            "age_ytd_aria": f"יציאות לפי קבוצת גיל, {ay0} ו-{ay1}",
+            "age_ytd_caption": f"יציאות לפי קבוצת גיל, {ay0} ו-{ay1} (אלפים)",
+            "age_ytd_prev": str(ay0),
+            "age_ytd_cur": str(ay1),
+        })
+    elif flags["age_ytd"]:
+        labels.update({
+            "age_ytd_head": "קבוצות הגיל מתחילת השנה",
             "age_ytd_note": (f"יציאות לחו\"ל לפי קבוצת גיל ב{_range(age_ytd_span[1], age_ytd_span[0])}, "
                              f"לעומת אותם חודשים ב-{age_ytd_span[0] - 1}."),
             "age_ytd_aria": f"יציאות לפי קבוצת גיל מתחילת השנה, {age_ytd_span[0] - 1} ו-{age_ytd_span[0]}",
@@ -589,7 +722,8 @@ def compute(frames):
                + (f" ({fmt.signed_pct(month_chg)} בשנה)" if month_chg is not None else "")
                + ".")
     desc = (f"כמה ישראלים טסים לחו\"ל: {_k(last['orig'])} אלף יציאות ב{_mname(lt)}"
-            + (f", {_k(ytd_now['total'])} אלף מתחילת השנה" if ytd_now else "")
+            + ((f", {_k(ytd_now['total'])} אלף בכל שנת {ytd_now['year']}" if full_year
+                else f", {_k(ytd_now['total'])} אלף מתחילת השנה") if ytd_now else "")
             + ". נתונים חודשיים לפי גיל ומעבר גבול.")
     return {
         "agent_data": {

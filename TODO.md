@@ -193,12 +193,6 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
   prefixes); `history_releases` > 1 when each edition holds one year; never a private
   `cbs._*` helper (the guard rejects it); `seo.title`/`name` fixed strings; holiday collections
   ("לרגל …", "לקט נתונים") stay out. (2026-11-05)
-- **Year-end CBS editions with a different table set are skipped.** `cbs-visitor-arrivals`
-  and `cbs-israelis-departures` skip the January "בשנת YYYY" edition, which replaces December's
-  and adds tables. `cbs-labour-supply-demand` skips the Oct–Dec "ושנת" edition (90 files). Each
-  page lags one period a year (the page says so). Fix: a second report config per recipe for
-  the year-end edition (its own table map), or have compute read either layout.
-  (2026-11-05)
 - **`cbs-foreign-trade-by-country` lists t6 and t8 but never reads them.** They are the NIS
   twins of t5/t7, kept as downloads. Each is still fetched every run, and a missing stem fails
   the whole page's sync (item above). Drop them from `source.json` if the downloads aren't

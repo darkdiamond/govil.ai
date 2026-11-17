@@ -32,6 +32,15 @@
   {{ gov.table(model.labels.trend_caption, ["רבעון", "יחס היצע לביקוש", "יחס במשלחי יד ידועים", "משרות פנויות"], model.tables.trend, ltr=(1, 2, 3)) }}
 </section>
 
+{%- if model.flags.annual %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "השנה כולה: מחפשי עבודה ומשרות פנויות לפי שנה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.annual_note }}</p>
+  {{ gov.chart("chart-annual", model.labels.annual_aria, "h-72 md:h-96") }}
+  {{ gov.table(model.labels.annual_caption, ["שנה", "יחס היצע לביקוש", "יחס במשלחי יד ידועים", "משרות פנויות"], model.tables.annual, ltr=(1, 2, 3)) }}
+</section>
+{%- endif %}
+
 {%- if model.flags.groups %}
 <section class="card p-5 mb-6">
   {{ gov.head("list", "איפה חסרים עובדים: לפי משלח יד") }}
@@ -100,7 +109,7 @@
     <li>מחפשי עבודה (היצע העבודה) הם בלתי מועסקים, מועסקים שמחפשים עבודה אחרת או עבודה עם יותר שעות, ומי שאינם בכוח העבודה אך חיפשו עבודה בשנה האחרונה. הנתונים מסקר כוח אדם.</li>
     <li>המשרות הפנויות הן משרות שהמעסיקים מחפשים להן עובדים, לפי סקר המשרות הפנויות.</li>
     <li>הנתונים מבוססים על סקרים ויש בהם טעות דגימה. במשלחי יד קטנים היחס יכול לקפוץ בין רבעונים, והלמ"ס אינה מפרסמת יחס כשהטעות גדולה מדי.</li>
-    <li>ההודעה של הרבעון הרביעי מתפרסמת יחד עם נתוני השנה כולה ובמבנה שונה, ולכן העמוד מתעדכן מההודעות של שלושת הרבעונים האחרים. נתוני הרבעון הרביעי נכללים בסדרות הזמן מההודעה שאחריה.</li>
+    <li>ההודעה של הרבעון הרביעי מתפרסמת יחד עם נתוני השנה כולה. כשהיא ההודעה האחרונה, העמוד מציג גם את הממוצעים השנתיים.</li>
   </ul>
 </section>
 
@@ -127,6 +136,30 @@
     }));
     window.addEventListener("resize", () => chart.resize());
   })();
+{%- if model.flags.annual %}
+  (function () {
+    const d = {{ model.charts.annual | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-annual"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[6], pal[0], pal[1]],
+      tooltip: { trigger: "axis" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 56, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: [
+        { type: "value", name: "משרות פנויות", min: 0, axisLabel: { formatter: (v) => Number(v).toLocaleString("he-IL") } },
+        { type: "value", name: "יחס", min: 0, splitLine: { show: false } }
+      ],
+      series: [
+        { type: "bar", name: "משרות פנויות", data: d.vac, tooltip: { valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL") } },
+        { type: "line", name: "יחס היצע לביקוש", yAxisIndex: 1, data: d.ratio, lineStyle: { width: 3 } },
+        { type: "line", name: "במשלחי יד ידועים", yAxisIndex: 1, data: d.known, lineStyle: { type: "dashed" } }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
 {%- if model.flags.groups %}
   (function () {
     const d = {{ model.charts.groups | tojson }};

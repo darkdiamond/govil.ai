@@ -32,6 +32,15 @@
   {{ gov.table(model.labels.years_caption, ["שנה", "סך הכול", "בדרך האוויר", "ביבשה ובים", "שינוי משנה קודמת"], model.tables.years, ltr=(1, 2, 3, 4)) }}
 </section>
 
+{%- if model.flags.long %}
+<section class="card p-5 mb-6">
+  {{ gov.head("trending-up", "יציאות לחו\"ל לאורך זמן") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.long_note }}</p>
+  {{ gov.chart("chart-long", model.labels.long_aria, "h-64 md:h-80") }}
+  {{ gov.table(model.labels.long_caption, ["שנה", "יציאות (מיליונים)"], model.tables.long, ltr=(1,)) }}
+</section>
+{%- endif %}
+
 <section class="card p-5 mb-6">
   {{ gov.head("trending-up", "יציאות בכל חודש: נתון מקורי, מנוכה עונתיות ומגמה") }}
   <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.recent_note }}</p>
@@ -76,7 +85,7 @@
 
 {%- if model.flags.age_ytd %}
 <section class="card p-5 mb-6">
-  {{ gov.head("trending-up", "קבוצות הגיל מתחילת השנה") }}
+  {{ gov.head("trending-up", model.labels.age_ytd_head) }}
   <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.age_ytd_note }}</p>
   {{ gov.chart("chart-age-ytd", model.labels.age_ytd_aria, "h-64 md:h-80") }}
   {{ gov.table(model.labels.age_ytd_caption, ["קבוצת גיל", model.labels.age_ytd_prev, model.labels.age_ytd_cur, "שינוי"], model.tables.age_ytd, ltr=(1, 2, 3)) }}
@@ -149,6 +158,22 @@
     }));
     window.addEventListener("resize", () => chart.resize());
   })();
+{%- if model.flags.long %}
+  (function () {
+    const d = {{ model.charts.long | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-long"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL", { maximumFractionDigits: 1 }) + " מיליון" },
+      grid: { left: 16, right: 16, top: 16, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value" },
+      series: [{ type: "line", name: "יציאות (מיליונים)", data: d.v, areaStyle: { opacity: 0.12 }, lineStyle: { width: 3 } }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
 {%- if model.flags.heat %}
   (function () {
     const d = {{ model.charts.heat | tojson }};

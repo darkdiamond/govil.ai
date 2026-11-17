@@ -1,19 +1,24 @@
 """כניסות מבקרים לישראל: CBS's monthly visitor-arrivals release.
 
 Inputs are CBS grid tables (one row per sheet row, cells C01..Cnn) from the
-newest edition of the release:
-  t1  visitor arrivals by mode (day visitors / tourists, land / air), yearly
-      since 2016, year to date, and monthly
-  t2  tourist arrivals: original, seasonally adjusted and trend, monthly
-  t3  tourists and day visits by country of citizenship (month, year to date)
-  t4  arrivals by border crossing (month and year to date, three years)
-  t5  tourist arrivals by air, monthly since 2019 (chart data)
-  releases  the edition list (number, date, headline, link)
+newest edition of the release. The table stems differ between editions (the
+January "בשנת YYYY" edition, which replaces December's, adds chart sheets and
+moves the monthly air series from t5 to t7), so every stem is optional and
+each table is found by its title or header text, never by its stem:
+  visitors   TABLE 1: visitor arrivals by mode (day visitors / tourists,
+             land / air), yearly since 2016, year to date, and monthly
+  tourists   TABLE 2: tourist arrivals, original, SA and trend, monthly
+  countries  TABLE 3: tourists and day visits by country of citizenship
+  crossings  Table 4: arrivals by border crossing (year to date and month)
+  air        chart data: tourist arrivals by air, monthly since 2018/2019
+  annual     year-end edition only: Diagram 1, visitors per year since 2000
+  releases   the edition list (number, date, headline, link)
 
 Header rows are found by their (English) labels and raise when missing, so a
 redesigned table fails the refresh as recipe_failed and keeps the last
 page. Data rows (years, months, countries, crossings) are found by pattern:
-a missing one only shortens a series. All values are thousands.
+a missing one only shortens a series. All values are thousands, except the
+annual chart data (millions).
 """
 import re
 
@@ -27,6 +32,47 @@ DOMINANT_SHARE = 0.8
 MONTHS_EN = ("January", "February", "March", "April", "May", "June", "July", "August",
              "September", "October", "November", "December")
 _EN_RANGE = re.compile(rf"^({'|'.join(MONTHS_EN)})-({'|'.join(MONTHS_EN)})$")
+
+
+# ── locating tables ──────────────────────────────────────────────────────
+
+TITLE_ROWS = 10
+
+
+def _kind(rows):
+    """Which table a grid is, from its title rows (or, for the chart-data
+    sheets that have no English title, their header cells)."""
+    head = [c for r in rows[:TITLE_ROWS] for c in r]
+    up = " ".join(head).upper()
+    if "BY COUNTRY OF CITIZENSHIP" in up:
+        return "countries"
+    if "VISITOR ARRIVALS, BY MODE OF TRAVEL" in up:
+        return "crossings"
+    if "VISITOR ARRIVALS IN ISRAEL" in up and "TABLE" in up:
+        return "visitors"
+    if "TOURIST ARRIVALS IN ISRAEL" in up and "TABLE" in up:
+        return "tourists"
+    cells = {c for r in rows for c in r}
+    if "Original Data נתונים מקוריים" in cells and "Trend מגמה" in cells:
+        return "air"
+    if "השנים" in cells and "מס' כניסות מבקרים" in cells:
+        return "annual"
+    return None
+
+
+def _tables(frames):
+    """{kind: rows} over every non-empty table input; of two stems of the
+    same kind the lower stem number wins."""
+    out = {}
+    names = sorted((n for n in frames if re.fullmatch(r"t\d+", n)), key=lambda n: int(n[1:]))
+    for n in names:
+        if frames[n].empty:
+            continue
+        rows = cbs.grid(frames[n], n)
+        k = _kind(rows)
+        if k and k not in out:
+            out[k] = rows
+    return out
 
 
 # ── tables ───────────────────────────────────────────────────────────────
@@ -131,14 +177,26 @@ def _t3(rows):
 
 def _t4(rows):
     """Tourist arrivals by border crossing, year to date, for three years."""
-    yrow = next((i for i, r in enumerate(rows) if sum(bool(cbs.YEAR.match(c)) for c in r) >= 4),
+    yrow = next((i for i, r in enumerate(rows) if sum(bool(cbs.YEAR.match(c)) for c in r) >= 3),
                 None)
     if yrow is None:
         raise ValueError("t4: year header row not found")
-    ycols = [j for j, c in enumerate(rows[yrow]) if cbs.YEAR.match(c)]
-    half = len(ycols) // 2
-    if half < 2 or len(ycols) != 2 * half:
-        raise ValueError(f"t4: expected two blocks of years, got {ycols}")
+    allcols = [j for j, c in enumerate(rows[yrow]) if cbs.YEAR.match(c)]
+    yrs = [rows[yrow][j] for j in allcols]
+    # Two blocks (year to date, then the month) repeat the same years. A
+    # stray year cell after them (a "2017*" some editions carry) is dropped:
+    # the longest prefix that splits into two equal halves wins. In January
+    # the sheet has one block only (year to date = the month).
+    half = next((h for h in range(len(yrs) // 2, 1, -1) if yrs[:h] == yrs[h:2 * h]), None)
+    if half:
+        ycols = allcols[:2 * half]
+    else:
+        run = 1
+        while run < len(yrs) and int(yrs[run]) == int(yrs[run - 1]) + 1:
+            run += 1
+        if run < 2:
+            raise ValueError(f"t4: no block of consecutive years in {yrs}")
+        half, ycols = run, allcols[:run] * 2
     # The English block labels ("January-October", "October") say which
     # block is which; the range must be the left one. In January both read
     # "January" (year to date = the month), so there is no range to check.
@@ -175,6 +233,20 @@ def _t5(rows):
     trend = cbs.col_after(rows[h], "Trend מגמה", orig)
     return [{"t": (y, m), "orig": cbs.val(rows[i], orig), "trend": cbs.val(rows[i], trend)}
             for i, y, m in cbs.monthly_runs(rows, h + 1, len(rows), orig)]
+
+
+def _annual(rows):
+    """Year-end edition only: visitors per year since 2000 (millions)."""
+    h = cbs.row_with(rows, "השנים", name="annual")
+    ycol = cbs.col_after(rows[h], "השנים", 0)
+    vcol = cbs.col_after(rows[h], "מס' כניסות מבקרים", 0)
+    out = []
+    for r in rows[h + 1:]:
+        y, v = cbs.cell(r, ycol), cbs.val(r, vcol)
+        if cbs.YEAR.match(y) and v is not None:
+            out.append({"year": int(y), "m": v})
+    out.sort(key=lambda r: r["year"])
+    return out
 
 
 # ── formatting ───────────────────────────────────────────────────────────
@@ -226,11 +298,17 @@ def compute(frames):
         raise ValueError("releases: no edition listed")
     latest_rel = rel.iloc[-1]
 
-    years, ytd = _t1(cbs.grid(frames["t1"], "t1"))
-    monthly = _t2(cbs.grid(frames["t2"], "t2"))
-    countries, continents, grand3, (month_lbl, _) = _t3(cbs.grid(frames["t3"], "t3"))
-    t4_years, crossings = _t4(cbs.grid(frames["t4"], "t4"))
-    air = _t5(cbs.grid(frames["t5"], "t5"))
+    tabs = _tables(frames)
+    missing = [k for k in ("visitors", "tourists", "countries", "crossings", "air")
+               if k not in tabs]
+    if missing:
+        raise ValueError(f"tables not found by title: {missing}")
+    years, ytd = _t1(tabs["visitors"])
+    monthly = _t2(tabs["tourists"])
+    countries, continents, grand3, (month_lbl, cum_lbl) = _t3(tabs["countries"])
+    t4_years, crossings = _t4(tabs["crossings"])
+    air = _t5(tabs["air"])
+    annual = _annual(tabs["annual"]) if "annual" in tabs else []
     if not monthly:
         raise ValueError("t2: no monthly rows")
     if not years:
@@ -244,6 +322,23 @@ def compute(frames):
         raise ValueError(f"t3: month block label {month_lbl!r} is not 'MM YYYY'")
     lt = (int(pm.group(2)), cbs.ROMAN[pm.group(1)])
 
+    # t3's cumulative block: "I-X 2026" in a regular edition, "I-XII 2025"
+    # in the year-end one and also in January's (the year just ended).
+    cm = re.match(r"^I-([IVX]+) (\d{4})$", cum_lbl)
+    if not cm or cm.group(1) not in cbs.ROMAN:
+        raise ValueError(f"t3: cumulative block label {cum_lbl!r} is not 'I-MM YYYY'")
+    cum_year, cum_end = int(cm.group(2)), cbs.ROMAN[cm.group(1)]
+    if cum_end == 12:
+        cum_he, cum_col = f"בשנת {cum_year}", f"בשנת {cum_year}"
+    elif cum_year == lt[0]:
+        cum_he, cum_col = "מתחילת השנה", "מתחילת השנה"
+    else:
+        cum_he = cum_col = _range(cum_end, cum_year)
+
+    # t4's cumulative block is January to the release's month: in December,
+    # the whole year.
+    cross_he = f"בשנת {lt[0]}" if lt[1] == 12 else "מתחילת השנה"
+
     vis = next((c for c in crossings if c["section"] == "visitors"), None)
     if vis is None or vis["month"][-1] is None:
         raise ValueError("t4: visitors grand-total row (מבקרים - סך כולל) not found")
@@ -252,9 +347,18 @@ def compute(frames):
 
     ytd_now = ytd[-1] if ytd else None
     ytd_prev = ytd[-2] if len(ytd) >= 2 and ytd[-2]["end"] == ytd[-1]["end"] else None
+    # The year-end edition (December) prints the finished year as a plain
+    # year row, with no I-XII pair: the full year and the one before it
+    # then stand in for the year-to-date pair.
+    by_year = {y["year"]: y for y in years}
+    if lt[1] == 12 and (not ytd_now or ytd_now["year"] != lt[0]) and lt[0] in by_year:
+        ytd_now = {**by_year[lt[0]], "end": 12}
+        ytd_prev = {**by_year[lt[0] - 1], "end": 12} if lt[0] - 1 in by_year else None
     ytd_chg = _chg(ytd_now["grand"], ytd_prev["grand"]) if ytd_now and ytd_prev else None
+    full_year = bool(ytd_now and ytd_now["end"] == 12)
 
-    full_years = [y for y in years if y["year"] < (ytd_now["year"] if ytd_now else 10 ** 4)]
+    full_years = [y for y in years if full_year or
+                  y["year"] < (ytd_now["year"] if ytd_now else 10 ** 4)]
     peak = max(full_years or years, key=lambda y: (y["grand"], y["year"]))
 
     air_by_t = {a["t"]: a for a in air}
@@ -277,11 +381,13 @@ def compute(frames):
     if ytd_now:
         kpis["ytd"] = {"value": ytd_now["grand"], "display": _k(ytd_now["grand"]),
                        "tone": _tone(ytd_chg)}
-        labels["ytd_kpi"] = f"מבקרים מתחילת השנה, {_range(ytd_now['end'], ytd_now['year'])} (אלפים)"
+        labels["ytd_kpi"] = (f"מבקרים בשנת {ytd_now['year']} (אלפים)" if full_year else
+                             f"מבקרים מתחילת השנה, {_range(ytd_now['end'], ytd_now['year'])} (אלפים)")
     if ytd_chg is not None:
         kpis["ytd_chg"] = {"value": round(ytd_chg, 4), "display": fmt.signed_pct(ytd_chg),
                            "tone": _tone(ytd_chg)}
-        labels["ytd_chg_kpi"] = f"שינוי לעומת התקופה המקבילה ב-{ytd_prev['year']}"
+        labels["ytd_chg_kpi"] = (f"שינוי לעומת {ytd_prev['year']}" if full_year else
+                                 f"שינוי לעומת התקופה המקבילה ב-{ytd_prev['year']}")
     if recovery is not None:
         kpis["recovery"] = {"value": round(recovery, 4), "display": fmt.pct(recovery, 0),
                             "tone": "ok" if recovery >= 0.9 else "warn" if recovery >= 0.5
@@ -364,6 +470,24 @@ def compute(frames):
                              fmt.pct(c["ytd"] / tourists_total) if tourists_total else ""]
                             for c in continents]
 
+    # Year-end edition only: visitors per year since 2000 (millions).
+    if len(annual) >= 2:
+        charts["annual"] = {"x": [str(a["year"]) for a in annual], "y": [a["m"] for a in annual]}
+        tables["annual"] = [[str(a["year"]), fmt.num_he(a["m"], 2)] for a in reversed(annual)]
+        a_peak = max(annual, key=lambda a: (a["m"], a["year"]))
+        a_last = annual[-1]
+        below = sum(1 for a in annual if a["m"] < a_last["m"])
+        labels.update({
+            "annual_note": (f"כניסות מבקרים בכל שנה מאז {annual[0]['year']}, במיליונים. הלמ\"ס "
+                            f"מפרסמת את הסדרה הזו פעם בשנה, בהודעה על השנה כולה. השיא: "
+                            f"{a_peak['year']}, {fmt.num_he(a_peak['m'], 2)} מיליון. "
+                            f"ב-{a_last['year']}: {fmt.num_he(a_last['m'], 2)} מיליון"
+                            + (f", יותר מאשר ב-{below} מתוך {len(annual) - 1} השנים שקדמו לה."
+                               if below and a_last["year"] != a_peak["year"] else ".")),
+            "annual_aria": f"כניסות מבקרים לפי שנה, {annual[0]['year']} עד {a_last['year']}",
+            "annual_caption": "כניסות מבקרים לפי שנה (מיליונים)",
+        })
+
     # ── insights ─────────────────────────────────────────────────────────
     insights = []
 
@@ -376,10 +500,15 @@ def compute(frames):
                      f"{_word(vis_month_chg)} של {fmt.pct(abs(vis_month_chg))} לעומת "
                      f"{_mname((lt[0] - 1, lt[1]))} ({_k(vis_month_prev)} אלף).")
     if ytd_chg is not None:
-        add("ytd", f"מתחילת השנה ({_range(ytd_now['end'], ytd_now['year'])}) "
-                   f"נכנסו {_k(ytd_now['grand'])} אלף מבקרים, {_word(ytd_chg)} של "
-                   f"{fmt.pct(abs(ytd_chg))} לעומת התקופה המקבילה ב-{ytd_prev['year']} "
-                   f"({_k(ytd_prev['grand'])} אלף).")
+        if full_year:
+            add("ytd", f"בשנת {ytd_now['year']} כולה נכנסו לישראל {_k(ytd_now['grand'])} אלף "
+                       f"מבקרים, {_word(ytd_chg)} של {fmt.pct(abs(ytd_chg))} לעומת "
+                       f"{ytd_prev['year']} ({_k(ytd_prev['grand'])} אלף).")
+        else:
+            add("ytd", f"מתחילת השנה ({_range(ytd_now['end'], ytd_now['year'])}) "
+                       f"נכנסו {_k(ytd_now['grand'])} אלף מבקרים, {_word(ytd_chg)} של "
+                       f"{fmt.pct(abs(ytd_chg))} לעומת התקופה המקבילה ב-{ytd_prev['year']} "
+                       f"({_k(ytd_prev['grand'])} אלף).")
     if recovery is not None and base_air:
         add("recovery", f"שנת השיא בנתונים היא {base_year}, עם {_k(peak['grand'])} אלף "
                         f"מבקרים. ב{_mname(air_last['t'])} נכנסו בדרך האוויר "
@@ -411,12 +540,12 @@ def compute(frames):
         share = lead["ytd"] / tourists_total
         if share >= 0.15:
             add("country", f"{lead['name']} היא מקור התיירים הגדול: {_k(lead['ytd'])} אלף "
-                           f"תיירים מתחילת השנה, {fmt.pct(share)} מכלל התיירים.")
+                           f"תיירים {cum_he}, {fmt.pct(share)} מכלל התיירים.")
     if leaves and leaves[0]["ytd"][-1]:
         tot = tour_ytd
         if tot:
             share = leaves[0]["ytd"][-1] / tot
-            add("crossing", f"{fmt.pct(share)} מהתיירים מתחילת השנה נכנסו {leaves[0]['name']}"
+            add("crossing", f"{fmt.pct(share)} מהתיירים {cross_he} נכנסו {leaves[0]['name']}"
                             f" ({_k(leaves[0]['ytd'][-1])} אלף מתוך {_k(tot)} אלף).")
 
     # ── text ─────────────────────────────────────────────────────────────
@@ -440,17 +569,23 @@ def compute(frames):
         "recent_aria": (f"כניסות תיירים חודשיות, {_mname(monthly[0]['t'])} עד "
                         f"{_mname(last['t'])}"),
         "recent_caption": "כניסות תיירים לפי חודש (אלפים)",
-        "countries_note": (f"{len(top)} ארצות האזרחות שמהן הגיעו הכי הרבה תיירים מתחילת "
-                           f"{ytd_now['year'] if ytd_now else lt[0]}."),
-        "countries_aria": "תיירים לפי ארץ אזרחות מתחילת השנה",
+        "countries_note": (f"{len(top)} ארצות האזרחות שמהן הגיעו הכי הרבה תיירים "
+                           + (f"בשנת {cum_year}." if cum_end == 12 else
+                              f"מתחילת {cum_year}.")),
+        "countries_aria": f"תיירים לפי ארץ אזרחות {cum_he}",
+        "countries_ytd_col": cum_col,
         "countries_caption": "תיירים לפי ארץ אזרחות (אלפים)",
         "countries_month_col": f"{_mname(lt)}",
-        "continents_aria": "תיירים לפי יבשת מתחילת השנה",
+        "continents_aria": f"תיירים לפי יבשת {cum_he}",
         "continents_caption": "תיירים לפי יבשת (אלפים)",
-        "crossings_aria": "תיירים לפי מעבר גבול, מתחילת השנה, שלוש שנים",
-        "crossings_caption": "תיירים לפי מעבר גבול מתחילת השנה (אלפים)",
-        "crossings_note": (f"כניסות תיירים מתחילת השנה לפי מעבר הגבול, "
-                           f"{fmt.join_he(str(y) for y in t4_years)}, באותם חודשים בכל שנה. "
+        "crossings_aria": ("תיירים לפי מעבר גבול, שלוש שנים" if lt[1] == 12 else
+                           "תיירים לפי מעבר גבול, מתחילת השנה, שלוש שנים"),
+        "crossings_caption": ("תיירים לפי מעבר גבול ושנה (אלפים)" if lt[1] == 12 else
+                              "תיירים לפי מעבר גבול מתחילת השנה (אלפים)"),
+        "crossings_note": (("כניסות תיירים בכל השנה לפי מעבר הגבול, " if lt[1] == 12 else
+                            "כניסות תיירים מתחילת השנה לפי מעבר הגבול, ")
+                           + f"{fmt.join_he(str(y) for y in t4_years)}"
+                           + (". " if lt[1] == 12 else ", באותם חודשים בכל שנה. ")
                            + (f"{dominant['name']} ({_k(dominant['ytd'][-1])} אלף ב-"
                               f"{t4_years[-1]}, {fmt.pct(dominant['ytd'][-1] / tour_ytd)} "
                               f"מהתיירים) מופיע רק בטבלה, כדי שהשאר ייראו בתרשים."
@@ -479,7 +614,8 @@ def compute(frames):
                + (f" ({fmt.signed_pct(vis_month_chg)} בשנה)" if vis_month_chg is not None else "")
                + ".")
     desc = (f"כמה תיירים נכנסים לישראל: {_k(month_value)} אלף מבקרים ב{_mname(lt)}"
-            + (f", {_k(ytd_now['grand'])} אלף מתחילת השנה" if ytd_now else "")
+            + ((f", {_k(ytd_now['grand'])} אלף בשנת {ytd_now['year']}" if full_year else
+                f", {_k(ytd_now['grand'])} אלף מתחילת השנה") if ytd_now else "")
             + ". נתונים חודשיים לפי ארץ ומעבר גבול.")
     return {
         "agent_data": {
@@ -501,6 +637,6 @@ def compute(frames):
         "insights": insights,
         "labels": labels,
         "release": release,
-        "flags": {"air": bool(air), "recovery": bool(rec_rows), "crossings": bool(leaves),
+        "flags": {"annual": "annual" in charts, "air": bool(air), "recovery": bool(rec_rows), "crossings": bool(leaves),
                   "continents": bool(continents)},
     }
