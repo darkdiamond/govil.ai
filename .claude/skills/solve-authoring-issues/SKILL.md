@@ -114,6 +114,9 @@ gh pr list --repo darkdiamond/govil.ai --state open --limit 100 \
   --jq '[.[] | select(.isCrossRepository == false) | .body // "" | scan("(?i)\\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?):?\\s+#([0-9]+)") | .[0] | tonumber] | unique'
 ```
 
+`gate.sh` (this directory) repeats these two queries and the title filter
+to decide whether to fire the routine: change it along with them.
+
 - Keep only titles starting with `[author] ` and ending in `(<id8>)` or, for
   a provider id, `(<provider id>)` (the search is fuzzy); drop the rest. Check
   each issue's id against the Trust boundary rules (a provider id needs

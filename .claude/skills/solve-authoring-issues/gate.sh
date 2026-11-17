@@ -15,9 +15,9 @@
 #
 # Fires when, after dropping issues an open same-repo PR already closes:
 #   - an open `[author] … (<id>)` issue by darkdiamond is not `authoring-blocked`, or
-#   - it is the daily hour (AUTHORING_GATE_DAILY_HOUR, 6) and any such issue is
-#     open, blocked ones included, so the skill's recovery and upstream-unblock
-#     checks run once a day;
+#   - it is the first fire of the day from AUTHORING_GATE_DAILY_HOUR (6) on and
+#     any such issue is open, blocked ones included, so the skill's recovery and
+#     upstream-unblock checks run once a day;
 # and not when a batch is still running in its worktree (the skill's own step 0
 # check), nor when the same issue set was fired less than
 # AUTHORING_GATE_REFIRE_HOURS (4) ago (a run that left them untouched).
@@ -33,12 +33,15 @@ export PATH="$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin"
 
 mkdir -p "$STATE"
 log() { echo "$(date -Is) $*" | tee -a "$STATE/log"; }
+trap 'log "error: exit $? at line $LINENO"' ERR
 
 if [ "${1:-}" = install ]; then
   UNITS=${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user
   BIN=$HOME/.local/libexec/govil-authoring-gate.sh
+  SRC=${BASH_SOURCE[0]:-}
+  [ -f "$SRC" ] || { echo "run install from a file (bash gate.sh install), not a pipe" >&2; exit 1; }
   mkdir -p "$UNITS" "$(dirname "$BIN")"
-  install -m 0755 "$0" "$BIN"
+  install -m 0755 "$SRC" "$BIN"
   cat >"$UNITS/govil-authoring-gate.service" <<EOF
 [Unit]
 Description=govil.ai authoring gate (fires the authoring routine when issues wait)
@@ -91,7 +94,7 @@ today=$(TZ=Asia/Jerusalem date +%F)
 reason=""
 if [ ${#ready[@]} -gt 0 ]; then
   reason="ready: ${ready[*]}"
-elif [ "$hour" -eq "$DAILY_HOUR" ] && [ ${#open_all[@]} -gt 0 ] \
+elif [ "$hour" -ge "$DAILY_HOUR" ] && [ ${#open_all[@]} -gt 0 ] \
      && [ "$(cat "$STATE/daily" 2>/dev/null)" != "$today" ]; then
   reason="daily recheck: ${open_all[*]}"
 fi
@@ -112,15 +115,40 @@ if [ -n "${DRY_RUN:-}" ]; then
   exit 0
 fi
 
+# Judge the fire by the RemoteTrigger tool result in the transcript (HTTP 2xx for
+# a run call on this trigger), never by the model's own reply.
 out=$(cd "$STATE" && timeout 180 claude -p --model haiku --strict-mcp-config \
-  --allowedTools RemoteTrigger --output-format json \
-  "Call the RemoteTrigger tool once with action \"run\" and trigger_id \"$TRIGGER\" and no body. Do nothing else. If the call succeeded, reply with exactly FIRED. Otherwise reply FAILED: followed by the error." \
-  | python3 -c 'import json,sys; print(json.load(sys.stdin).get("result","").strip())') || out="FAILED: claude -p exited non-zero"
+  --allowedTools RemoteTrigger --output-format stream-json --verbose \
+  "Call the RemoteTrigger tool once with action \"run\" and trigger_id \"$TRIGGER\" and no body. Do nothing else, then reply DONE." \
+  </dev/null | TRIGGER="$TRIGGER" python3 -c '
+import json, os, sys
+runs, ok = set(), None
+for line in sys.stdin:
+    try:
+        ev = json.loads(line)
+    except ValueError:
+        continue
+    for c in (ev.get("message") or {}).get("content") or []:
+        if not isinstance(c, dict):
+            continue
+        inp = c.get("input") or {}
+        if c.get("type") == "tool_use" and c.get("name") == "RemoteTrigger" \
+           and inp.get("action") == "run" and inp.get("trigger_id") == os.environ["TRIGGER"]:
+            runs.add(c.get("id"))
+        elif c.get("type") == "tool_result" and c.get("tool_use_id") in runs:
+            body = c.get("content")
+            text = body if isinstance(body, str) else " ".join(
+                b.get("text", "") for b in body or [] if isinstance(b, dict))
+            ok = (not c.get("is_error")) and text.startswith("HTTP 2")
+            if not ok:
+                print("FAILED: " + text[:200].replace("\n", " "))
+print("FIRED" if ok else ("FAILED: no RemoteTrigger run call" if ok is None else ""), end="")
+') || out="FAILED: claude -p exited non-zero"
 
 if [ "$out" = FIRED ]; then
   log "fired ($reason)"
   [ ${#ready[@]} -gt 0 ] && printf '%s' "$key" >"$STATE/last_key"
-  [ "$hour" -eq "$DAILY_HOUR" ] && echo "$today" >"$STATE/daily"
+  [ "$hour" -ge "$DAILY_HOUR" ] && echo "$today" >"$STATE/daily"
   exit 0
 fi
 log "fire failed ($reason): $out"

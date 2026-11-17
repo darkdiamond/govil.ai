@@ -172,10 +172,11 @@ landing pages. Six layers:
    at **:37, 06:37–21:37 Israel time** from a local copy (`gate.sh install`
    copies it to `~/.local/libexec` and writes the units; re-run it to update). The gate spends no model tokens to decide: it fires only
    when an open pipeline issue is neither `authoring-blocked` nor closed by an
-   open PR (plus once at 06:37 when blocked ones are open, for the recovery and
-   unblock checks), not while a batch's worktree is live, and not for the same
+   open PR (plus the day's first tick from 06:37 when blocked ones are open, for
+   the recovery and unblock checks), not while a batch's worktree is live, and not for the same
    issue set within 4h; the fire is one Haiku `claude -p` RemoteTrigger call
-   (~$0.005). Log: `~/.local/state/govil-authoring-gate/log`. The routine runs
+   (~$0.005), judged by the tool's HTTP result, not the model's reply. Log:
+   `~/.local/state/govil-authoring-gate/log`. The routine runs
    `/solve-authoring-issues`
    (`.claude/skills/solve-authoring-issues/SKILL.md`): reads open
    `[author] … (<id8>)` issues (`(<provider id>)` for a provider source)
