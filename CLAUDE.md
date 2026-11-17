@@ -4,7 +4,7 @@ This file is loaded automatically. Read it before touching code.
 
 ## Work in a worktree, never in the main checkout
 
-Several sessions (yours, the user's, the 06:37/11:37/16:37 authoring routine) work in this repo at once,
+Several sessions (yours, the user's, the authoring routine, fired up to hourly) work in this repo at once,
 and the main checkout (`/home/zilbert/workdir/govdata`) holds the user's uncommitted work.
 Branch switches and stray edits there clobber another session's work.
 
@@ -165,10 +165,18 @@ landing pages. Six layers:
    determinism/robustness checks). Design rules come from
    `agent/system-prompt.md` — the retired cloud agent's prompt, kept as
    the design reference (no longer shipped in the image).
-   **Routine, three times a day:** a local Claude Code routine on the user's machine
-   (bridge environment, **06:37, 11:37 and 16:37 Israel time**, scheduled task
-   `trig_01J1zwYMCbCtSXY8yFGeJ23e`, ~37 min after
-   each authoring-queue run) runs `/solve-authoring-issues`
+   **Routine, up to hourly:** a local Claude Code routine on the user's machine
+   (bridge environment, scheduled task `trig_01J1zwYMCbCtSXY8yFGeJ23e`, no
+   schedule of its own) is fired by a gate,
+   `.claude/skills/solve-authoring-issues/gate.sh` (origin/main's copy, run by a
+   systemd user timer at **:37, 06:37–21:37 Israel time**; `gate.sh install`
+   writes the units). The gate spends no model tokens to decide: it fires only
+   when an open pipeline issue is neither `authoring-blocked` nor closed by an
+   open PR (plus once at 06:37 when blocked ones are open, for the recovery and
+   unblock checks), not while a batch's worktree is live, and not for the same
+   issue set within 4h; the fire is one Haiku `claude -p` RemoteTrigger call
+   (~$0.005). Log: `~/.local/state/govil-authoring-gate/log`. The routine runs
+   `/solve-authoring-issues`
    (`.claude/skills/solve-authoring-issues/SKILL.md`): reads open
    `[author] … (<id8>)` issues (`(<provider id>)` for a provider source)
    **authored by `darkdiamond` only**, labelled
@@ -729,7 +737,7 @@ are still read by the authoring selector.
 | Recipe contract        | `services/page_builder/recipe.py`, `recipe_exec.py`                                        | `recipe.json` schema, input resolution, page-model validation, template render; the in-sandbox compute driver                                                                             |
 | GitHub issues          | `services/page_builder/notify.py`                                                          | Opens `needs-authoring` issues; `issue_state` (open / completed / not_planned) for dedup                                                                                                  |
 | Authoring helpers      | `services/page_builder/author.py`                                                          | `prepare` (full fetch + BRIEF.md) and `verify` (determinism/robustness) for `/author-dataset`                                                                                             |
-| Authoring skills       | `.claude/skills/author-dataset/SKILL.md`, `.claude/skills/solve-authoring-issues/SKILL.md` | One-dataset authoring workflow; the batch over open issues → one PR (3 runs a day)                                                                                                        |
+| Authoring skills       | `.claude/skills/author-dataset/SKILL.md`, `.claude/skills/solve-authoring-issues/SKILL.md` | One-dataset authoring workflow; the batch over open issues → one PR (gated, ≤hourly)                                                                                                      |
 | Firestore layer        | `services/shared/firestore.py`                                                             | `FirestoreStateStore`, schema, queries, refresh/authoring state writers                                                                                                                   |
 | Shared layer           | `services/shared/{ckan,fetch_types,github,model_history}.py`                               | Below page_builder, imported by it and by providers/scanner/news: CKAN UA + URL/date helpers, fetch outcomes/limit errors, GitHub repo/token/dispatch, the `models/` history format       |
 | Status vocabulary      | `services/shared/states.py`                                                                | StrEnums for every stored/logged status (`AnalysisStatus`, `RefreshStatus`, `FailReason`, `AuthoringReason`, `RunStatus`, …) + `RefreshState`, the typed refresh fields of a source doc   |

@@ -1,6 +1,6 @@
 ---
 name: solve-authoring-issues
-description: Authoring batch — work through the open `needs-authoring` GitHub issues the refresh job opened, author (or fix) a recipe for each with the author-dataset workflow, code-review the batch, open ONE pull request, and merge it when the mechanical automerge guard passes. Run by the local Claude Code routine three times a day (06:37, 11:37 and 16:37 Israel time); also fine to run by hand.
+description: Authoring batch — work through the open `needs-authoring` GitHub issues the refresh job opened, author (or fix) a recipe for each with the author-dataset workflow, code-review the batch, open ONE pull request, and merge it when the mechanical automerge guard passes. Run by the local Claude Code routine, which `gate.sh` fires (at most hourly, 06:37–21:37 Israel time) only when an issue waits; also fine to run by hand.
 ---
 
 # /solve-authoring-issues [max=10]
@@ -13,8 +13,8 @@ page and opens one `needs-authoring` issue per dataset that needs a recipe:
 You turn up to **10** of them into recipes, in **one PR**, and merge that PR
 yourself when `services/page_builder/automerge_guard.py` passes it (step 6a);
 anything the guard rejects stays open for a human. The next builder run picks
-the recipes up from git main. The routine runs
-three times a day, so an earlier batch's PR may still be open: its issues are
+the recipes up from git main. The routine is fired
+by `gate.sh` (this directory) up to hourly, so an earlier batch's PR may still be open: its issues are
 skipped (step 1), never authored twice.
 
 Nothing here deploys anything. The only merge you ever make is this run's own
