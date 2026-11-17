@@ -153,6 +153,14 @@ function onSubmit(e: Event) {
 // Close behind an in-app route. Dismissed, not unfocused: the input keeps
 // focus (mousedown.prevent), so if the route doesn't load (a Ctrl-click opened
 // a new tab) typing reopens the panel.
+// The panel's close button: close and leave the box, so a phone's keyboard
+// goes away too. Focusing the box again reopens the panel.
+function closePanel() {
+  focused.value = false;
+  highlight.value = NO_HIGHLIGHT;
+  inputEl.value?.blur();
+}
+
 function onNavigate(kind: "page" | "route") {
   if (kind === "route") dismissed.value = true;
 }
@@ -259,6 +267,17 @@ onBeforeUnmount(() => {
       class="absolute inset-x-0 top-full mt-2 bg-white text-ink rounded-gov border border-rule overflow-hidden shadow-[0_28px_60px_-24px_rgba(11,54,104,0.45),0_2px_6px_rgba(11,54,104,0.08)]"
       @mousedown.prevent
     >
+      <!-- Close: on a phone there's no Esc key, and the panel covers the
+           page, so tapping outside isn't obvious. Blurs the box, which also
+           drops the on-screen keyboard; tapping the box reopens it. -->
+      <button
+        type="button"
+        aria-label="סגירת החיפוש"
+        class="absolute top-2 end-2 z-10 inline-flex items-center justify-center w-10 h-10 rounded-gov-pill bg-white text-ink hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand motion-safe:transition-colors"
+        @click="closePanel"
+      >
+        <img src="/icons/x.svg" alt="" class="w-5 h-5 opacity-70" />
+      </button>
       <HomeSpotlight
         :query="query"
         :active="s.active.value"

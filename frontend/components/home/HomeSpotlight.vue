@@ -45,6 +45,10 @@ const q = computed(() => props.query.trim());
 const showList = computed(
   () => props.panel === "results" || props.panel === "idle"
 );
+const hasChips = computed(
+  () => props.tags.length > 0 || props.ministries.length > 0
+);
+const listLabel = computed(() => (props.active ? "מאגרים" : "עודכנו לאחרונה"));
 const ministryOffset = computed(() => props.tags.length);
 const datasetOffset = computed(
   () => props.tags.length + props.ministries.length
@@ -99,8 +103,8 @@ watch(
     >
       <!-- Chips: topics, then ministries. Always in view above the list. -->
       <div
-        v-if="tags.length || ministries.length"
-        class="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 sm:px-5 pt-4 pb-3 border-b border-rule"
+        v-if="hasChips"
+        class="flex flex-wrap items-center gap-x-4 gap-y-2 ps-4 sm:ps-5 pe-14 pt-4 pb-3 border-b border-rule"
       >
         <div
           v-if="tags.length"
@@ -194,6 +198,17 @@ watch(
         </div>
       </div>
 
+      <!-- No chips: a bar with the list's name takes their place, so the
+           panel's close button (top end corner, HomeSearch.vue) always sits
+           on a header row, never over a result or the preview. -->
+      <div
+        v-else
+        role="presentation"
+        class="flex items-center min-h-14 ps-4 sm:ps-5 pe-14 border-b border-rule text-xs font-medium text-subtle"
+      >
+        <span :id="`${listboxId}-datasets`">{{ listLabel }}</span>
+      </div>
+
       <p
         v-if="active && datasets.convertedText"
         class="m-0 px-4 sm:px-5 pt-3 text-xs text-subtle"
@@ -213,11 +228,12 @@ watch(
           class="max-h-[min(26rem,52vh)] overflow-y-auto overscroll-contain py-2"
         >
           <div
+            v-if="hasChips"
             :id="`${listboxId}-datasets`"
             role="presentation"
             class="px-4 sm:px-5 pt-1 pb-1.5 text-xs font-medium text-subtle"
           >
-            {{ active ? "מאגרים" : "עודכנו לאחרונה" }}
+            {{ listLabel }}
           </div>
           <a
             v-for="(d, i) in datasets.items"
@@ -394,7 +410,7 @@ watch(
       </button>
     </div>
 
-    <div v-else-if="panel === 'empty'" class="px-5 py-6">
+    <div v-else-if="panel === 'empty'" class="ps-5 pe-14 py-6">
       <p class="m-0 text-base text-ink">
         אין הצעות עבור „<bdi>{{ q }}</bdi
         >”.
