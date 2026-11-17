@@ -878,7 +878,7 @@ RASTER_COLUMNS = ["file", "year", "n", "nodata", "mean", "min", "p10", "p50", "p
 RASTER_GRID_COLUMNS = ["file", "year", "row", "col", "lat", "lon", "value"]
 # Untrusted files: refuse more than this many pixels per TIFF (before any
 # pixel is decoded), TIFFs per zip, and grid rows per input.
-MAX_RASTER_PIXELS = 50_000_000
+MAX_RASTER_PIXELS = 16_000_000  # ~128MB as float64; the builder heap is uncapped
 MAX_RASTERS = 500
 MAX_GRID_ROWS = 300_000
 # GDAL's float32 "no value" (-3.4028235e38) and its kin.
@@ -945,7 +945,7 @@ def _read_tiff(data: bytes, what: str):
         nodata = tags.get(42113)
         try:
             img.load()
-            a = np.asarray(img, dtype=np.float64)
+            a = np.array(img, dtype=np.float64)  # one writable copy
         except Exception as e:  # noqa: BLE001
             raise SnapshotError(f"{what}: pixels unreadable ({type(e).__name__})") from None
     if a.ndim != 2:
@@ -954,7 +954,6 @@ def _read_tiff(data: bytes, what: str):
     i, j, x, y = float(tie[0]), float(tie[1]), float(tie[3]), float(tie[4])
     if not (dx > 0 and dy > 0 and all(map(math.isfinite, (i, j, x, y)))):
         raise SnapshotError(f"{what}: bad georeference")
-    a = a.copy()
     bad = ~np.isfinite(a) | (np.abs(a) >= _NODATA_SENTINEL)
     if nodata is not None:
         try:
