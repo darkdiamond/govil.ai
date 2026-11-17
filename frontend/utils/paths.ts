@@ -21,3 +21,8 @@ export function datasetPath(entry: {
 export function tagPath(slug: string): string {
   return `/tags/${encodeURI(slug)}/`;
 }
+
+/** `/ministries/<organization_slug>/`, percent-encoded. */
+export function ministryPath(slug: string): string {
+  return `/ministries/${encodeURI(slug)}/`;
+}

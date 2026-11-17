@@ -1,7 +1,6 @@
 <script setup lang="ts">
 // The top of the homepage: what the site is, how much is in it, and a search
-// box. The search is a plain GET form to /datasets/?q=, which reads the query
-// on load, so it works before hydration and without JS.
+// box with suggestions as you type (HomeSearch.vue).
 import type { TagRow } from "~/utils/home";
 import { formatNumber as fmt } from "~/composables/useRelativeTime";
 import { tagPath } from "~/utils/paths";
@@ -32,31 +31,7 @@ const TILE =
       מהנתונים הרשמיים.
     </p>
 
-    <form
-      role="search"
-      action="/datasets/"
-      method="get"
-      class="mt-6 flex gap-2 max-w-3xl"
-    >
-      <label for="home-search" class="sr-only">חיפוש מאגר מידע</label>
-      <input
-        id="home-search"
-        type="search"
-        name="q"
-        autocomplete="off"
-        enterkeyhint="search"
-        placeholder="חיפוש: רכב, רופאים, בתי ספר…"
-        class="flex-1 min-w-0 h-14 px-3 sm:px-4 text-base sm:text-lg bg-white text-ink placeholder:text-subtle border-2 border-ink-deep rounded-gov focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-200 focus-visible:border-brand"
-      />
-      <!-- A square icon button on a phone keeps the box and button on one row. -->
-      <button
-        type="submit"
-        class="btn-primary shrink-0 h-14 w-14 sm:w-auto px-0 sm:px-7 text-lg font-medium"
-      >
-        <img src="/icons/search.svg" alt="" class="w-6 h-6 invert sm:hidden" />
-        <span class="sr-only sm:not-sr-only">חיפוש</span>
-      </button>
-    </form>
+    <HomeSearch />
 
     <nav
       v-if="chips.length"

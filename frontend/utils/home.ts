@@ -8,7 +8,9 @@ export const UPDATED_CAP = 8;
 export const CHIPS_CAP = 7;
 /** City tags (taxonomy/tags.json, topic "localities") never get a masthead
  * tile: one city is no subject for every visitor. Add a city tag here when the
- * taxonomy gains one. Their tag pages and the topic list are unaffected. */
+ * taxonomy gains one. The homepage search's topics before anything is typed
+ * leave them out too (utils/site-search.ts idleTags); typed searches suggest
+ * them. Their tag pages and the topic list are unaffected. */
 export const PLACE_TAGS: ReadonlySet<string> = new Set([
   "באר שבע",
   "ירושלים",
@@ -94,13 +96,12 @@ const time = (iso?: string) => {
   return Number.isNaN(t) ? 0 : t;
 };
 
-export function buildHome(index: SearchIndex): HomeData {
-  const datasets: SlimEntry[] = index.datasets ?? [];
-
-  // Newest render first: a page re-renders only when its data (or recipe)
-  // moved, so this is "what changed lately". Ties break on id. A dataset
-  // removed upstream (archived) no longer updates, so it never shows here.
-  const updated = datasets
+/** Newest render first: a page re-renders only when its data (or recipe)
+ * moved, so this is "what changed lately". Ties break on id. A dataset
+ * removed upstream (archived) no longer updates, so it never shows here.
+ * Also the homepage search's list before anything is typed. */
+export function recentDatasets(datasets: SlimEntry[], n: number): SlimEntry[] {
+  return datasets
     .filter(
       (d) => time(d.last_analyzed_at) > 0 && d.source_status !== "unavailable"
     )
@@ -109,14 +110,19 @@ export function buildHome(index: SearchIndex): HomeData {
         time(b.last_analyzed_at) - time(a.last_analyzed_at) ||
         a.id.localeCompare(b.id)
     )
-    .slice(0, UPDATED_CAP)
-    .map((d) => ({
-      id: d.id,
-      page_slug: d.page_slug,
-      title: d.title,
-      organization: d.organization,
-      last_analyzed_at: d.last_analyzed_at!,
-    }));
+    .slice(0, n);
+}
+
+export function buildHome(index: SearchIndex): HomeData {
+  const datasets: SlimEntry[] = index.datasets ?? [];
+
+  const updated = recentDatasets(datasets, UPDATED_CAP).map((d) => ({
+    id: d.id,
+    page_slug: d.page_slug,
+    title: d.title,
+    organization: d.organization,
+    last_analyzed_at: d.last_analyzed_at!,
+  }));
 
   const byMinistry = new Map<string, MinistryRow>();
   for (const d of datasets) {
