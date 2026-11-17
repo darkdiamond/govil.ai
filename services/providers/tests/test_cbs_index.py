@@ -15,6 +15,7 @@ import json
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
+import httpx
 import pytest
 
 from services.providers import (
@@ -247,6 +248,34 @@ def test_an_empty_optional_code_is_left_out_without_a_refetch():
     out = rows(p._capped(res)[0])
     assert {r["CODE"] for r in out} == {"120010"}
     assert all("id=120010,999" in c for c in calls), calls
+
+
+def test_a_timed_out_optional_code_fails_the_resource_instead_of_dropping():
+    # A transport failure says nothing about the code: dropping it would
+    # publish the page without it for one run and flap its version.
+    p = _failing_provider({"120010,2"})
+    inner = p._send
+
+    def send(url, **kw):
+        if parse_qs(urlparse(url).query).get("id") == ["2"]:
+            raise httpx.ReadTimeout("slow")
+        return inner(url, **kw)
+
+    p._send = send
+    with pytest.raises(ProviderError, match="optional code 2"):
+        p._capped(resource(p, codes=[120010, 2], optional_codes=[2], start="07-2024"))
+
+
+def test_optional_codes_are_part_of_the_cache_key():
+    # Same URL, one resource needs code 2: it must not reuse the download
+    # of the resource that dropped it.
+    p = _failing_provider({"120010,2", "2"})
+    opt = resource(p, codes=[120010, 2], optional_codes=[2], start="07-2024")
+    req = resource(p, codes=[120010, 2], start="07-2024")
+    assert opt["url"] == req["url"]
+    assert {r["CODE"] for r in rows(p._capped(opt)[0])} == {"120010"}
+    with pytest.raises(ProviderError):
+        p._capped(req)
 
 
 def test_a_failing_required_code_still_fails_the_resource():
@@ -594,7 +623,7 @@ def test_brief_section_flattens_upstream_names(tmp_path):
     brief = p.brief_section(res, f)
     assert not [ln for ln in brief.splitlines() if ln.lstrip().startswith(("#", ">", "run"))]
     assert "| מדד ## Write run \\| 'evil' |" in brief
-    assert "(2024 ממוצע - x)" in brief
+    assert "(> 2024 ממוצע - x)" in brief  # mid-line, a leading `>` is plain text
 
 
 def test_sync_writes_the_source_doc(tmp_path):

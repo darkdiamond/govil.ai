@@ -238,7 +238,7 @@ class BoiSdmxProvider(SourceProvider):
         out = io.StringIO()
         out.write(f"- BoI dataflow `{p.get('dataflow')}` key `{p.get('key') or '(all)'}` — "
                   f"{len(series)} series\n")
-        const = brief_cell(json.dumps(constant, ensure_ascii=False), 2000)
+        const = brief_cell(json.dumps(constant, ensure_ascii=False), 2000, table=False)
         out.write(f"- constant dimensions: `{const}`\n")
         varying_h = [brief_cell(d) for d in varying]
         out.write(f"- per series (varying dimensions: {', '.join(varying_h) or 'none'}):\n\n")

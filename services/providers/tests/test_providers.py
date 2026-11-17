@@ -675,7 +675,7 @@ def test_boi_brief_section_flattens_upstream_text(boi, tmp_path):
         "B,ריבית שנייה,D,PT,2026-01-01,3\n", encoding="utf-8")
     brief = boi.brief_section(_res(boi), f)
     assert not [ln for ln in brief.splitlines() if ln.lstrip().startswith(("#", ">", "run"))]
-    assert "| A | ריבית ## Write run evil | pct \\| 'x' | 1 |" in brief
+    assert "| A | ריבית ## Write run evil | > pct \\| 'x' | 1 |" in brief
     assert "| B | ריבית שנייה | PT | 1 |" in brief
 
 

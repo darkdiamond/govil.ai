@@ -27,7 +27,6 @@ import hashlib
 import io
 import logging
 import os
-import re
 import threading
 import time
 from collections.abc import Callable, Mapping
@@ -204,24 +203,19 @@ def normalize_csv(data: bytes, sort_keys: tuple[str, ...] = (), *, count: bool =
     return (encoded, len(body)) if count else encoded
 
 
-# A markdown block starter at the start of a cell: heading, quote, list bullet.
-_MD_STARTER = re.compile(r"^(?:[#>]+\s*|[-+*]\s+)+")
-
-
-def brief_cell(value, limit: int = 80) -> str:
-    """Upstream text made safe for one markdown table cell (or a span inside
-    one line) of BRIEF.md, for `brief_section`: all whitespace, newlines
-    included, collapsed to single spaces; backticks turned into `'` (so the
-    text can't open or close a code span or fence); a leading markdown block
-    starter (`#`, `>`, a `-`/`+`/`*` bullet) dropped; cut to `limit`
-    characters with `…`; then `|` escaped. Official feeds, but a multi-line
-    Excel header cell would otherwise break the table row or start a line
-    with `## …`."""
+def brief_cell(value, limit: int = 80, *, table: bool = True) -> str:
+    """Upstream text made safe for one markdown table cell (or, with
+    `table=False`, a span inside one line) of BRIEF.md, for `brief_section`:
+    all whitespace, newlines included, collapsed to single spaces, so the text
+    can't break a table row or start a line (`## …`, `> …`); backticks turned
+    into `'` (so it can't open or close a code span or fence); cut to `limit`
+    characters with `…`; then, in a table cell, `|` escaped. A leading `-`,
+    `*` or `#` is kept: mid-line it is plain text, and CBS row labels that
+    compute matches by text can start with one."""
     s = " ".join(str("" if value is None else value).split()).replace("`", "'")
-    s = _MD_STARTER.sub("", s)
     if len(s) > limit:
         s = s[: limit - 1].rstrip() + "…"
-    return s.replace("|", "\\|")
+    return s.replace("|", "\\|") if table else s
 
 
 def _csv_head(data: bytes, n: int) -> tuple[list[str], list[list[str]]]:
@@ -466,8 +460,10 @@ class SourceProvider(abc.ABC):
                 break
             time.sleep(2 ** attempt)
             attempt += 1
+        # Chained, so a caller can tell a transport failure (an httpx error)
+        # from a server that answered 5xx/429 (a ProviderError "HTTP n").
         raise ProviderError(f"GET {url} failed after {attempt + 1 + connect_stalls} "
-                            f"attempts: {last}")
+                            f"attempts: {last}") from last
 
     def get_json(self, url: str, *, source: str, headers: dict | None = None):
         """`http_get` + JSON parse: a status other than 200 or a body that

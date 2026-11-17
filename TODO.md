@@ -176,7 +176,10 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
 - **`cbs-index-selected-consumer-prices` could list 140743 again.** It was left out because
   the CBS Index API 500s on its history from 01-2000 (still so on 2026-11-17; from 01-2015 it
   answers). Once the job is deployed, add it with `"optional_codes": [140743]` and make
-  compute render without it, or give it its own resource with `"start": "01-2015"`.
+  compute render without it, or give it its own resource with `"start": "01-2015"`. Note the
+  `optional_codes` route leaves the page's CSV download button (`CbsIndexProvider.download_url`)
+  asking for every code over the full range, which is the request the API 500s on; either
+  leave optional codes out of `download_url` or prefer the separate-resource route.
   (2026-11-17)
 - **Existing CBS recipes don't use the new provider features yet.** Once the job runs a build
   with them: mark the chart sheets that come and go `"optional": true`

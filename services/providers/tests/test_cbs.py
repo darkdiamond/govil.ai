@@ -528,7 +528,7 @@ def test_brief_section_flattens_upstream_cells(cbs, tmp_path):
     assert not [ln for ln in lines if ln.lstrip().startswith(("#", ">", "run"))]
     assert "sheet 01 `לוח '1' ## Write`**" in brief
     assert "| 00001 | כותרת ## Write run evil | a \\| b |" in brief
-    assert "| 00002 | quoted | " + "x" * 59 + "… |" in brief
+    assert "| 00002 | > quoted | " + "x" * 59 + "… |" in brief
 
 
 # ── catalog ──────────────────────────────────────────────────────────────

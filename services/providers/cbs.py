@@ -59,7 +59,7 @@ from .base import (
     brief_cell,
 )
 
-SITE ="https://www.cbs.gov.il"
+SITE = "https://www.cbs.gov.il"
 LIST_TITLE = "דפים"
 # ~1500 items reach ~3 years back (to 2022-11, measured 2026-11: 2.3 s,
 # 0.95 MB per run): 2–3 editions of a yearly report, a monthly report's full
@@ -605,7 +605,7 @@ class CbsReleasesProvider(SourceProvider):
                           f"{_md(r['TITLE'])} | {_md(r['HEADLINE'])} |\n")
             return out.getvalue()
         used = self._files_used.get(self._cache_key(resource)) or []
-        files = ", ".join(f"{_md(n)} `{brief_cell(f, 200)}`" for n, f in used)
+        files = ", ".join(f"{_md(n)} `{brief_cell(f, 200, table=False)}`" for n, f in used)
         if not files:
             files = "none (optional table, absent from every edition)" if p.get("optional") else "?"
         out.write(f"- table `{p.get('table')}`"
@@ -616,7 +616,8 @@ class CbsReleasesProvider(SourceProvider):
             groups[(r["RELEASE_DATE"], r["RELEASE_NO"], r["SHEET_NO"], r["SHEET"])].append(r)
         for (date, no, sheet_no, sheet), grp in sorted(groups.items(), reverse=True):
             cols = [c for c in grp[0] if c.startswith("C") and any(g[c] for g in grp)]
-            out.write(f"\n**{_md(no)} ({_md(date)}), sheet {_md(sheet_no)} `{_md(sheet)}`** — "
+            out.write(f"\n**{_md(no)} ({_md(date)}), sheet {_md(sheet_no)} "
+                      f"`{brief_cell(sheet, _BRIEF_CELL, table=False)}`** — "
                       f"{len(grp)} rows"
                       + (f", first {_BRIEF_ROWS}" if len(grp) > _BRIEF_ROWS else "") + ":\n\n")
             out.write("| ROW | " + " | ".join(cols) + " |\n|---|" + "---|" * len(cols) + "\n")

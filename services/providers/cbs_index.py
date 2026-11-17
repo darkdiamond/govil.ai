@@ -49,6 +49,7 @@ from pathlib import Path
 from typing import ClassVar, Literal
 from urllib.parse import urlencode
 
+import httpx
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from .base import (
@@ -80,6 +81,8 @@ _SCALE_BREAK = 1.5
 # value under the new label (`_carried`), at most this many in a row.
 _CARRY_TOL = 0.01
 _CARRY_MAX = 2
+# Index names can be long; keep them whole in the brief, as BoI's are.
+_BRIEF_NAME = 240
 
 COLUMNS = ("CODE", "NAME_HE", "FREQ", "TIME_PERIOD", "DATE", "YEAR", "PERIOD", "VALUE",
            "BASE_DESC", "PERCENT", "PERCENT_YEAR", "VALUE_CHAINED", "CHAIN_BASE")
@@ -533,9 +536,13 @@ class CbsIndexProvider(SourceProvider):
 
     def _cache_key(self, resource: dict) -> str:
         # Two resources can share a URL (same codes and start) and differ in
-        # `frequency`, which the CSV export URL doesn't carry.
-        freq = (resource.get("params") or {}).get("frequency") or "both"
-        return f"{resource['url']}#frequency={freq}"
+        # `frequency` or `optional_codes`, which the CSV export URL doesn't
+        # carry (a resource that needs a code must not get the download of
+        # one that dropped it).
+        p = resource.get("params") or {}
+        key = f"{resource['url']}#frequency={p.get('frequency') or 'both'}"
+        opt = p.get("optional_codes")
+        return key + (f"&optional={','.join(map(str, sorted(opt)))}" if opt else "")
 
     def pages(self, r: CbsIndexResource) -> list[dict]:
         """The resource's rows, every page, without chaining coefficients.
@@ -625,6 +632,12 @@ class CbsIndexProvider(SourceProvider):
             except ProviderTooLarge:
                 raise
             except ProviderError as e:
+                if isinstance(e.__cause__, httpx.HTTPError):
+                    # A timeout or a dropped connection says nothing about the
+                    # code: fail the resource (a transient strike, page kept)
+                    # rather than publish it without the code for one run.
+                    raise ProviderError(f"{r.id}: optional code {c}: {e} (the full request "
+                                        f"failed with: {first})") from e
                 dropped.append(c)
                 log.warning("provider %s: %s: optional code %s dropped: %s",
                             self.key, r.id, c, e)
@@ -711,7 +724,7 @@ class CbsIndexProvider(SourceProvider):
                 out.write(f"\n… {len(stats) - _BRIEF_MAX_CODES} more not listed\n")
                 break
             lr = s["last_row"]
-            out.write(f"| {brief_cell(code)} | {brief_cell(s['name'])} | {brief_cell(freq)} | "
+            out.write(f"| {brief_cell(code)} | {brief_cell(s['name'], _BRIEF_NAME)} | {brief_cell(freq)} | "
                       f"{s['n']:,} | {brief_cell(s['first_tp'])} | "
                       f"{brief_cell(lr['TIME_PERIOD'])} | {brief_cell(lr['VALUE'])} "
                       f"({brief_cell(lr['BASE_DESC'])}) | {brief_cell(lr['PERCENT'])} / "
