@@ -71,7 +71,7 @@ landing pages. Six layers:
    when the 15th is a Friday, Saturday or holiday, at 14:00 on that Friday or
    the holiday eve); the old `*-cbs-release` ticks are deleted. A scheduled
    run (not dry, no `--source`) first checks `QUIET_WINDOW` (prod
-   `fri15-sat21`, Israel time, `services/shared/schedule.py`): inside it the
+   `fri17-sat16`, Israel time, `services/shared/schedule.py`): inside it the
    run ends `status: skipped_quiet` and touches nothing. Then it takes the
    `job_state/run` lease (`services/shared/lease.py`, a Firestore
    transaction, TTL `RUN_LEASE_TTL_S`, default and prod 900s, renewed every
@@ -466,8 +466,8 @@ catalog` lists chapters → subjects → codes.
    Every job run calls
    `providers.sync.sync_provider_sources` after loading the recipe list.
    `PROVIDER_<KEY>_SYNC_HOURS` (Israel hours; unset = every run; prod BoI
-   `6,12,18`, CBS indices `6,14,19,21`: 19 for release evening, 21 for the first tick
-   after the quiet window, which a Friday 14:00 release otherwise misses, CBS releases unset)
+   `6,12,18`, CBS indices `6,14,16,19,21`: 19 for release evening, 16 for the first tick
+   after the quiet window (Saturday), which a Friday 14:00 release otherwise misses, CBS releases unset)
    limits a provider's sync to those ticks: in any other hour its sources are
    skipped (`provider_gated:<key>`) before the healthcheck, docs untouched, so
    nothing new reaches the refresh. `--source` ignores it.
@@ -507,7 +507,7 @@ catalog` lists chapters → subjects → codes.
    `--since-hours N` (ad-hoc) ignores it. No cursor → the last 24h; a cursor
    older than `NEWS_MAX_LOOKBACK_HOURS` (168) is clamped to it.
    A scheduled run (live, no `--dataset`/`--models-dir`/`--since-hours`) ends
-   `skipped_quiet` inside `QUIET_WINDOW` (prod `fri15-sat21`) and
+   `skipped_quiet` inside `QUIET_WINDOW` (prod `fri17-sat16`) and
    `skipped_overlap` while another run holds the `news_state/lock` lease
    (`NEWS_LEASE_TTL_S`, default 900, renewed by a heartbeat); both exit
    0 with nothing read or written. Then, with a cursor, an **idle probe**: no
