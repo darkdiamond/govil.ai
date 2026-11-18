@@ -147,13 +147,6 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
   box, dates): let a `map` input take `columns` to drop properties before sizing (a recipe.py
   change, so it folds into every recipe's hash; redeploy before a recipe uses it). (2026-11-06)
 
-- **Cloud Run → Bank of Israel connects still drop SYNs.** About half of the TCP connects to
-  `edge.boi.org.il` from the job stall (up to ~135s); from outside GCP none do. The provider
-  now reuses one connection and reconnects after `connect_timeout_s` (10s), which hides it but
-  doesn't fix it. Check how often `reconnecting (n/5)` shows up in the job logs after the
-  deploy. If it's frequent, or a sync fails after 5 reconnects, try a static egress IP (VPC +
-  Cloud NAT) to tell whether BoI is filtering Google's shared egress range. (2026-11-04)
-
 - **The local permission allowlist is broad for an unattended routine.** The gitignored
   `.claude/settings.local.json`, copied into every worktree by `.worktreeinclude`, pre-approves
   broad wildcard rules for the GitHub, cloud and HTTP CLIs and for inline Python, while the
@@ -232,10 +225,6 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
   missing card falls back to the default, never a 404. Rollout: an `OG_CARDS=off|observe|on`
   knob, a backfill from `models/<id>/latest.json.gz`, and no changes to `_RENDER_CODE_FILES` or
   `schema.py`. (2026-11-16)
-
-- **Firebase Hosting redirect count is unverified.** `gen-redirects.mjs` now writes ~550 tag
-  redirects next to ~560 dataset ones. The docs state no cap; confirm on a preview channel deploy
-  that ~1,100 rules are accepted before relying on growth beyond that. (2026-10-30)
 
 ## News
 
