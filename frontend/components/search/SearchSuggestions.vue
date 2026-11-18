@@ -7,7 +7,6 @@ import type { SpotlightPanel } from "~/composables/useSiteSearch";
 import { datasetPath, tagPath } from "~/utils/paths";
 import {
   type DatasetResults,
-  highlightSegments,
   resultsAnnouncement,
   type TagHit,
 } from "~/utils/site-search";
@@ -45,17 +44,9 @@ const announcement = computed(() =>
 // datasets), so the flattened option list starts with them.
 const datasetOffset = computed(() => props.tags.length);
 
-// The list scrolls past its max height: keep the highlighted option in view.
-watch(
+useHighlightInView(
   () => props.highlight,
-  (h) => {
-    if (h < 0) return;
-    nextTick(() =>
-      document
-        .getElementById(props.optionId(h))
-        ?.scrollIntoView({ block: "nearest" })
-    );
-  }
+  () => props.optionId
 );
 </script>
 
@@ -118,15 +109,8 @@ watch(
                 class="w-3.5 h-3.5 shrink-0 opacity-60"
               />
               <span class="truncate"
-                ><template
-                  v-for="(s, k) in highlightSegments(t.name, query)"
-                  :key="k"
-                  ><strong v-if="s.match" class="font-semibold text-ink-deep">{{
-                    s.text
-                  }}</strong
-                  ><template v-else>{{ s.text }}</template></template
-                ></span
-              >
+                ><SearchMark :text="t.name" :query="query"
+              /></span>
               <span class="shrink-0 text-xs text-subtle tabular-nums"
                 >{{ fmt(t.count) }}<span class="sr-only"> מאגרים</span></span
               >
@@ -159,15 +143,8 @@ watch(
             @click="emit('navigate', 'page')"
           >
             <span class="text-sm text-ink truncate"
-              ><template
-                v-for="(s, k) in highlightSegments(r.title, query)"
-                :key="k"
-                ><strong v-if="s.match" class="font-semibold text-ink-deep">{{
-                  s.text
-                }}</strong
-                ><template v-else>{{ s.text }}</template></template
-              ></span
-            >
+              ><SearchMark :text="r.title" :query="query"
+            /></span>
             <span v-if="r.organization" class="text-xs text-subtle truncate">{{
               r.organization
             }}</span>
@@ -176,27 +153,12 @@ watch(
       </div>
     </template>
 
-    <div
-      v-else-if="panel === 'loading'"
-      class="px-3 py-4 text-sm text-subtle text-center"
-    >
-      טוען את רשימת המאגרים…
-    </div>
-
-    <div
-      v-else-if="panel === 'failed'"
-      class="px-3 py-4 text-sm text-subtle text-center"
-      role="alert"
-    >
-      טעינת החיפוש נכשלה.
-      <button
-        type="button"
-        class="text-brand-700 hover:underline bg-transparent border-0 p-0 cursor-pointer"
-        @click="emit('retry')"
-      >
-        נסו שוב
-      </button>
-    </div>
+    <SearchStatus
+      v-else-if="panel === 'loading' || panel === 'failed'"
+      :state="panel"
+      pad="px-3 py-4"
+      @retry="emit('retry')"
+    />
 
     <div v-else-if="panel === 'empty'" class="px-3 py-4 text-sm">
       <p class="m-0 text-ink">

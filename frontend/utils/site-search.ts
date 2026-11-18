@@ -177,6 +177,16 @@ export function idleTags(tags: NamedHit[], n: number): NamedHit[] {
   return tags.filter((t) => !PLACE_TAGS.has(t.name)).slice(0, n);
 }
 
+/** Idle topic chips: a phone (below Tailwind's `sm`) has room for 3, wider
+ * screens for 6. Chosen in script, not hidden with CSS, so the option list
+ * (and aria-activedescendant) holds only the chips on screen. */
+export const IDLE_TAGS_WIDE = 6;
+export const IDLE_TAGS_NARROW = 3;
+export const WIDE_QUERY = "(min-width: 640px)";
+export function idleTagCount(wide: boolean): number {
+  return wide ? IDLE_TAGS_WIDE : IDLE_TAGS_NARROW;
+}
+
 /** Tag pages matching the query (see matchNames). */
 export function matchTags(
   tagIndex: Record<string, TagIndexEntry> | undefined,

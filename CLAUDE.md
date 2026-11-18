@@ -301,8 +301,11 @@ landing pages. Six layers:
    a datastore preview that fails (CKAN timeout/5xx; never a lost column, a
    slow CKAN falsely locked 16 sources on 2026-11-02) → `schema_changed`, or
    `download_blocked` when `datastore_search` answers it with a 403 that isn't
-   CKAN's Authorization Error (the WAF; `preview_blocked`); a required
-   resource with no rows → `schema_changed`; a full export that fails (CKAN,
+   CKAN's Authorization Error (the WAF; `preview_blocked`); a resource emptied
+   upstream (its preview has no column but `_id`: an empty re-upload, which
+   used to read as "lost column(s)"; `upstream_empty`, also for a `by_schema`
+   input left with no match beside an emptied resource) → `schema_changed`; a
+   required resource with no rows → `schema_changed`; a full export that fails (CKAN,
    or one that comes back short or moves during the walk every run) →
    `too_large`; a sandbox-spawn crash (`sandbox_failed`: the gRPC fork abort
    after an in-run retry, or a failed no-network filter) → `sandbox_broken`
@@ -337,7 +340,8 @@ landing pages. Six layers:
    and never change a published helper's output. Big-dataset levers in
    `recipe.json`: an input's `columns` (CKAN `fields=`, only those columns
    are exported), `pick: "latest"` (newest snapshot resource by
-   `last_modified`), and top-level `limits` (per-recipe caps). A recipe with
+   `last_modified`; `"latest_year"`: newest by the year in the resource name,
+   so a re-uploaded closed year doesn't win), and top-level `limits` (per-recipe caps). A recipe with
    `limits` is **heavy**: `run_refresh` runs it after all others. Every
    compute runs heap-capped (`REFRESH_COMPUTE_MEMORY_MB`, default 3072) with
    `oom_score_adj=1000`, so an outsized recipe dies alone, capped at
@@ -360,8 +364,18 @@ landing pages. Six layers:
    any other way (5xx, timeout), is transient (`fetch_failed`) until it
    repeats `REFRESH_TRANSIENT_STRIKES` (6) runs in a row (`transient_strikes`
    in the refresh state), then opens a `download_blocked` issue (a 404/410:
-   `schema_changed`). Download cap `REFRESH_MAP_MAX_BYTES` (100MB). The
-   older fallback: a file downloaded once in a browser, converted by `author
+   `schema_changed`). Download cap `REFRESH_MAP_MAX_BYTES` (100MB). A map
+   input's `columns` keeps only those properties (never `__geometry`, always
+   kept), dropped before the `map_max_kb` size target; a zip of zipped layers
+   is opened one level down (`map_member` names the inner zip when there are
+   several; a third level is refused). **Rasters:** an input with
+   `raster: true` downloads a GeoTIFF or a zip of them the same way (same cap,
+   strikes and version keys as a map input) and reads it with Pillow + numpy
+   (`geo_snapshot.raster_table`) into one row per TIFF (`file`, `year` from
+   the name, `n`, `nodata`, `mean`, `min`, `p10`/`p50`/`p90`, `max`,
+   `x0`/`y0`/`dx`/`dy` in the file's CRS); `raster_grid: N` adds `kind` and
+   N×N-pixel block means as `cell` rows with WGS84 `lat`/`lon` (≤300k cells).
+   The older fallback: a file downloaded once in a browser, converted by `author
 snapshot` and committed as `recipes/<id>/<name>.geojson`, read by a
    `snapshot` input; when CKAN's size/hash moves past `snapshot_of`, the
    refresh fails `geometry_stale` (page kept, issue opened). The refresh code
@@ -444,7 +458,10 @@ SHEET, ROW, C01..`) that compute.py reads by label.
    chaining coefficients (`coef=true`). Where CBS publishes no coefficient (seasonal
    produce items), a switch is linked by the published PERCENT / PERCENT_YEAR, and
    with neither, `VALUE_CHAINED` is blank before the break. A scale break hidden
-   under one base label (the 1985 rows, 100× off) is split off and linked by PERCENT. `python -m services.providers.cbs_index
+   under one base label (the 1985 rows, 100× off) is split off and linked by PERCENT,
+   and a row carrying the old base's value under the new label (minibus inputs, May 2020) is chained on the old base. All of a resource's codes go in one request, so
+   one code the API 500s fails them all; a code in the resource's `optional_codes` is
+   then fetched alone and dropped (logged) if it fails. `python -m services.providers.cbs_index
 catalog` lists chapters → subjects → codes.
    Every job run calls
    `providers.sync.sync_provider_sources` after loading the recipe list.

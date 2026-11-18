@@ -1,13 +1,15 @@
 {
   "contract_version": 1,
   "dataset_id": "cbs-dwelling-transactions",
-  "recipe_version": 1,
+  "recipe_version": 2,
   "authored_at": "2026-11-05T12:00:00Z",
   "authored_against": {
     "metadata_modified": "2026-10-14T00:00:00Z",
     "rows": {
       "t1": 44,
       "t2": 45,
+      "t3a": 45,
+      "t3b": 45,
       "t4": 10,
       "t5": 132,
       "t6": 96,
@@ -39,6 +41,28 @@
         "ROW",
         "C01",
         "C05"
+      ]
+    },
+    {
+      "name": "t3a",
+      "by_id": "t3a",
+      "required_columns": [
+        "RELEASE_NO",
+        "RELEASE_DATE",
+        "SHEET_NO",
+        "ROW",
+        "C01"
+      ]
+    },
+    {
+      "name": "t3b",
+      "by_id": "t3b",
+      "required_columns": [
+        "RELEASE_NO",
+        "RELEASE_DATE",
+        "SHEET_NO",
+        "ROW",
+        "C01"
       ]
     },
     {
@@ -97,8 +121,7 @@
         "RELEASE_DATE",
         "SHEET_NO",
         "ROW",
-        "C01",
-        "C02"
+        "C01"
       ]
     },
     {

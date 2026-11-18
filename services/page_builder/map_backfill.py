@@ -112,7 +112,7 @@ def classify(c: Candidate, recipe: Recipe | None, open_issue: int | None) -> Non
         c.kind, c.why = "failed", "; ".join(m.error for m in c.maps)
         return
     if recipe is not None:
-        read = {i.by_id for i in recipe.manifest.inputs if i.map or i.snapshot}
+        read = {i.by_id for i in recipe.manifest.inputs if i.map or i.raster or i.snapshot}
         if read & {m.resource_id for m in good}:
             c.kind, c.why = "mapped", "the recipe already reads the map file"
             return
@@ -209,7 +209,7 @@ def find_candidates(store, *, floor: datetime, recipes_root: Path = RECIPES_ROOT
                 except (RecipeError, ValueError) as e:
                     out.append(Candidate(src, [], "failed", f"recipe doesn't load: {e}"))
                     continue
-                read = {i.by_id for i in recipe.manifest.inputs if i.map or i.snapshot}
+                read = {i.by_id for i in recipe.manifest.inputs if i.map or i.raster or i.snapshot}
                 if read & {r["id"] for r in files}:
                     # Settled by recipe.json alone: no download needed.
                     out.append(Candidate(src, [], "mapped", "the recipe already reads the map file"))

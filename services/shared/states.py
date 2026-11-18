@@ -103,6 +103,7 @@ class StrikeKind(StrEnum):
     DOWNLOAD_BLOCKED = "download_blocked"        # a map-file download the WAF refused
     DOWNLOAD_MISSING = "download_missing"        # a map file CKAN lists answers 404/410
     SANDBOX_FAILED = "sandbox_failed"            # spawn flake / netguard install
+    UPSTREAM_EMPTY = "upstream_empty"            # a resource emptied to `_id` (0 rows)
     # Reset when the recipe or the builder code moves (a fix gets fresh tries):
     NO_ROWS = "no_rows"                          # a required resource has no rows
     EXPORT_FAILED = "export_failed"              # a full export came back failed/short

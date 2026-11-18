@@ -20,6 +20,8 @@ import {
   countMatches,
   FUSE_OPTIONS,
   flattenOptions,
+  IDLE_TAGS_WIDE,
+  idleTagCount,
   idleTags,
   matchNames,
   MIN_QUERY_CHARS,
@@ -32,13 +34,13 @@ import {
   searchDatasets,
   TAG_LIMIT,
   tagList,
+  WIDE_QUERY,
 } from "~/utils/site-search";
 
 /** Ministry chips shown per query (homepage). */
 const MINISTRY_LIMIT = 2;
 /** Before anything is typed (homepage): newest renders and biggest topics. */
 const IDLE_DATASETS = 6;
-const IDLE_TAGS = 6;
 
 // Fuse.js (~24KB min+gz) and the slim search index (~60KB gz) load only when
 // someone reaches for a search box, never with the page. Module-level, so the
@@ -63,7 +65,7 @@ const ensureIndex = memoRetry((): Promise<void> =>
         fuse: new Fuse<SearchDoc>(docs, FUSE_OPTIONS),
         docs,
         tags,
-        idleTags: idleTags(tags, IDLE_TAGS),
+        idleTags: idleTags(tags, IDLE_TAGS_WIDE),
         ministries: ministryList(index.datasets),
         recent: recentDatasets(index.datasets, IDLE_DATASETS),
       };
@@ -97,6 +99,19 @@ export function useSiteSearch(idPrefix: string, opts: SiteSearchOptions = {}) {
   // -1 (NO_HIGHLIGHT): Enter opens the full list; the arrows pick one option.
   const highlight = ref(NO_HIGHLIGHT);
   const loadState = ref<LoadState>(loaded.value ? "ready" : "idle");
+  // How many idle topic chips fit (3 on a phone, 6 from sm up), followed
+  // live. The idle panel opens only after mount, so the server's guess (wide)
+  // is never rendered.
+  const wide = ref(true);
+  if (opts.idle && import.meta.client) {
+    const mq = window.matchMedia(WIDE_QUERY);
+    const sync = () => {
+      wide.value = mq.matches;
+    };
+    sync();
+    mq.addEventListener("change", sync);
+    onScopeDispose(() => mq.removeEventListener("change", sync));
+  }
 
   /** Long enough to search; shorter shows the idle lists (or the prompt). */
   const active = computed(() => query.value.trim().length >= MIN_QUERY_CHARS);
@@ -111,7 +126,8 @@ export function useSiteSearch(idPrefix: string, opts: SiteSearchOptions = {}) {
   const tags = computed(() => {
     const l = loaded.value;
     if (!l) return [];
-    if (!active.value) return opts.idle ? l.idleTags : [];
+    if (!active.value)
+      return opts.idle ? l.idleTags.slice(0, idleTagCount(wide.value)) : [];
     return matchNames(l.tags, query.value, TAG_LIMIT);
   });
   const ministries = computed(() => {
@@ -233,3 +249,19 @@ export function useSiteSearch(idPrefix: string, opts: SiteSearchOptions = {}) {
 }
 
 export type SiteSearch = ReturnType<typeof useSiteSearch>;
+
+/** A suggestion list scrolls past its max height: keep the highlighted
+ * option in view. For the panels that render useSiteSearch's options. */
+export function useHighlightInView(
+  highlight: () => number,
+  optionId: () => (i: number) => string
+) {
+  watch(highlight, (h) => {
+    if (h < 0) return;
+    nextTick(() =>
+      document
+        .getElementById(optionId()(h))
+        ?.scrollIntoView({ block: "nearest" })
+    );
+  });
+}

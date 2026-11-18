@@ -31,7 +31,7 @@ import shutil
 import tempfile
 import time
 import typing
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -82,6 +82,7 @@ from .recipe import (
     RecipeError,
     RecipeLimits,
     RecipeManifest,
+    UpstreamEmpty,
     feature_table,
     kpi_format_findings,
     render_template,
@@ -376,7 +377,8 @@ def probe_inputs(
 ) -> InputProbe:
     """Resolve the recipe's inputs. Raises RecipeError `schema_changed` when
     they no longer resolve, StrikeError `preview_unavailable` (or
-    `preview_blocked`) when a preview they needed didn't answer;
+    `preview_blocked`) when a preview they needed didn't answer,
+    StrikeError `upstream_empty` when a resource was emptied to `_id`;
     ResourceRestrictedError passes through.
 
     A `by_schema` input doesn't wait on a resource that can't be one of its
@@ -397,6 +399,13 @@ def probe_inputs(
         try:
             probe.resolved = resolve_inputs(recipe.manifest, resources, _fields)
             break
+        except UpstreamEmpty as e:
+            # An emptied re-upload is usually replaced within days: a strike,
+            # not a schema change, until it lasts.
+            raise StrikeError(
+                str(e), reason=FailReason.FETCH_FAILED, strike=StrikeKind.UPSTREAM_EMPTY,
+                escalate_to=FailReason.SCHEMA_CHANGED, retry_in_run=True,
+            ) from None
         except PreviewUnavailable as e:
             more = _cannot_match(recipe, resources, probe) - ignored
             if not more:
@@ -475,6 +484,9 @@ def _preview_blocked(rid: str) -> bool:
 _BLOCK_CHECK_TIMEOUT_S = 20.0
 _PREVIEW_STRIKE = StrikeKind.PREVIEW_UNAVAILABLE
 _PREVIEW_STRIKES = frozenset({StrikeKind.PREVIEW_UNAVAILABLE, StrikeKind.PREVIEW_BLOCKED})
+# Broken by a probe whose previews all answered and resolved: no preview
+# failed and no resource read as emptied to `_id`.
+_PROBE_STRIKES = _PREVIEW_STRIKES | {StrikeKind.UPSTREAM_EMPTY}
 
 
 def _preview_strike(message: str) -> StrikeError:
@@ -487,13 +499,14 @@ def _preview_strike(message: str) -> StrikeError:
 
 def _strikes_after_probe(state: RefreshState, probe: InputProbe | None) -> dict | None:
     """The `transient_strikes` to write once this run's previews answered:
-    a run of preview failures is broken, so that count restarts. None = leave
+    a run of preview (or `upstream_empty`) failures is broken, so that count
+    restarts. None = leave
     the stored map alone (also when no preview was asked yet, e.g. a `by_id`
     input with no column check, whose preview comes only in `fetch_inputs`)."""
     strikes = state.transient_strikes or {}
-    if probe is None or not (_PREVIEW_STRIKES & set(strikes)) or not probe.answered():
+    if probe is None or not (_PROBE_STRIKES & set(strikes)) or not probe.answered():
         return None
-    return {k: v for k, v in strikes.items() if k not in _PREVIEW_STRIKES}
+    return {k: v for k, v in strikes.items() if k not in _PROBE_STRIKES}
 
 
 def _utcnow() -> datetime:
@@ -572,7 +585,7 @@ def recipe_identity(recipe: Recipe) -> str:
         h.update((recipe.root / name).read_bytes())
         h.update(b"\0")
     h.update(_render_code_hash().encode())
-    if any(i.map for i in recipe.manifest.inputs):
+    if any(i.map or i.raster for i in recipe.manifest.inputs):
         h.update(_geo_code_hash().encode())
     # Only recipes that import the shared lib: a lib change re-renders them,
     # not every page.
@@ -669,7 +682,7 @@ def input_fingerprint(recipe: Recipe, probe: InputProbe, identity: str) -> str:
         if inp.snapshot:
             parts.append([inp.name, inp.by_id, "snapshot"])
             continue
-        if inp.map:
+        if inp.map or inp.raster:
             res = probe.resolved[inp.name][0]
             parts.append([inp.name, inp.by_id, "map", res.get("size"), res.get("hash"),
                           res.get("name") or ""])
@@ -704,7 +717,7 @@ def file_fingerprint(recipe: Recipe, probe: InputProbe, identity: str) -> str | 
         if inp.snapshot:
             parts.append([inp.name, inp.by_id, "snapshot"])
             continue
-        if inp.map:
+        if inp.map or inp.raster:
             res = probe.resolved[inp.name][0]
             if not res.get("hash"):
                 return None
@@ -851,6 +864,14 @@ def fetch_inputs(
             remaining -= nbytes
             out[inp.name] = [fetched]
             continue
+        if inp.raster:
+            cap = min(_env_int("REFRESH_MAP_MAX_BYTES", _DEFAULT_MAP_MAX_BYTES), remaining)
+            fetched, nbytes = _fetch_raster(inp, resolved[inp.name][0], dest_dir,
+                                            fetch_file_fn, max_bytes=cap, deadline=deadline,
+                                            transform=snapshot_rows)
+            remaining -= nbytes
+            out[inp.name] = [fetched]
+            continue
         parts: list[FetchedInput] = []
         for i, res in enumerate(resolved[inp.name]):
             rid = res["id"]
@@ -940,18 +961,13 @@ def _map_file_name(res: dict) -> str:
     return tail or f"{res.get('id', 'map')}.{(res.get('format') or 'bin').lower()}"
 
 
-def _fetch_map(inp, res: dict, dest_dir: Path, fetch_file_fn: Callable, *,
-               max_bytes: int, deadline: float,
-               transform: Callable[[list], list]) -> tuple[FetchedInput, int]:
-    """Download a `map` input's file and write it as the snapshot table.
-
-    The bytes are the data's, so a bad file is `schema_changed` (the upload
-    changed shape), not `recipe_failed`. A WAF block, or a file CKAN lists
-    but data.gov.il no longer serves (404/410), is transient until it
-    repeats (`StrikeError` → `download_blocked` / `schema_changed`)."""
-    rid = inp.by_id
-    what = f"input {inp.name!r}: map file {rid[:8]}"
-    raw = dest_dir / f"{inp.name}__map.download"
+def _download_file(inp, res: dict, dest_dir: Path, fetch_file_fn: Callable, *,
+                   max_bytes: int, deadline: float, what: str, suffix: str):
+    """Download a `map` / `raster` input's file to `dest_dir`. A WAF block, or
+    a file CKAN lists but data.gov.il no longer serves (404/410), is
+    transient until it repeats (`StrikeError` → `download_blocked` /
+    `schema_changed`). Returns (path, fetch outcome)."""
+    raw = dest_dir / f"{inp.name}__{suffix}.download"
     if max_bytes <= 0:
         raise RecipeError(f"{what}: earlier inputs used the whole REFRESH_TOTAL_BYTES budget",
                           reason=FailReason.TOO_LARGE)
@@ -978,13 +994,47 @@ def _fetch_map(inp, res: dict, dest_dir: Path, fetch_file_fn: Callable, *,
     except BaseException:  # any failed download: no partial file left behind
         raw.unlink(missing_ok=True)
         raise
+    return raw, got
+
+
+def _keep_properties(feats: Iterable[dict], columns: list[str] | None, what: str):
+    """A map input's features with only its `columns` properties, in that
+    order, before simplification sizes them. A column no feature carries is
+    the data's change (`lacks column(s)`); checked once the stream is done."""
+    if not columns:
+        yield from feats
+        return
+    seen: set[str] = set()
+    for f in feats:
+        props = f.get("properties") or {}
+        if isinstance(props, dict):
+            seen.update(k for k in columns if k in props)
+            f["properties"] = {k: props.get(k) for k in columns}
+        yield f
+    lost = [c for c in columns if c not in seen]
+    if lost:
+        raise RecipeError(f"{what}: lacks column(s) {lost}", reason=FailReason.SCHEMA_CHANGED)
+
+
+def _fetch_map(inp, res: dict, dest_dir: Path, fetch_file_fn: Callable, *,
+               max_bytes: int, deadline: float,
+               transform: Callable[[list], list]) -> tuple[FetchedInput, int]:
+    """Download a `map` input's file and write it as the snapshot table.
+
+    The bytes are the data's, so a bad file is `schema_changed` (the upload
+    changed shape), not `recipe_failed`. Download failures: `_download_file`.
+    `columns` drops every other property before the size target applies."""
+    rid = inp.by_id
+    what = f"input {inp.name!r}: map file {rid[:8]}"
+    raw, got = _download_file(inp, res, dest_dir, fetch_file_fn, max_bytes=max_bytes,
+                              deadline=deadline, what=what, suffix="map")
     # Converted as it streams off the file (see `geo_snapshot.iter_map`): the
     # raw layer never sits in memory whole, beside the converted one, and the
     # converted features go straight to rows, never through a GeoJSON body.
     try:
-        feats, crs = geo_snapshot.iter_map(raw, _map_file_name(res))
+        feats, crs = geo_snapshot.iter_map(raw, _map_file_name(res), member=inp.map_member)
         layer = geo_snapshot.simplify_features(
-            feats, crs=crs,
+            _keep_properties(feats, inp.columns, what), crs=crs,
             max_bytes=(inp.map_max_kb * 1000) if inp.map_max_kb else geo_snapshot.DEFAULT_MAX_BYTES,
         )
     except geo_snapshot.SnapshotTooLarge as e:
@@ -1009,6 +1059,38 @@ def _fetch_map(inp, res: dict, dest_dir: Path, fetch_file_fn: Callable, *,
         raise RecipeError(f"{what}: has no features", reason=FailReason.SCHEMA_CHANGED)
     log.info("map %s: %s bytes → %d features (%s, tolerance %s)",
              rid[:8], f"{got.bytes:,}", len(rows), crs, tol)
+    return _write_table(inp, res, header, rows, dest_dir), got.bytes
+
+
+def _fetch_raster(inp, res: dict, dest_dir: Path, fetch_file_fn: Callable, *,
+                  max_bytes: int, deadline: float,
+                  transform: Callable[[list], list]) -> tuple[FetchedInput, int]:
+    """Download a `raster` input's GeoTIFF (or zip of them) and write its
+    summary table (`geo_snapshot.raster_table`): one row per TIFF, plus the
+    `raster_grid` block means as long rows. Download failures and strikes as
+    for a map file; a bad file is `schema_changed`, an outsized grid
+    `too_large`."""
+    rid = inp.by_id
+    what = f"input {inp.name!r}: raster file {rid[:8]}"
+    raw, got = _download_file(inp, res, dest_dir, fetch_file_fn, max_bytes=max_bytes,
+                              deadline=deadline, what=what, suffix="raster")
+    try:
+        header, rows = geo_snapshot.raster_table(raw, _map_file_name(res), grid=inp.raster_grid)
+    except geo_snapshot.SnapshotTooLarge as e:
+        # The pixel / TIFF-count / inflate caps, or the grid's (its message says
+        # to raise raster_grid).
+        raise RecipeError(f"{what}: {e}", reason=FailReason.TOO_LARGE) from None
+    except geo_snapshot.SnapshotError as e:
+        raise RecipeError(f"{what}: {e}", reason=FailReason.SCHEMA_CHANGED) from None
+    finally:
+        raw.unlink(missing_ok=True)
+    lost = [c for c in inp.required_columns if c not in header]
+    if lost:
+        raise RecipeError(f"{what}: lacks column(s) {lost}", reason=FailReason.SCHEMA_CHANGED)
+    rows = transform(rows)
+    if not rows:
+        raise RecipeError(f"{what}: has no rasters", reason=FailReason.SCHEMA_CHANGED)
+    log.info("raster %s: %s bytes → %d rows", rid[:8], f"{got.bytes:,}", len(rows))
     return _write_table(inp, res, header, rows, dest_dir), got.bytes
 
 
@@ -2077,11 +2159,16 @@ _SCHEMA_SHAPES = re.compile("|".join([
     rf"resource {_ID} lost column\(s\) {_COLS}",
     rf"resource {_ID} is no longer a datastore-active resource of this dataset",
     rf"no resource has columns {_COLS}",
+    rf"no resource has columns {_COLS}; resource\(s\) {_COLS} are empty upstream \(only `_id`\)",
+    rf"resource {_ID} is empty upstream \(only `_id`, no rows\)",
     rf"no preview for resource\(s\)? (?:{_COLS}|{_ID})",
     rf"resource {_ID} has no rows",
     rf"map file {_ID} is gone from the dataset",
     rf"map file {_ID}: lacks column\(s\) {_COLS}",
     rf"map file {_ID}: has no features",
+    rf"raster file {_ID}: lacks column\(s\) {_COLS}",
+    rf"raster file {_ID}: has no rasters",
+    rf"raster file {_ID}: the file is gone \(HTTP \d{{3}}\)",
     rf"map file {_ID}: the file is gone \(HTTP \d{{3}}\)",
     (rf"map file {_ID}: (?:not a GeoJSON FeatureCollection|bad feature \(not an object\)"
      r"|bad feature properties)"),

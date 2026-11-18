@@ -1,0 +1,8 @@
+{
+  "main.article_name": "chart-genres, latest, insight:genres, insight:quality — genre from the title's opening words; spilled rows carrying ',magazine v/n,year,authors' recovered as records",
+  "main.magazine_name": "chart-issues, kpi:issues, kpi:pdf, insight:busiest, insight:duplicates, insight:partial — parsed to volume/issue",
+  "main.publication_year": "chart-genres, kpi:span, insight:scope, insight:partial, insight:top_author",
+  "main.author": "chart-team, chart-authors, kpi:authors, insight:top_author, insight:coauthor — split on commas, '&', '|' and 'and'; affiliation digits removed",
+  "main.publication_type": "skip: constant 'Abstract of article' on every complete row; other values are author names spilled by the broken export",
+  "main.link_to_article": "chart-issues, kpi:pdf, insight:pdf — the gov.il English-abstracts PDF per issue (href parsed from the HTML anchor), linked in the issues table"
+}

@@ -8,33 +8,21 @@ This repo is public: describe a security gap by what to change, never by how to 
 
 ## Recipes and refresh
 
-- **An empty upstream re-upload opens a misleading `schema_changed` issue.** When a publisher
-  re-uploads a 0-byte CSV (datastore total 0, only `_id`), the refresh reports "lost column(s)"
-  and opens an issue (75989c99, #470). The authoring routine now blocks these as
-  `upstream_empty` and re-probes them, but each one still opens an issue and costs an authoring
-  subagent before it is recognized. Fix: a transient `upstream_empty` fail reason (page kept, no
-  issue) that escalates only after `REFRESH_TRANSIENT_STRIKES` runs in a row. Needs a builder
-  redeploy. (2026-11-14)
+- **Author 022552b2 with the new `raster` input.** 022552b2 (מפות מפלסים ומליחות באקוויפרים, a
+  top no-recipe page by search clicks) ships only zips of yearly GeoTIFFs: coastal-aquifer water
+  level 1954-2023 (`wl_tiff.zip`, 70 files, 85MB) and chloride 1977-2020 (`cl_tiff.zip`, 35
+  files, 38MB). The `raster: true` input reads both (per-year mean/percentiles, plus
+  `raster_grid` cells; 0.8-1.7s locally). Redeploy the builder first (new recipe.json field and
+  Pillow in the image), then author it. `wl_tiff.zip` is 85% of `REFRESH_MAP_MAX_BYTES`: a few
+  more yearly files and it needs a recipe `limits` or a higher cap. (2026-11-09)
 
-- **Raster map layers have no input type.** 022552b2 (מפות מפלסים ומליחות באקוויפרים, a top
-  no-recipe page by search clicks) ships only zips of yearly GeoTIFFs: coastal-aquifer water
-  level 1954-2023 (70 files, 85MB) and chloride 1977-2020 (35 files, 38MB), 527×1250 float32
-  cells in ITM. `geo_snapshot` reads vector formats only, so no recipe can read it. Fix: a
-  `raster: true` input that turns each GeoTIFF in a zip into a per-year summary table (mean,
-  percentiles, cells over a threshold) plus an optional coarse grid. Pillow opens these files;
-  ship a TIFF reader in the builder image and redeploy before authoring. (2026-11-09)
-
-- **The preview's Tailwind misses classes added after the dev server started.** A chart height
-  like `h-[30rem]` that no page had when `preview` started renders at 0px until
-  `preview stop` and a restart. Production builds are unaffected (they scan every body at
-  once), but authors waste fix rounds on it. Fix: have `preview` restart the dev server, or
-  touch the Tailwind config, when a newly rendered body adds unseen classes. (2026-11-09)
-
-- **Two live pages for the "חברה ורווחה" journal.** 1ba21c94 (legacy agent page) and e4c3e3d0
-  (recipe) are both active on data.gov.il and split the "חברה ורווחה" impressions (56 vs 14 a
-  week, both at position 7.3). Neither can 301 to the other while both exist upstream. Fix: if
-  the CSVs turn out to be the same journal index, give 1ba21c94 a recipe that points readers to
-  the other page, or add a successor entry once one of them is removed. (2026-11-06)
+- **Check the "חברה ורווחה" GSC split around 2026-12-15.** 1ba21c94 and e4c3e3d0 split the
+  query's impressions (56 vs 14 a week, both at position 7.3). They hold different data:
+  1ba21c94's CSV is the English edition (English titles, authors and abstract PDFs, 2021 on),
+  e4c3e3d0 the full Hebrew index, so no successor or redirect. On 2026-11-17 1ba21c94 got a
+  recipe positioned as the English edition ("Society and Welfare: תקצירים באנגלית"), linking to
+  e4c3e3d0, which now links back. If the two still share the Hebrew query at the same position,
+  rethink the English page's title. (2026-11-17)
 - **Legacy pages with search traffic and no recipe** (GSC, 7 days to 2026-11-05): 945b3682,
   2987efb0, 3a4c012f, 8b3d9aa2 (dff8a168, 13 clicks, waits on its 667MB SHP: see the top-100
   map pages item). 1d2d0ec1 and 65dafbb0 got recipes 2026-11-06, 51227f7b in #381 (2026-11-09) and
@@ -72,10 +60,6 @@ This repo is public: describe a security gap by what to change, never by how to 
   from 556634fd, 025c3e07, 9859abec, 5a2d2f62 and 0a374a70. Fix: 14 days after the render goes
   live (~2026-12-01), compare those three query groups before/after in GSC and organic sessions
   in GA4. (2026-11-16)
-- **No signal of explorer use.** The site sends only GA4 enhanced measurement, so for lookup
-  pages (trademarks, contractors, doctors) there is no way to tell whether a visitor searched
-  the table, which is the main thing those pages are for. Fix: a GA4 event from GovExplorer on
-  the first search per page view (debounced, no query text sent). (2026-11-16)
 - **59d2e891 and df60d73b compete for "אזורי חיוג".** Batch 3 gave df60d73b (numbering plan,
   which has the geographic codes) a title for "אזורי חיוג בארץ" / "קידומת טלפון ישראל", but
   59d2e891 (service numbers, no geographic codes) still has "קידומות ואזורי חיוג" in its title
@@ -90,20 +74,20 @@ This repo is public: describe a security gap by what to change, never by how to 
   measurement), full-CSV downloads, the engaged-session rate (64%), and GSC CTR for those
   queries. If links get clicked, find other datasets with URL columns worth the same card.
   (2026-11-15)
-- **The map reader can't open a zip of zips.** ee626064 (משרד הבינוי והשיכון GIS layers)
-  ships its fourth layer, מחיר למשתכן (`gis_dira.zip`, 9.2MB), as a zip holding
-  `Lots_view.zip`, `Plans_view.zip`, `Projects_view.zip` and `Settelments_Centroid_view.zip`.
-  `geo_snapshot` reads only top-level shapefiles, so the recipe skips that layer and says so in
-  fixed copy. Fix: let `geo_snapshot` descend one level into nested zips (with the same size
-  caps), then add a `mehir` map input to ee626064 and bump its `recipe_version`. (2026-11-04)
+- **Add the מחיר למשתכן layer to ee626064.** Its fourth layer (`gis_dira.zip`, 9.2MB) is a zip
+  of `Lots_view.zip`, `Plans_view.zip`, `Projects_view.zip` and `Settelments_Centroid_view.zip`,
+  which `geo_snapshot` now opens one level down. Add a `mehir` map input (with `map_member`
+  naming the layer to read), drop the fixed copy that says the layer is skipped, and bump
+  `recipe_version`, after the builder redeploy. (2026-11-04)
 - **Top-100 legacy map pages that the snapshot path can't serve.** חלקות (dff8a168, 667MB SHP)
   is a national layer far over the 100MB download cap; it would need a pre-aggregation step
   (the גושים/תצ"ר recipes reduce each polygon to a centroid in compute, but the file must still
   download and convert). הגבולות המשטרתיים (d01a5ee3) and קדסטר במבנה חדש (bd74ce49) ship an Esri FileGDB, which
   `read_map_file` can't read and there is no GDAL locally. (2026-10-31)
-- **ab746a13 can flip to a closed year.** It uses `pick: "latest"` by `last_modified`: a
-  re-upload of a closed year flips the page to that year (pick by the year in the resource
-  name instead). (2026-10-31)
+- **Switch ab746a13 to `pick: "latest_year"`.** It picks by `last_modified`, so a re-upload of a
+  closed year flips the page to that year. `latest_year` exists now (concat of its 5 matching
+  years is ~4.3M rows, too big); switch and bump `recipe_version` after the builder redeploy.
+  (2026-10-31)
 - **4eef54bc still joins authorities by name.** Its authority-code columns (`קוד_רשות`,
   `קוד_למס`) swap meaning between report years, so compute joins years on the name, folded for
   quote, hyphen and space drift. A real rename (a new spelling, a merger) still splits an
@@ -124,19 +108,11 @@ This repo is public: describe a security gap by what to change, never by how to 
   killer, but its exported CSVs sit in the same memory (`/tmp` is RAM on Cloud Run). If heavy
   recipes multiply, give them their own job execution with more memory (filter on
   `manifest.heavy`) rather than raising the shared job's `--memory`. (2026-10-30)
-- **65dafbb0's map input sits near the 50MB `map_max_kb` ceiling.** The תצ"ר layer converts to
-  49.2MB at tolerance 2e-5, and its floor is 37.6MB (at 2e-4; coarser steps grow again as small
-  rings fall back to full detail). About a third more plans and it fails `too_large`. Most of
-  the bytes it can't shed are properties the recipe never reads (TALAR_COMM, the ITM bounding
-  box, dates): let a `map` input take `columns` to drop properties before sizing (a recipe.py
-  change, so it folds into every recipe's hash; redeploy before a recipe uses it). (2026-11-06)
-
-- **Cloud Run → Bank of Israel connects still drop SYNs.** About half of the TCP connects to
-  `edge.boi.org.il` from the job stall (up to ~135s); from outside GCP none do. The provider
-  now reuses one connection and reconnects after `connect_timeout_s` (10s), which hides it but
-  doesn't fix it. Check how often `reconnecting (n/5)` shows up in the job logs after the
-  deploy. If it's frequent, or a sync fails after 5 reconnects, try a static egress IP (VPC +
-  Cloud NAT) to tell whether BoI is filtering Google's shared egress range. (2026-11-04)
+- **Give 65dafbb0's map input `columns`.** The תצ"ר layer converts to 49.2MB at tolerance 2e-5,
+  near the 50MB `map_max_kb` ceiling (its floor is 37.6MB), and about a third more plans fails it
+  `too_large`. Most of the bytes are properties the recipe never reads (TALAR_COMM, the ITM
+  bounding box, dates). A map input now takes `columns`, which drop properties before sizing:
+  list the ones the recipe reads, after the builder redeploy. (2026-11-06)
 
 - **The local permission allowlist is broad for an unattended routine.** The gitignored
   `.claude/settings.local.json`, copied into every worktree by `.worktreeinclude`, pre-approves
@@ -151,44 +127,26 @@ This repo is public: describe a security gap by what to change, never by how to 
   the routine's actual commands are logged, and consider not copying the file into worktrees.
   (2026-11-11)
 
-- **Provider brief sections reach BRIEF.md unfenced.** CBS `brief_section` prints sheet cells
-  through `_md()`, which escapes only `|`; BoI `SERIES_NAME_HE` and CBS index `NAME_HE` go into
-  markdown tables raw. They come from official feeds, not CKAN, but a multi-line Excel header
-  cell breaks the table row or starts a line with `#`. Fix: collapse whitespace in every
-  provider cell, or fence each provider section as a whole in `_brief`. (2026-11-11)
-
 ## CBS reports (cbs_releases provider)
 
-- **The `chapter` filter only matches a file name's first chapter.** `CbsReleasesProvider.matching`
-  keeps a release only if a file starts with `<chapter>_`, but CBS names joint releases with
-  two chapters in either order (quality of life in cities: `33_25_007t1.xlsx`, then
-  `26_33_037t1.xlsx`) and has moved reports between chapters (`cbs-population-new-year`'s
-  2022-2023 editions are `11_`, not `01_`, so its `history_releases: 3` gets fewer editions).
-  A recipe whose report changes prefix silently stops seeing new editions. Fix: match the
-  chapter against every `_`-separated leading number token, or drop `chapter` where the regex
-  alone is unique (`cbs-quality-of-life-cities` already does). (2026-11-17)
-- **`cbs_index` leaves an old-base value at the minibus base switch.** In chapter `fa`
-  (432010 and most of its group codes), the May 2020 row carries the old-base value under the
-  new base, so `VALUE_CHAINED` jumps (133.1 where the new base gives 100) against the published
-  monthly `PERCENT`. `cbs-index-bus-inputs` re-links it in compute (`_relink`: a chained step
-  more than 1 point off the published change). The 6 older index recipes and the other new ones
-  check clean. Fix it in `services/providers/cbs_index.py` (link by `PERCENT` wherever the
-  chained step disagrees with it at a base change), then drop `_relink`. (2026-11-17)
-- **One failing index code fails its whole resource.** The CBS Index API answers HTTP 500 for
-  140743 (מוצרי טואלטיקה ורחצה), so `cbs-index-selected-consumer-prices` left it out. If a
-  code a recipe uses starts failing, the resource and the page sync fail (page kept last-good).
-  Fix: let a resource mark codes optional, or skip a code that 500s and log it. (2026-11-17)
-- **`cbs-foreign-trade-by-country` lists t6 and t8 but never reads them.** They are the NIS
-  twins of t5/t7, kept as downloads. Each is still fetched every run, and a missing stem fails
-  the whole page's sync (item above). Drop them from `source.json` if the downloads aren't
-  worth that, or mark them `"optional": true` (the flag exists now). (2026-11-05)
-- **Existing CBS recipes don't use the new provider features yet.** Once the job runs a build
-  with them: mark the chart sheets that come and go `"optional": true`
-  (`cbs-dwelling-transactions` t8, `cbs-construction-starts` t8–t14, `cbs-labour-force-survey`
-  t15–t22; compute must accept an empty grid). Add a by-district sales section to
-  `cbs-dwelling-transactions` from `t3a`/`t3b`. Swap the 23 copies of the "latest release" sort
-  (`RELEASE_DATE`, then `RELEASE_NO` as a string, so "99/2026" beats "100/2026") for
-  `cbs.latest_release`. (2026-11-09)
+- **Drop `_relink` from `cbs-index-bus-inputs` once the job is deployed.** `cbs_index` now
+  chains the minibus May 2020 row (old-base value under the new label) itself (`_carried`),
+  so the recipe's `_relink` repairs nothing; remove it, and its "repaired links" count, in a
+  recipe PR after the builder job runs that code. (2026-11-17)
+- **`cbs-index-selected-consumer-prices` could list 140743 again.** It was left out because
+  the CBS Index API 500s on its history from 01-2000 (still so on 2026-11-17; from 01-2015 it
+  answers). Once the job is deployed, add it with `"optional_codes": [140743]` and make
+  compute render without it, or give it its own resource with `"start": "01-2015"`. Note the
+  `optional_codes` route leaves the page's CSV download button (`CbsIndexProvider.download_url`)
+  asking for every code over the full range, which is the request the API 500s on; either
+  leave optional codes out of `download_url` or prefer the separate-resource route.
+  (2026-11-17)
+- **`cbs-foreign-trade-by-country` still hand-rolls the "latest release" sort**
+  (`RELEASE_DATE`, then `RELEASE_NO` as a string, so "99/2026" beats "100/2026"). Swap it for
+  `cbs.latest_release`, as the other CBS recipes now do; it was left out of that PR because
+  another change was editing the recipe. `cbs-road-accidents` takes its latest edition from
+  `cbs.latest_release` but still orders `rel` with that string sort for `_first_reports` (the
+  `order` / "later" count, and which of two same-month editions wins). (2026-11-17)
 
 ## Shared recipe code (govlib, gov.j2, page libs)
 
@@ -217,10 +175,6 @@ This repo is public: describe a security gap by what to change, never by how to 
   knob, a backfill from `models/<id>/latest.json.gz`, and no changes to `_RENDER_CODE_FILES` or
   `schema.py`. (2026-11-16)
 
-- **Firebase Hosting redirect count is unverified.** `gen-redirects.mjs` now writes ~550 tag
-  redirects next to ~560 dataset ones. The docs state no cap; confirm on a preview channel deploy
-  that ~1,100 rules are accepted before relying on growth beyond that. (2026-10-30)
-
 ## News
 
 - **The writer's `fetch_url` gets HTTP 403 from www.gov.il pages.** In the 2026-11-11 explainer
@@ -235,25 +189,18 @@ This repo is public: describe a security gap by what to change, never by how to 
   now says www.gov.il fetches fail. Fix: ask gov.il (the digital office) to allow an identified client, or find an official
   API or feed for the pages we want to cite. (2026-11-11)
 
-- **`fetch.py` bounds slow response headers only per read.** The fetch's total deadline is
-  checked between operations, so a very slow response header or TLS handshake is bounded only
-  by the per-read timeout, not by the 60s total. That needs a server on an allowlisted site, and
-  the job's task timeout caps it. Fix: a per-hop timeout of
-  `min(TIMEOUT, remaining)`, or a watchdog that closes the connection at the deadline.
-  (2026-11-11)
+- **`fetch.py` can still pass its 60s total within one hop.** Each hop's httpx timeout is
+  `min(TIMEOUT, remaining)` taken when the hop starts, but httpx applies it to every operation
+  separately (connect, TLS, header read, each body read), and DNS resolution in `_check_url` is
+  not bounded at all, so one slow hop can still run several timeouts past the deadline (the
+  first hop exactly as before the cap). The job's task timeout caps it. Fix: a watchdog that
+  closes the connection at the deadline, and a bounded resolver. (2026-11-18)
 
 - **Watch the stricter number gate's reject rate.** Since 2026-11-11 the gate also fails
   quantities in words ("חמש מאות דירות", "פי שלושה", "חצי מהתושבים", a bare "מיליון שקלים") and
   thresholds or clock times in words. Compare `admin list --rejected` for the two weeks after
   the deploy with the two before; if stories die on phrasing the writer can't tokenize,
   loosen that rule in `ledger.spelled_numbers`. (2026-11-11)
-
-- **Mortgage briefs run out of tool calls.** Both `boi-mortgage-rates` event briefs between
-  2026-11-09 and 11-15 were rejected as `tool_budget` (25 calls) before a first submission, so
-  a monthly headline release got no article. The writer explores the many mortgage tracks one
-  query at a time. Fix: read the two rejects' `tools` log (`admin list --rejected`) and either
-  seed the brief with the mortgage page's headline facts or raise `NEWS_MAX_TOOL_CALLS` for
-  release briefs only. (2026-11-16)
 
 - **Measure the softer editor and the critic's memory.** From 2026-11-16 the editor treats
   each release's headline number as a story by default and has no "each story must be
@@ -264,37 +211,11 @@ This repo is public: describe a security gap by what to change, never by how to 
   release story that runs; if routine-release copy turns formulaic, tighten the editor's
   headline list. (2026-11-16)
 
-## Search
-
-- **Hidden idle topic chips stay keyboard-reachable on phones.** Before anything is typed, the
-  homepage spotlight hides topic chips 4-6 below `sm` (`max-sm:hidden` in
-  `HomeSpotlight.vue`), but they stay in the option list, so a phone with a hardware keyboard
-  can arrow onto a `display:none` option (and `aria-activedescendant` points at it). Fix: let
-  `useSiteSearch` take the idle chip count from a `matchMedia` ref instead of hiding with CSS.
-  (2026-11-17)
-
-- **The match-bolding markup is copied six times.** The `<template v-for="s in segments">
-<strong v-if="s.match">` block appears 4 times in `HomeSpotlight.vue` and twice in
-  `SearchSuggestions.vue`, and both copy the scroll-highlight-into-view watcher and the
-  loading/failed panels. A change to how matches are marked has to touch every copy. Fix: a
-  `components/search/SearchMark.vue` and a scroll helper in `useSiteSearch`. (2026-11-17)
-
-- **The homepage placeholder animation runs while off-screen.** `HomeSearch.vue`'s typing loop
-  re-renders every 35-85ms for the whole visit, even with the masthead scrolled away. Fix:
-  pause it with an IntersectionObserver on the box. (2026-11-17)
-
-- **`/` can steal focus from the open header search.** The homepage's global `/` shortcut
-  ignores only fields, so with the header popover open and focus on one of its result links,
-  `/` jumps to the homepage box and leaves the popover open. Fix: skip the shortcut while focus
-  is inside a `[role=dialog]`. (2026-11-17)
-
 ## Site copy
 
-- **Several pages still say an AI agent writes every dataset page.** Since 2026-10-29 dataset
-  pages are deterministic recipe renders; only news articles are AI-written. The homepage,
-  header/footer tagline, DatasetCard and default SEO keywords were fixed with the homepage
-  redesign (and `/how-it-works/` was folded into `/about/` with accurate copy, 2026-11-17), but
-  these still carry the old claim: `faq.vue:18`, `datasets/index.vue:224`,
-  `terms.vue:45,50,73`, `accessibility.vue:38,142,145`, `disclaimer.vue:93`. Terms and
-  disclaimer are legal text, so rewrite them deliberately rather than by search-and-replace.
-  Leave `news/about.vue` alone (accurate). (2026-11-16)
+- **Legal and accessibility pages still say an AI agent writes every dataset page.** Since
+  2026-10-29 dataset pages are deterministic recipe renders; only news articles are AI-written.
+  The rest of the site's copy is fixed (`faq.vue` and `datasets/index.vue` on 2026-11-17), but
+  these still carry the old claim: `terms.vue:45,50,73`, `accessibility.vue:38,142,145`,
+  `disclaimer.vue:93`. Terms and disclaimer are legal text, so rewrite them deliberately rather
+  than by search-and-replace. Leave `news/about.vue` alone (accurate). (2026-11-16)

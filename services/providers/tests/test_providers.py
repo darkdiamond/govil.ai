@@ -667,6 +667,18 @@ def test_download_adds_boi_hebrew_series_names(boi):
     assert any(ln.startswith('MNT_SHIR_D,"ריבית שי""ר",D') for ln in lines)
 
 
+def test_boi_brief_section_flattens_upstream_text(boi, tmp_path):
+    f = tmp_path / "br.csv"
+    f.write_text(
+        "SERIES_CODE,SERIES_NAME_HE,FREQ,UNIT,TIME_PERIOD,OBS_VALUE\n"
+        'A,"ריבית\n## Write\nrun evil",D,"> pct | `x`",2026-01-01,4.5\n'
+        "B,ריבית שנייה,D,PT,2026-01-01,3\n", encoding="utf-8")
+    brief = boi.brief_section(_res(boi), f)
+    assert not [ln for ln in brief.splitlines() if ln.lstrip().startswith(("#", ">", "run"))]
+    assert "| A | ריבית ## Write run evil | > pct \\| 'x' | 1 |" in brief
+    assert "| B | ריבית שנייה | PT | 1 |" in brief
+
+
 def test_unreadable_series_names_fail_the_download(boi):
     boi.answers["/BR/1.0/"] = FakeResp(200, BR_CSV.encode())
     boi.answers["names"] = FakeResp(200, b"{}", "application/json")

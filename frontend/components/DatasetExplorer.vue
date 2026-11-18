@@ -27,6 +27,8 @@ import { buildTsQuery } from "~/utils/explorer-query";
 import { publicResourceUrl } from "~/utils/resource-url";
 
 const props = defineProps<{
+  /** For the GA4 `explorer_search` event. */
+  datasetId: string;
   resources: ResourceEntry[];
   primaryResourceId?: string;
   recordCount?: number;
@@ -345,6 +347,15 @@ function retry() {
   else void activate(rid);
 }
 
+// One GA4 event per page view, on the first search the table runs, so lookup
+// pages can tell whether visitors search them. The query text is never sent.
+let searchTracked = false;
+function trackFirstSearch(q: string) {
+  if (searchTracked || !q) return;
+  searchTracked = true;
+  useTrackEvent("explorer_search", { dataset_id: props.datasetId });
+}
+
 let debounceTimer: ReturnType<typeof setTimeout> | undefined;
 function onSearchInput() {
   clearTimeout(debounceTimer);
@@ -352,6 +363,7 @@ function onSearchInput() {
     const q = searchText.value.trim();
     if (q === query.value) return;
     query.value = q;
+    trackFirstSearch(q);
     offset.value = 0;
     void loadPage();
   }, 350);
