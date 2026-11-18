@@ -499,6 +499,42 @@ def test_coverage_flags_a_used_column_that_is_never_fetched(tmp_path):
     assert any("never fetched" in p for p in problems)
 
 
+def test_coverage_of_a_map_input_with_columns_counts_the_dropped_properties(tmp_path):
+    """A map input's `columns` drop properties before the table is written;
+    coverage still accounts for every property of the file (prepare's copy),
+    and `__geometry`, always kept, never reads as unfetched."""
+    from services.page_builder import author
+
+    recipes = _fixture_copy(tmp_path, lambda d: d["inputs"][0].update(
+        map=True, columns=["a"], required_columns=["a"]))
+    recipe = Recipe.load(recipes / DS)
+    data = tmp_path / "data"
+    data.mkdir()
+    (data / "map-x.geojson").write_text(json.dumps({"type": "FeatureCollection", "features": [
+        {"type": "Feature", "properties": {"a": "1"},
+         "geometry": {"type": "Point", "coordinates": [34.8, 32.1]}},
+        {"type": "Feature", "properties": {"a": "3", "b": "2"},     # `b` only past the first
+         "geometry": {"type": "Point", "coordinates": [34.9, 32.2]}}]}), encoding="utf-8")
+    (data / "maps.json").write_text(json.dumps([{"resource_id": RID, "file": "map-x.geojson"}]),
+                                    encoding="utf-8")
+    table = tmp_path / "geo.csv"
+    table.write_text("a,__geometry\n1,{}\n", encoding="utf-8")
+    inputs = {"events": [rf.FetchedInput(table, RID, "events", 1)]}
+    cov = recipes / DS / author.COVERAGE_FILENAME
+    model = {"kpis": {"total": {}}}
+    cov.write_text(json.dumps({"events.a": "kpi:total", "events.__geometry": "kpi:total",
+                               "events.b": "skip: not shown on this page"}), encoding="utf-8")
+    problems, _ = author._coverage_findings(recipe, inputs, [], "", model, data_dir=data)
+    assert not [p for p in problems if "unaccounted" in p or "stale" in p or "never fetched" in p], problems
+    cov.write_text(json.dumps({"events.a": "kpi:total", "events.__geometry": "kpi:total",
+                               "events.b": "kpi:total"}), encoding="utf-8")
+    problems, _ = author._coverage_findings(recipe, inputs, [], "", model, data_dir=data)
+    assert any("events.b is marked used" in p for p in problems)
+    # No prepare copy: said so, rather than calling the dropped properties' entries stale.
+    problems, _ = author._coverage_findings(recipe, inputs, [], "", model, data_dir=tmp_path / "none")
+    assert any("no readable copy" in p for p in problems), problems
+
+
 # ── author verify mirrors the byte caps ──────────────────────────────────
 
 

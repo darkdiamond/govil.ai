@@ -1,7 +1,7 @@
 {
   "contract_version": 1,
   "dataset_id": "65dafbb0-1fbe-4a4c-bd59-71eadcac3995",
-  "recipe_version": 1,
+  "recipe_version": 2,
   "authored_at": "2026-11-06T11:00:00Z",
   "authored_against": {
     "metadata_modified": "2026-06-21T10:37:50.743356+00:00",
@@ -12,7 +12,20 @@
       "name": "geo",
       "by_id": "128e1667-8423-4377-909e-c1a0451db76c",
       "map": true,
-      "map_max_kb": 50000,
+      "map_max_kb": 38000,
+      "columns": [
+        "NAME",
+        "TALAR_NUM",
+        "TALAR_YEAR",
+        "STATUS_TEX",
+        "PLACE",
+        "GUSH_NUM",
+        "Shape_Area",
+        "FINISH_DAT",
+        "UPDATE_REG",
+        "ORDERER",
+        "RECID"
+      ],
       "required_columns": [
         "NAME",
         "TALAR_NUM",

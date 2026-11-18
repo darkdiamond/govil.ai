@@ -1,5 +1,5 @@
-"""שכבות GIS של משרד הבינוי והשיכון: three of the ministry's four uploaded
-layers, each read from its zipped shapefile (`map: true` inputs, ITM):
+"""שכבות GIS של משרד הבינוי והשיכון: the ministry's four uploaded layers,
+each read from its zipped shapefile (`map: true` inputs, ITM):
 
 - `hoods`: שיקום שכונות, the neighbourhood-renewal areas (polygons) with
   their settlement, ministry district code, and three undocumented code
@@ -10,9 +10,15 @@ layers, each read from its zipped shapefile (`map: true` inputs, ITM):
   renovation), apartments, public-housing apartments, floors, entrances and
   the date of its last renovation (the DOCX legend's field meanings).
 - `districts`: the ministry's five districts (polygons).
-
-The fourth layer (מחיר למשתכן, gis_dira.zip) is a zip of zips the map reader
-can't open; the page says so in fixed copy. The DOCX legend is documentation.
+- `dira`: מחיר למשתכן. gis_dira.zip bundles four zipped layers (lots, plans,
+  projects, settlement centroids); the input reads Projects_view.zip
+  (`map_member`): one row per lottery (LotteryId; 0 = registration not yet
+  opened), its project's polygon repeated on every lottery of the project.
+  Project fields (name, town, developer, marketing method, price per m²) are
+  constant within a project (ActiveProj); units (HousingUni), dates and stage
+  are per lottery. A town code can carry two spellings of its name: the
+  commonest is shown. The other three inner layers are not read; the page
+  says so in fixed copy. The DOCX legend is documentation.
 
 Joins: a renovation building belongs to the neighbourhood whose ID equals its
 PROJECT_ID; a neighbourhood with a district code the districts layer lacks
@@ -41,6 +47,11 @@ APT_EDGES = [0, 10, 16, 24, 32, 48]
 PUB_EDGES = [0, 0.0001, 0.25, 0.5, 0.75]       # share of public-housing apartments
 HOOD_TOL = 10       # 1e-5 degree units, ~10 m
 DIST_TOL = 40       # ~400 m: district outlines are drawn at national zoom
+DIRA_TOL = 5        # ~5 m: project outlines, drawn from zoom 15
+TOP_DIRA_TOWNS = 12
+PRICE_EDGES = [0, 6000, 7000, 8000, 9000, 10000, 11000]    # ₪ per m²
+MIN_TOWN_LOTTERIES = 5
+STAGE_FIX = {"טרם נפתחה הרשמה - טרם נבחר י": "טרם נפתחה הרשמה - טרם נבחר יזם"}    # truncated field
 LAT_RANGE = (29.3, 33.5)
 LON_RANGE = (34.2, 35.95)
 
@@ -185,6 +196,160 @@ def _enc(polys, o, tol):
     return out
 
 
+def _modal_name(names):
+    """The commonest spelling; ties go to the longer, then the first by sort."""
+    counts = {}
+    for v in names:
+        counts[v] = counts.get(v, 0) + 1
+    return min(counts, key=lambda v: (-counts[v], -len(v), v))
+
+
+def _dira(m):
+    """מחיר למשתכן: one row per lottery of Projects_view. Returns charts,
+    tables, insights, map features and figures for the copy, or None when
+    the layer has no usable row."""
+    m = m.copy()
+    m["pid"] = m["ActiveProj"].map(code)
+    m = m[m["pid"] != ""].copy()
+    if m.empty:
+        return None
+    m["polys"] = m["__geometry"].map(_polygons)
+    m["proj"] = m["ProjectNam"].str.strip().replace("", "ללא שם")
+    m["mkt"] = m["Marketin_1"].str.strip().replace("", "לא צוין")
+    m["fam"] = m["mkt"].str.split(" - ").str[0].str.strip()
+    m["tcode"] = m["LamasCode"].map(code)
+    m["tname"] = m["LamasName"].str.strip()
+    m["dev"] = m["ProviderNa"].str.strip()
+    m["units"] = num(m["HousingUni"]).fillna(0).clip(lower=0)
+    m["price"] = num(m["PriceForMe"])
+    m.loc[~(m["price"] > 0), "price"] = math.nan
+    m["grant"] = num(m["GrantAmoun"]).fillna(0).clip(lower=0)
+    m["lot"] = m["LotteryId"].map(code)
+    m["start"] = pd.to_datetime(m["StartSignu"].str.strip(), format="%Y%m%d", errors="coerce")
+    m["stage"] = m["Marketin_2"].str.strip().map(lambda v: STAGE_FIX.get(v, v)).replace("", "לא צוין")
+    m["gkey"] = m["__geometry"].astype(str)
+    m = m.sort_values(["pid", "lot", "StartSignu", "stage", "gkey"]).reset_index(drop=True)
+    tnames = {c: _modal_name(sorted(g.tolist())) for c, g in m.groupby("tcode")["tname"]}
+    m["town"] = m["tcode"].map(tnames).replace("", "לא צוין")
+    m["is_lot"] = ~m["lot"].isin(["", "0"]) & m["start"].notna()
+    lots = m[m["is_lot"]].copy()
+    wait = m[~m["is_lot"]]
+    n_lot = len(lots)
+    u_all = round(math.fsum(sorted(m["units"].tolist())))
+    u_lot = round(math.fsum(sorted(lots["units"].tolist())))
+    n_proj = int(m["pid"].nunique())
+    n_towns = int(m["town"].nunique())
+    n_wait_proj = int(wait["pid"].nunique())
+    u_wait = round(math.fsum(sorted(wait["units"].tolist())))
+    mkts = sorted(m["mkt"].unique(), key=lambda k: (-m.loc[m["mkt"] == k, "units"].sum(), k))
+    fams = sorted(m["fam"].unique(), key=lambda k: (-m.loc[m["fam"] == k, "units"].sum(), k))
+    stages = sorted(m["stage"].unique())
+
+    charts, tables, insights = {}, {}, []
+
+    # ---------- chart: units per registration year, by marketing method ----------
+    lots["y"] = lots["start"].dt.year.astype(int)
+    years = list(range(int(lots["y"].min()), int(lots["y"].max()) + 1)) if n_lot else []
+    charts["dira_years"] = {
+        "cats": [str(y) for y in years], "names": mkts,
+        "series": [[round(lots.loc[(lots["y"] == y) & (lots["mkt"] == k), "units"].sum()) for y in years]
+                   for k in mkts],
+    }
+    yrows = []
+    for y in years:
+        sub = lots[lots["y"] == y]
+        pr = sub["price"].dropna()
+        yrows.append([str(y), n_he(len(sub)), n_he(sub["units"].sum())]
+                     + [n_he(sub.loc[sub["mkt"] == k, "units"].sum()) for k in mkts]
+                     + [n_he(pr.median()) if len(pr) else ""])
+    tables["dira_years"] = {"headers": ["שנת פתיחת ההרשמה", "הגרלות", "דירות"] + mkts + ["מחיר חציוני למ״ר (₪)"],
+                            "rows": yrows}
+    ysum = {y: lots.loc[lots["y"] == y, "units"].sum() for y in years}
+    best_y = min(years, key=lambda y: (-ysum[y], y)) if years else None
+
+    # ---------- chart: towns with most units ----------
+    tg = m.groupby("town").agg(units=("units", "sum"), proj=("pid", "nunique"), n=("is_lot", "sum")).reset_index()
+    tg = tg.sort_values(["units", "proj", "town"], ascending=[False, False, True]).reset_index(drop=True)
+    top_t = tg.head(TOP_DIRA_TOWNS)
+    charts["dira_towns"] = {"names": list(top_t["town"]), "values": [round(v) for v in top_t["units"]]}
+    trows = []
+    for t, u, pj, n in zip(top_t["town"], top_t["units"], top_t["proj"], top_t["n"]):
+        pr = lots.loc[lots["town"] == t, "price"].dropna()
+        trows.append([t, n_he(pj), n_he(n), n_he(u), n_he(pr.median()) if len(pr) else ""])
+    tables["dira_towns"] = {"headers": ["יישוב", "פרויקטים", "הגרלות", "דירות", "מחיר חציוני למ״ר (₪)"],
+                            "rows": trows}
+
+    # ---------- chart: lotteries by price per m² ----------
+    priced = lots[lots["price"].notna()].copy()
+    priced["pb"] = priced["price"].map(lambda v: band_index(v, PRICE_EDGES))
+    p_labels = band_labels(PRICE_EDGES)
+    charts["dira_price"] = {"cats": p_labels, "names": mkts,
+                            "series": [[round(priced.loc[(priced["pb"] == b) & (priced["mkt"] == k), "units"].sum())
+                                        for b in range(len(PRICE_EDGES))] for k in mkts]}
+    tables["dira_price"] = {"headers": ["מחיר למ״ר (₪)", "הגרלות", "דירות"],
+                            "rows": [[lab, n_he((priced["pb"] == b).sum()),
+                                      n_he(priced.loc[priced["pb"] == b, "units"].sum())]
+                                     for b, lab in enumerate(p_labels)]}
+    n_unpriced = n_lot - len(priced)
+
+    # ---------- insights ----------
+    if n_lot >= 10 and best_y is not None:
+        span = f"בשנים {years[0]} עד {years[-1]}" if len(years) > 1 else f"ב־{years[0]}"
+        txt = (f"בשכבת מחיר למשתכן {n_he(n_lot)} הגרלות עם {n_he(u_lot)} דירות ב־{n_he(lots['town'].nunique())} "
+               "יישובים, "
+               f"שההרשמה אליהן נפתחה {span}")
+        if len(years) > 1:
+            txt += f"; הכי הרבה דירות הוגרלו ב־{best_y} ({n_he(ysum[best_y])})"
+        if n_wait_proj:
+            txt += f". עוד {n_he(n_wait_proj)} פרויקטים עם {n_he(u_wait)} דירות טרם נפתחו להרשמה"
+        insights.append({"id": "dira_total", "text_he": txt + "."})
+    if len(tg) >= 2 and tg.at[0, "units"] > tg.at[1, "units"] and u_all > 0:
+        insights.append({"id": "dira_town", "text_he": (
+            f"{tg.at[0, 'town']} מובילה במספר הדירות בשכבת מחיר למשתכן: {n_he(tg.at[0, 'units'])} "
+            f"({fmt.pct(tg.at[0, 'units'] / u_all)}) ב־{n_he(tg.at[0, 'proj'])} פרויקטים, ואחריה {tg.at[1, 'town']} "
+            f"עם {n_he(tg.at[1, 'units'])}.")})
+    tp = priced.groupby("town")["price"].agg(["median", "size"]).reset_index()
+    tp = tp[tp["size"] >= MIN_TOWN_LOTTERIES].sort_values(["median", "town"]).reset_index(drop=True)
+    if len(tp) >= 3 and tp["median"].iloc[-1] > tp["median"].iloc[0]:
+        lo, hi = tp.iloc[0], tp.iloc[-1]
+        insights.append({"id": "dira_price", "text_he": (
+            f"המחיר החציוני למ״ר בהגרלות נע בין {n_he(lo['median'])} ₪ ב{lo['town']} ל־{n_he(hi['median'])} ₪ "
+            f"ב{hi['town']}, ביישובים עם {n_he(MIN_TOWN_LOTTERIES)} הגרלות לפחות; החציון בכל ההגרלות "
+            f"{n_he(priced['price'].median())} ₪.")})
+    g_amts = sorted({round(v) for v in lots["grant"] if v > 0})
+    n_grant = int((lots["grant"] > 0).sum())
+    if n_lot >= 10 and n_grant:
+        insights.append({"id": "dira_grant", "text_he": (
+            f"ב־{n_he(n_grant)} מההגרלות ({fmt.pct(n_grant / n_lot)}) הוצע מענק לזוכים, "
+            f"בסכום של {fmt.join_he([n_he(a) + ' ₪' for a in g_amts])}.")})
+
+    # ---------- map: one feature per project ----------
+    m["upcoming"] = ~m["is_lot"]
+    feats = []
+    for pid, g in m.groupby("pid", sort=True):
+        polys = next((pp for pp in g["polys"] if pp), [])
+        if not polys:
+            continue
+        _, c = _area_centroid(polys)
+        if not _in_israel(c):
+            continue
+        last = g.sort_values(["upcoming", "StartSignu", "lot", "stage"]).iloc[-1]
+        first = g.iloc[0]
+        pr = g["price"].dropna()
+        feats.append((first["town"], first["proj"], pid, fams.index(first["fam"]), first["dev"],
+                      int(g["is_lot"].sum()), round(g["units"].sum()),
+                      n_he(pr.iloc[0]) if len(pr) else "", mkts.index(first["mkt"]), stages.index(last["stage"]),
+                      c, polys))
+    feats.sort(key=lambda t: (t[0], t[1], t[2]))
+    return {
+        "charts": charts, "tables": tables, "insights": insights, "feats": feats, "fams": fams,
+        "mkts": mkts, "stages": stages,
+        "n_lot": n_lot, "u_all": u_all, "n_proj": n_proj, "n_towns": n_towns,
+        "n_unpriced": n_unpriced, "n_wait": n_wait_proj, "u_wait": u_wait,
+        "years": len(years) >= 2,
+    }
+
+
 # ── compute ──────────────────────────────────────────────────────────────
 
 
@@ -192,6 +357,7 @@ def compute(frames):
     h = frames["hoods"].copy()
     r = frames["reno"].copy()
     d = frames["districts"].copy()
+    dira = _dira(frames["dira"])
 
     # ---------- districts ----------
     d["polys"] = d["__geometry"].map(_polygons)
@@ -470,7 +636,10 @@ def compute(frames):
         for rings in polys:
             xs += [p[0] for p in rings[0]]
             ys += [p[1] for p in rings[0]]
-    hx, hy = list(xs), list(ys)
+    hx, hy = list(xs), list(ys)    # the map opens on the renewal layers
+    dfe = dira["feats"] if dira else []
+    xs += [f[10][0] for f in dfe]
+    ys += [f[10][1] for f in dfe]
     for polys in dist_polys:
         for rings in polys:
             xs += [p[0] for p in rings[0]]
@@ -491,9 +660,14 @@ def compute(frames):
         rfeat.append([int(row.st), row.proj, row.sub, addr, int(row.apt), int(row.pub),
                       int(row.floors) if row.floors == row.floors else -1, date,
                       round(cxp * geo.SCALE) - ox, round(cyp * geo.SCALE) - oy, _enc(row.polys, o, 0)])
+    mfeat = [[fi, pj, t, dev, nl, u, pr, mk, stg, round(c[0] * geo.SCALE) - ox, round(c[1] * geo.SCALE) - oy,
+              _enc(polys, o, DIRA_TOL)]
+             for t, pj, _, fi, dev, nl, u, pr, mk, stg, c, polys in dfe]
     map_model = {
-        "d": geo.pack(dfeat), "h": geo.pack(hfeat), "r": geo.pack(rfeat),
+        "d": geo.pack(dfeat), "h": geo.pack(hfeat), "r": geo.pack(rfeat), "m": geo.pack(mfeat),
         "meta": {"origin": o, "scale": geo.SCALE, "acts": act_names, "statuses": st_names, "tones": st_tone,
+                 "fams": dira["fams"] if dira else [], "mkts": dira["mkts"] if dira else [],
+                 "stages": dira["stages"] if dira else [],
                  "bounds": [[min(hy), min(hx)], [max(hy), max(hx)]]},
     }
 
@@ -575,6 +749,11 @@ def compute(frames):
             f"בשטח חציוני של {n_he(med_part)} דונם; הגדול שבהם ״{big_part['name']}״ ב{big_part['town']} "
             f"({n_he(big_part['dun'])} דונם).")})
 
+    if dira:
+        insights += dira["insights"]
+        charts.update(dira["charts"])
+        tables.update(dira["tables"])
+
     # ---------- kpis ----------
     done_share = n_done / nr
     kpis = {
@@ -587,28 +766,36 @@ def compute(frames):
         "emg": {"value": n_emg, "display": n_he(n_emg), "tone": "info" if n_emg else "brand"},
     }
 
+    dira_txt = (f"{n_he(dira['n_proj'])} פרויקטים של מחיר למשתכן ({n_he(dira['u_all'])} דירות ב־"
+                f"{n_he(dira['n_towns'])} יישובים), " if dira else "")
     lede = (
-        f"שלוש שכבות מפה של משרד הבינוי והשיכון: {n_he(nh)} אזורי שיקום שכונות ב־{n_he(n_towns)} יישובים, "
+        f"שכבות המפה של משרד הבינוי והשיכון: {n_he(nh)} אזורי שיקום שכונות ב־{n_he(n_towns)} יישובים, "
         f"{n_he(nr)} מבנים בתוכנית שיפוץ המבנים ({n_he(tot_apt)} דירות, מהן {n_he(tot_pub)} בדיור הציבורי), "
-        f"ו־{n_he(len(d))} מחוזות המשרד. {fmt.pct(done_share)} מהמבנים מסומנים כמבנים ששופצו."
+        f"{dira_txt}ו־{n_he(len(d))} מחוזות המשרד. {fmt.pct(done_share)} מהמבנים בתוכנית השיפוץ מסומנים כמבנים ששופצו."
     )
     summary = (
         f"מפת שיקום שכונות של משרד הבינוי והשיכון: {n_he(nh)} אזורי שיקום ב־{n_he(n_towns)} יישובים, "
-        f"{n_he(nr)} מבנים בתוכנית שיפוץ, ומחוזות המשרד."
+        f"{n_he(nr)} מבנים בתוכנית שיפוץ, "
+        + (f"{n_he(dira['n_proj'])} פרויקטים של מחיר למשתכן " if dira else "")
+        + "ומחוזות המשרד."
     )
     seo_desc = (
-        f"מפת שכבות ה־GIS של משרד הבינוי והשיכון: {n_he(nh)} אזורי שיקום שכונות ב־{n_he(n_towns)} יישובים, "
-        f"{n_he(nr)} מבנים בשיפוץ ומחוזות המשרד, לפי יישוב וסטטוס."
+        f"מפת שכבות ה־GIS של משרד הבינוי והשיכון: {n_he(nh)} אזורי שיקום שכונות, {n_he(nr)} מבנים בשיפוץ"
+        + (f", {n_he(dira['n_proj'])} פרויקטים של מחיר למשתכן" if dira else "")
+        + " ומחוזות המשרד."
     )
     labels = {
         "lede": lede,
         "map_note": (
             f"גבולות {n_he(nh)} אזורי שיקום השכונות בצבע לפי קוד הפעילות, {n_he(nr)} מבני תוכנית השיפוץ בצבע לפי "
-            f"הסטטוס, וגבולות {n_he(len(d))} המחוזות. בתצוגה רחוקה כל מבנה מוצג כנקודה, ובהתקרבות מופיע קו המתאר שלו. "
-            "לחיצה על אזור או מבנה מציגה את פרטיו."
+            "הסטטוס, "
+            + (f"{n_he(len(dfe))} פרויקטי מחיר למשתכן לפי שיטת השיווק, " if dfe else "")
+            + f"וגבולות {n_he(len(d))} המחוזות. בתצוגה רחוקה כל מבנה ופרויקט מוצגים כנקודה, ובהתקרבות מופיע קו "
+            "המתאר שלהם. לחיצה על אזור, מבנה או פרויקט מציגה את פרטיו."
         ),
-        "map_aria": (f"מפה אינטראקטיבית של {n_he(nh)} אזורי שיקום השכונות, {n_he(nr)} מבני תוכנית השיפוץ ו־{n_he(len(d))} "
-                     "מחוזות משרד הבינוי והשיכון. גרסה נגישה: ראו הטבלאות למטה."),
+        "map_aria": (f"מפה אינטראקטיבית של {n_he(nh)} אזורי שיקום השכונות, {n_he(nr)} מבני תוכנית השיפוץ, "
+                     + (f"{n_he(len(dfe))} פרויקטי מחיר למשתכן " if dfe else "")
+                     + f"ו־{n_he(len(d))} מחוזות משרד הבינוי והשיכון. גרסה נגישה: ראו הטבלאות למטה."),
         "districts_note": ("מספר אזורי השיקום בכל מחוז, לפי קוד הפעילות."
                            + (f" {n_he(n_placed)} אזורים ללא קוד מחוז שויכו לפי מיקום מרכזם." if n_placed else "")
                            + (f" {n_he(n_nodist)} אזורים מחוץ לגבולות המחוזות." if n_nodist else "")),
@@ -629,6 +816,17 @@ def compute(frames):
         "streets_note": f"הרחובות עם הכי הרבה מבנים בתוכנית, מתוך {n_he(n_streets)} צירופי רחוב ופרויקט.",
         "hoods_note": f"כל {n_he(nh)} אזורי השיקום בשכבה, לפי יישוב.",
     }
+    if dira:
+        labels.update({
+            "dira_years_note": ("דירות בהגרלות מחיר למשתכן לפי שנת פתיחת ההרשמה ושיטת השיווק"
+                                + (f"; {n_he(dira['n_wait'])} פרויקטים ({n_he(dira['u_wait'])} דירות) שטרם נפתחו "
+                                   "להרשמה אינם בגרף." if dira["n_wait"] else ".")),
+            "dira_towns_note": (f"{n_he(len(dira['tables']['dira_towns']['rows']))} היישובים עם הכי הרבה דירות "
+                                f"בשכבה, מתוך {n_he(dira['n_towns'])}, כולל פרויקטים שטרם נפתחו להרשמה."),
+            "dira_price_note": ("דירות בהגרלות לפי המחיר למ״ר בפרויקט ושיטת השיווק"
+                                + (f"; {n_he(dira['n_unpriced'])} הגרלות בלי מחיר אינן בגרף." if dira["n_unpriced"]
+                                   else ".")),
+        })
     for k, v in [
         ("districts", "גרף עמודות מוערמות: אזורי שיקום לפי מחוז וקוד פעילות"),
         ("towns", "גרף עמודות: יישובים עם הכי הרבה אזורי שיקום"),
@@ -640,6 +838,9 @@ def compute(frames):
         ("apts", "גרף עמודות מוערמות: מבנים לפי מספר דירות וסטטוס"),
         ("floors", "גרף עמודות מוערמות: מבנים לפי מספר קומות וסטטוס"),
         ("streets", "גרף עמודות: הרחובות עם הכי הרבה מבנים בתוכנית"),
+        ("dira_years", "גרף עמודות מוערמות: דירות בהגרלות מחיר למשתכן לפי שנה ושיטת שיווק"),
+        ("dira_towns", "גרף עמודות: היישובים עם הכי הרבה דירות במחיר למשתכן"),
+        ("dira_price", "גרף עמודות מוערמות: דירות בהגרלות לפי מחיר למ״ר ושיטת שיווק"),
     ]:
         labels[k + "_aria"] = v
         labels[k + "_cap"] = v.split(": ", 1)[-1]
@@ -653,12 +854,13 @@ def compute(frames):
             "seo": {
                 "title": "מפת שיקום שכונות ושכבות GIS של משרד השיכון",
                 "description": seo_desc,
-                "name": "שכבות GIS של משרד הבינוי והשיכון: שיקום שכונות ומחוזות",
+                "name": "שכבות GIS של משרד הבינוי והשיכון: שיקום שכונות, מחיר למשתכן ומחוזות",
                 "alternate_names": [
                     "שכבות מידע גיאוגרפי (GIS) של משרד הבינוי והשיכון",
                     "מפת שיקום שכונות",
                     "שיקום שכונות שיפוץ מבנים",
                     "מחוזות משרד השיכון",
+                    "מפת פרויקטי מחיר למשתכן",
                 ],
             },
         },
@@ -668,5 +870,6 @@ def compute(frames):
         "map": map_model,
         "insights": insights,
         "labels": labels,
-        "flags": {"years": has_years, "streets": len(top_s) >= 3, "floors": len(fvals) >= 2},
+        "flags": {"years": has_years, "streets": len(top_s) >= 3, "floors": len(fvals) >= 2,
+                  "dira": bool(dira), "dira_years": bool(dira) and dira["years"]},
     }
