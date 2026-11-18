@@ -267,7 +267,10 @@ The comment's first line is `blocked: <code>`:
 - `blocked: upstream_empty`: the upstream data is gone, not changed. A
   recipe input's resource is empty (`datastore_search` total 0 and no
   fields but `_id`, or a 0-byte file), and there's nothing to author
-  against. A refresh against an empty datastore reports `schema_changed` /
+  against. The refresh counts an emptied resource as a transient
+  `upstream_empty` strike (page kept, no issue) and opens a `schema_changed`
+  issue saying "is empty upstream" only when it lasts
+  `REFRESH_TRANSIENT_STRIKES` runs; an older issue may still say
   "lost column(s)", so check for this before re-authoring a
   `schema_changed` recipe. The second line lists the empty ones:
   `resources: <rid> <rid> …` (full ids). Leave the recipe as it is: the refresh keeps the

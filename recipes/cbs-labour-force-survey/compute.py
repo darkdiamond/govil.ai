@@ -274,17 +274,15 @@ def _industry(rows):
 
 
 def compute(frames):
-    rel = frames["releases"]
-    rel = rel[rel["RELEASE_DATE"] != ""].sort_values(["RELEASE_DATE", "RELEASE_NO"],
-                                                      kind="stable")
-    if rel.empty:
-        raise ValueError("releases: no edition listed")
-    latest_rel = rel.iloc[-1]
+    latest_rel = cbs.latest_release(frames["releases"])
 
     # ── recognise the chart files by title ───────────────────────────────
     roles = {}
     for s in SLOTS:
-        rows = cbs.grid(frames[s], s)
+        df = frames.get(s)
+        if df is None or df.empty:  # an optional chart file this edition lacks
+            continue
+        rows = cbs.grid(df, s)
         role = _role(rows)
         if role and role not in roles:
             roles[role] = rows

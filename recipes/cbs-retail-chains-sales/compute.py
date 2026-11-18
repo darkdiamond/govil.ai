@@ -160,12 +160,7 @@ def _range(end, year):
 
 
 def compute(frames):
-    rel = frames["releases"].copy()
-    rel = rel[rel["RELEASE_DATE"] != ""].sort_values(["RELEASE_DATE", "RELEASE_NO"],
-                                                      kind="stable")
-    if rel.empty:
-        raise ValueError("releases: no edition listed")
-    latest_rel = rel.iloc[-1]
+    latest_rel = cbs.latest_release(frames["releases"])
 
     g1, g2 = cbs.grid(frames["t1"], "t1"), cbs.grid(frames["t2"], "t2")
     total, food = _series(g1, "t1"), _series(g2, "t2")

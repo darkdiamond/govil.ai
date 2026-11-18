@@ -156,7 +156,7 @@ def compute(frames):
                                                       kind="stable")
     if rel.empty:
         raise ValueError("releases: no edition listed")
-    latest_rel = rel.iloc[-1]
+    latest_rel = cbs.latest_release(rel)
 
     years, months = _t1(cbs.grid(frames["t1"], "t1"))
     if not months:

@@ -176,12 +176,7 @@ def _mean(vals):
 
 
 def compute(frames):
-    rel = frames["releases"]
-    rel = rel[rel["RELEASE_DATE"] != ""].sort_values(["RELEASE_DATE", "RELEASE_NO"],
-                                                      kind="stable")
-    if rel.empty:
-        raise ValueError("releases: no edition listed")
-    latest_rel = rel.iloc[-1]
+    latest_rel = cbs.latest_release(frames["releases"])
 
     t1 = _t1(cbs.grid(frames["t1"], "t1"))
     months = {"orig": [r for r in t1["orig"]["total"] if r[0][1] is not None]}

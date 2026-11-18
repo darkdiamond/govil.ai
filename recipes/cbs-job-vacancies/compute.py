@@ -126,12 +126,7 @@ def _r(v, d=0):
 
 
 def compute(frames):
-    rel = frames["releases"]
-    rel = rel[rel["RELEASE_DATE"] != ""].sort_values(["RELEASE_DATE", "RELEASE_NO"],
-                                                      kind="stable")
-    if rel.empty:
-        raise ValueError("releases: no edition listed")
-    latest_rel = rel.iloc[-1]
+    latest_rel = cbs.latest_release(frames["releases"])
 
     total = [r for r in _series(cbs.grid(frames["t1"], "t1"), "t1") if r["sa"] is not None]
     rate = [r for r in _series(cbs.grid(frames["t2"], "t2"), "t2") if r["sa"] is not None]

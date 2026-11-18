@@ -274,12 +274,7 @@ def _share(part, whole):
 
 
 def compute(frames):
-    rel = frames["releases"].copy()
-    rel = rel[rel["RELEASE_DATE"] != ""].sort_values(["RELEASE_DATE", "RELEASE_NO"],
-                                                      kind="stable")
-    if rel.empty:
-        raise ValueError("releases: no edition listed")
-    latest_rel = rel.iloc[-1]
+    latest_rel = cbs.latest_release(frames["releases"])
 
     t1rows = cbs.grid(frames["t1"], "t1")
     cur = _t1_current(t1rows)

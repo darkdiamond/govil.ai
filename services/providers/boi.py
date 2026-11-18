@@ -34,12 +34,15 @@ from .base import (
     SourceConfig,
     SourcePresentation,
     SourceProvider,
+    brief_cell,
 )
 
 AGENCY = "BOI.STATISTICS"
 # A small, always-published series: is the service up at all?
 _HEALTH_PATH = "EXR/1.0/RER_USD_ILS"
 _BRIEF_MAX_SERIES = 150
+# BoI series names are long hyphen-joined facets; keep them whole in the brief.
+_BRIEF_NAME = 240
 # Columns that are the observation itself, not a series dimension.
 _OBS_COLUMNS = ("SERIES_CODE", "SERIES_NAME_HE", "TIME_PERIOD", "OBS_VALUE",
                 "RELEASE_STATUS", "COMMENTS")
@@ -235,18 +238,22 @@ class BoiSdmxProvider(SourceProvider):
         out = io.StringIO()
         out.write(f"- BoI dataflow `{p.get('dataflow')}` key `{p.get('key') or '(all)'}` — "
                   f"{len(series)} series\n")
-        out.write(f"- constant dimensions: `{json.dumps(constant, ensure_ascii=False)}`\n")
-        out.write(f"- per series (varying dimensions: {', '.join(varying) or 'none'}):\n\n")
-        out.write(f"| SERIES_CODE | {NAME_COLUMN} | " + " | ".join(varying)
+        const = brief_cell(json.dumps(constant, ensure_ascii=False), 2000, table=False)
+        out.write(f"- constant dimensions: `{const}`\n")
+        varying_h = [brief_cell(d) for d in varying]
+        out.write(f"- per series (varying dimensions: {', '.join(varying_h) or 'none'}):\n\n")
+        out.write(f"| SERIES_CODE | {NAME_COLUMN} | " + " | ".join(varying_h)
                   + " | obs | first | last | last value |\n")
         out.write("|---|---|" + "---|" * len(varying) + "---|---|---|---|\n")
         for i, (code, s) in enumerate(sorted(series.items())):
             if i >= _BRIEF_MAX_SERIES:
                 out.write(f"\n… {len(series) - _BRIEF_MAX_SERIES} more series not listed\n")
                 break
-            cells = [s["dims"].get(d, "") for d in varying]
-            out.write(f"| {code} | {s['name']} | " + " | ".join(cells)
-                      + f" | {s['n']:,} | {s['first']} | {s['last']} | {s['last_value']} |\n")
+            cells = [brief_cell(s["dims"].get(d, "")) for d in varying]
+            out.write(f"| {brief_cell(code)} | {brief_cell(s['name'], _BRIEF_NAME)} | "
+                      + " | ".join(cells)
+                      + f" | {s['n']:,} | {brief_cell(s['first'])} | {brief_cell(s['last'])} | "
+                      f"{brief_cell(s['last_value'])} |\n")
         return out.getvalue()
 
     def authoring_notes(self) -> str:

@@ -174,12 +174,7 @@ def _base_year(rows):
 
 
 def compute(frames):
-    rel = frames["releases"]
-    rel = rel[rel["RELEASE_DATE"] != ""].sort_values(["RELEASE_DATE", "RELEASE_NO"],
-                                                      kind="stable")
-    if rel.empty:
-        raise ValueError("releases: no edition listed")
-    latest_rel = rel.iloc[-1]
+    latest_rel = cbs.latest_release(frames["releases"])
 
     g1 = cbs.grid(frames["t1"], "t1")
     base = _base_year(g1)

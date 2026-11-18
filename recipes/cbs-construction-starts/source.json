@@ -50,37 +50,44 @@
       {
         "id": "t8",
         "name": "נתוני תרשים 1",
-        "table": "t8"
+        "table": "t8",
+        "optional": true
       },
       {
         "id": "t9",
         "name": "נתוני תרשים 2",
-        "table": "t9"
+        "table": "t9",
+        "optional": true
       },
       {
         "id": "t10",
         "name": "נתוני תרשים 3",
-        "table": "t10"
+        "table": "t10",
+        "optional": true
       },
       {
         "id": "t11",
         "name": "נתוני תרשים 4",
-        "table": "t11"
+        "table": "t11",
+        "optional": true
       },
       {
         "id": "t12",
         "name": "נתוני תרשים 5",
-        "table": "t12"
+        "table": "t12",
+        "optional": true
       },
       {
         "id": "t13",
         "name": "נתוני תרשים 6",
-        "table": "t13"
+        "table": "t13",
+        "optional": true
       },
       {
         "id": "t14",
         "name": "נתוני תרשים 7",
-        "table": "t14"
+        "table": "t14",
+        "optional": true
       },
       {
         "id": "releases",

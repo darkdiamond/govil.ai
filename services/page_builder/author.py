@@ -394,7 +394,7 @@ def _export_columns(recipe: Recipe, resources: list[dict],
     wanted: dict[str, list[str]] = {}
     full: set[str] = set()
     for inp in recipe.manifest.inputs:
-        if inp.snapshot or inp.map:
+        if inp.snapshot or inp.map or inp.raster:
             continue
         for res in resolved.get(inp.name, []):
             if inp.columns is None:
@@ -1065,7 +1065,7 @@ def _coverage_findings(
     for i in recipe.manifest.inputs:
         if i.snapshot:  # its columns are the snapshot's properties + geometry
             fields[i.by_id] = snapshot_table(recipe.root / i.snapshot)[0]
-        elif i.map:  # …and a map file's, as this run converted it
+        elif i.map or i.raster:  # …and a map/raster file's, as this run converted it
             with open(inputs[i.name][0].file, encoding="utf-8", newline="") as f:
                 fields[i.by_id] = next(csv.reader(f), [])
     needed = {
@@ -1139,7 +1139,7 @@ def _snapshot_resources(recipe: Recipe, source_path: Path) -> list[dict]:
     """The CKAN map-file resources the recipe's snapshot and map inputs read,
     as prepare() recorded them (size/hash/url included), so verify resolves
     them with the same checks as the refresh."""
-    wanted = {i.by_id for i in recipe.manifest.inputs if i.snapshot or i.map}
+    wanted = {i.by_id for i in recipe.manifest.inputs if i.snapshot or i.map or i.raster}
     if not wanted:
         return []
     facts = json.loads(source_path.read_text(encoding="utf-8")) if source_path.is_file() else {}

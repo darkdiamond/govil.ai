@@ -471,14 +471,31 @@ def _events_ckan():
 @pytest.mark.parametrize("bad", [
     {"by_id": None, "by_schema": ["a"], "concat": True},     # map needs by_id
     {"snapshot": "geo.geojson", "snapshot_of": {"size": 1}},  # two ways in
-    {"columns": ["a"]},
+    {"concat": True},
+    {"columns": [GEOMETRY_COLUMN]},                            # always kept
+    {"columns": ["a", "a"]},
+    {"columns": ["a"], "required_columns": ["b"]},             # required ⊄ columns
+    {"columns": ["_id"]},
     {"map": False, "map_max_kb": 100},                         # cap without map
+    {"map": False, "map_member": "a.zip"},                     # member without map
+    {"map_member": "dir/a.zip"},
+    {"map_member": "a.shp"},
+    {"raster": True},                                          # map and raster
     {"map_max_kb": MAP_MAX_KB_CEILING + 1},                    # over the ceiling
 ])
 def test_map_input_validation(bad):
     spec = {k: v for k, v in {**_map_input(), **bad}.items() if v is not None}
     with pytest.raises(ValueError):
         RecipeInput.model_validate(spec)
+
+
+def test_map_input_takes_columns_and_a_member():
+    inp = RecipeInput.model_validate({**_map_input(), "columns": ["a"],
+                                      "required_columns": ["a"], "map_member": "Lots_view.ZIP"})
+    assert inp.columns == ["a"] and inp.map_member == "Lots_view.ZIP"
+    # __geometry is always kept, so it may be required without being listed
+    RecipeInput.model_validate({**_map_input(), "columns": ["a"],
+                                "required_columns": ["a", "__geometry"]})
 
 
 def test_map_input_takes_a_city_scale_cap():
@@ -743,6 +760,88 @@ def test_fetch_resource_file_only_fetches_data_gov_il(tmp_path, monkeypatch):
     assert seen == []
 
 
+def _point_fc(n: int, junk: int = 0) -> bytes:
+    return json.dumps({"type": "FeatureCollection", "features": [
+        {"type": "Feature", "properties": {"NAME": f"נקודה {i}", "junk": "x" * junk},
+         "geometry": {"type": "Point", "coordinates": [34.7 + i / 100, 31.2]}}
+        for i in range(n)]}, ensure_ascii=False).encode()
+
+
+def test_map_columns_drop_properties_before_sizing(tmp_path):
+    """A layer over map_max_kb only because of properties the recipe never
+    reads fits once `columns` drops them."""
+    preview, fetch = _events_ckan()
+    body = _point_fc(20, junk=300)
+    resources = _map_resources(url=MAP_URL.replace("layer.zip", "x.geojson"))
+
+    def run(**kw):
+        recipe = Recipe.load(_with_map(tmp_path / str(len(kw)), map_max_kb=4, **kw) / DS)
+        return rf.fetch_inputs(recipe, resources, tmp_path / f"d{len(kw)}", preview_fn=preview,
+                               fetch_fn=fetch, fetch_file_fn=FakeFiles(body))
+
+    with pytest.raises(RecipeError) as e:
+        run()
+    assert e.value.reason == "too_large"
+    geo = run(columns=["NAME"])["geo"][0]
+    with open(geo.file, encoding="utf-8") as f:
+        header, *rows = list(csv.reader(f))
+    assert header == ["NAME", GEOMETRY_COLUMN] and len(rows) == 20
+
+
+def test_map_column_missing_from_the_file_is_schema_changed(tmp_path):
+    preview, fetch = _events_ckan()
+    recipe = Recipe.load(_with_map(tmp_path, columns=["NAME", "gone"]) / DS)
+    resources = _map_resources(url=MAP_URL.replace("layer.zip", "x.geojson"))
+    with pytest.raises(RecipeError) as e:
+        rf.fetch_inputs(recipe, resources, tmp_path / "d", preview_fn=preview,
+                        fetch_fn=fetch, fetch_file_fn=FakeFiles(_point_fc(2)))
+    assert e.value.reason == "schema_changed" and "lacks column(s) ['gone']" in str(e.value)
+    assert rf.public_detail(str(e.value), "schema_changed") == str(e.value)
+
+
+def _zip(members: dict[str, bytes], method=zipfile.ZIP_STORED) -> bytes:
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", method) as z:
+        for name, data in members.items():
+            z.writestr(name, data)
+    return buf.getvalue()
+
+
+def test_a_zip_of_zips_reads_one_level_down():
+    """ee626064's gis_dira.zip: each layer is a zipped shapefile inside."""
+    inner = _shp_zip([SQ], ["באר שבע"])
+    feats, crs = gs.load_map(_zip({"Lots_view.zip": inner}), "gis_dira.zip")
+    assert crs == "itm" and feats[0]["properties"] == {"NAME": "באר שבע"}
+    bundle = _zip({"Lots_view.zip": inner, "Plans_view.zip": _shp_zip([SQ], ["חיפה"])})
+    with pytest.raises(gs.SnapshotError, match="2 inner zips"):
+        gs.load_map(bundle, "gis_dira.zip")
+    feats, _ = gs.iter_map(bundle, "gis_dira.zip", member="plans_VIEW.zip")
+    assert [f["properties"]["NAME"] for f in feats] == ["חיפה"]
+    with pytest.raises(gs.SnapshotError, match="0 inner zips"):
+        gs.iter_map(bundle, "gis_dira.zip", member="nope.zip")
+
+
+def test_a_mac_resource_fork_is_not_an_inner_zip():
+    inner = _shp_zip([SQ], ["באר שבע"])
+    feats, _ = gs.load_map(_zip({"Lots_view.zip": inner, "__MACOSX/._Lots_view.zip": b"x"}),
+                           "gis_dira.zip")
+    assert feats[0]["properties"] == {"NAME": "באר שבע"}
+
+
+def test_a_zip_three_levels_deep_is_refused():
+    deep = _zip({"b.zip": _zip({"c.zip": _shp_zip([SQ], ["x"])})})
+    with pytest.raises(gs.SnapshotError, match="inside a zip inside a zip"):
+        gs.load_map(deep, "a.zip")
+
+
+def test_an_inner_zip_bomb_is_refused(monkeypatch):
+    monkeypatch.setattr(gs, "MAX_UNZIPPED_BYTES", 2000)
+    inner = _zip({"a.geojson": b" " * 50_000}, zipfile.ZIP_DEFLATED)
+    assert len(inner) < 2000  # the outer zip passes its own cap
+    with pytest.raises(gs.SnapshotError, match="unzips to more"):
+        gs.load_map(_zip({"inner.zip": inner}), "outer.zip")
+
+
 def test_load_map_refuses_a_zip_bomb(monkeypatch):
     monkeypatch.setattr(gs, "MAX_UNZIPPED_BYTES", 1000)
     buf = io.BytesIO()
@@ -776,7 +875,7 @@ def test_positions_never_descend_into_strings():
 
 
 def test_load_map_turns_any_reader_failure_into_snapshot_error(monkeypatch):
-    def boom(data, name):
+    def boom(data, name, **kw):
         raise NotImplementedError("That compression method is not supported")  # deflate64
 
     monkeypatch.setattr(gs, "read_map_stream", boom)

@@ -199,6 +199,46 @@ def test_slow_drip_body_hits_the_total_deadline():
     assert now["t"] <= fetch_mod.TOTAL_TIMEOUT + 15.0
 
 
+def test_each_hop_timeout_is_capped_by_the_time_left():
+    """A slow header or handshake is bounded by what is left of the total,
+    not a fresh per-read TIMEOUT on every redirect hop."""
+    import httpx
+
+    from services.news import fetch as fetch_mod
+
+    now = {"t": 0.0}
+    seen = []
+
+    def handler(req):
+        seen.append(dict(req.extensions["timeout"]))
+        if len(seen) < 3:
+            now["t"] += 25.0              # each redirect's headers take 25s
+            return httpx.Response(302, headers={"location": f"https://www.gov.il/{len(seen)}"})
+        return httpx.Response(200, text="ok", headers={"content-type": "text/plain"})
+
+    client = httpx.Client(transport=httpx.MockTransport(handler), follow_redirects=False)
+    page = fetch_page("https://www.gov.il/a", client=client, resolve=_resolver("93.184.216.34"),
+                      clock=lambda: now["t"])
+    assert page.text == "ok"
+    reads = [t["read"] for t in seen]
+    assert reads == [fetch_mod.TIMEOUT, fetch_mod.TIMEOUT, fetch_mod.TOTAL_TIMEOUT - 50.0]
+    assert all(t["connect"] == t["read"] == t["write"] == t["pool"] for t in seen)
+
+    # Past the deadline: refused before another request goes out.
+    now["t"], seen[:] = 0.0, []
+
+    def slow(req):
+        seen.append(req.url)
+        now["t"] += 61.0
+        return httpx.Response(302, headers={"location": "https://www.gov.il/b"})
+
+    client = httpx.Client(transport=httpx.MockTransport(slow), follow_redirects=False)
+    with pytest.raises(FetchRefused, match="time limit"):
+        fetch_page("https://www.gov.il/a", client=client, resolve=_resolver("93.184.216.34"),
+                   clock=lambda: now["t"])
+    assert len(seen) == 1
+
+
 def test_real_transport_dials_the_ip_and_verifies_the_hostname(monkeypatch):
     """Through httpx's own transport (network stubbed below httpcore): the TCP
     connect goes to the checked IP, TLS gets the hostname as server_hostname

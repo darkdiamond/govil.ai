@@ -41,6 +41,13 @@ class EmptyCkan(FakeCkan):
         return {**super().preview(rid), "total": 0}
 
 
+class EmptyUpstreamCkan(FakeCkan):
+    """The publisher re-uploaded an empty file: the datastore keeps only `_id`."""
+
+    def preview(self, rid):
+        return {"fields": [{"id": "_id"}], "total": 0, "sample_rows": []}
+
+
 class NoExport(FakeCkan):
     """The full export fails every run (short, moved during the walk, or CKAN)."""
 
@@ -61,6 +68,7 @@ def _rendered_then_bumped(env, store_cls=FakeStore):
 @pytest.mark.parametrize("ckan_cls, strike, escalated, needle", [
     (EmptyCkan, "no_rows", "schema_changed", "has no rows"),
     (NoExport, "export_failed", "too_large", "full fetch of"),
+    (EmptyUpstreamCkan, "upstream_empty", "schema_changed", "is empty upstream"),
 ])
 def test_a_fetch_that_fails_every_run_escalates(env, monkeypatch, ckan_cls, strike,
                                                 escalated, needle):
@@ -79,6 +87,18 @@ def test_a_fetch_that_fails_every_run_escalates(env, monkeypatch, ckan_cls, stri
     assert needle in env.issues[0]["detail"]  # a metadata-only message reaches the issue
     assert env.staged == staged  # the last-good page stays
     assert _first(_run(env, store, ckan))["reason"] == "up_to_date"  # locked
+
+
+def test_a_resolved_probe_breaks_an_upstream_empty_run(env, monkeypatch):
+    """The resource comes back, but the run fails later (here the export):
+    the stale upstream_empty count must not carry over to the next emptying."""
+    monkeypatch.setenv("REFRESH_TRANSIENT_STRIKES", "3")
+    store = _rendered_then_bumped(env)
+    for n in (1, 2):
+        _first(_run(env, store, EmptyUpstreamCkan(_rows([2024, 2025]))))
+        assert store.states[DS]["transient_strikes"] == {"upstream_empty": n}
+    _first(_run(env, store, NoExport(_rows([2024, 2025]))))
+    assert store.states[DS]["transient_strikes"] == {"export_failed": 1}
 
 
 def test_a_growing_table_still_escalates(env, monkeypatch):

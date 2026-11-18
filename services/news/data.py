@@ -106,7 +106,7 @@ class DatasetTables:
             # Before any download: the datastore previews' row totals (map and
             # snapshot inputs have none and are bounded by the bytes check).
             expected = sum(int((probe.preview(r["id"]) or {}).get("total") or 0)
-                           for i in recipe.manifest.inputs if not (i.snapshot or i.map)
+                           for i in recipe.manifest.inputs if not (i.snapshot or i.map or getattr(i, "raster", False))
                            for r in probe.resolved.get(i.name, []))
             self._check_rows(dataset_id, expected, "in the datastore")
             inputs = fetch_inputs(recipe, resources, work / "data", probe=probe, **kw)
