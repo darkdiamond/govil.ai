@@ -41,9 +41,6 @@ This repo is public: describe a security gap by what to change, never by how to 
   0b160f8a, a63133ab, e3f2eab4, e9b65317, 27b4b40e, b87ef422, dcd96625, 6397d78e, 83372c35;
   bump each `recipe_version`. Batch 4 pages each missed only ~4-7 clicks per 90 days, so
   compare batches 1-4's CTR in GSC (~2026-12-02) before spending on the long tail. (2026-11-06)
-  The five Patent Office pages linked to 656f6e4c (556634fd, 025c3e07, 9859abec, 5a2d2f62,
-  0a374a70) have no seo block either, so any edit to them fails `author verify`'s SEO check.
-  (2026-11-16)
 - **פנקס הקבלנים (a545d0ba): measure the 2026-11-15 title change, then decide on a Q&A
   block.** The head query "פנקס הקבלנים" is ~60% of the page's impressions and sat at 1.0% CTR,
   position ~6, both before and after the 2026-11-04 title (navigational intent: people want the
@@ -77,10 +74,6 @@ This repo is public: describe a security gap by what to change, never by how to 
   measurement), full-CSV downloads, the engaged-session rate (64%), and GSC CTR for those
   queries. If links get clicked, find other datasets with URL columns worth the same card.
   (2026-11-15)
-- **Some registry pages have no lookup callout to `#data-explorer`.** 14f2521f (missions abroad),
-  d08d4a17 (notaries) and 35c791ca (licensed garages) are lookup-intent pages whose searchers
-  want one row, but the page doesn't point them at the explorer. Fix: add the callout the #124
-  pass added to the other lookup pages, and bump `recipe_version`. (2026-11-05)
 - **Add the מחיר למשתכן layer to ee626064.** Its fourth layer (`gis_dira.zip`, 9.2MB) is a zip
   of `Lots_view.zip`, `Plans_view.zip`, `Projects_view.zip` and `Settelments_Centroid_view.zip`,
   which `geo_snapshot` now opens one level down. Add a `mehir` map input (with `map_member`
@@ -91,34 +84,25 @@ This repo is public: describe a security gap by what to change, never by how to 
   (the גושים/תצ"ר recipes reduce each polygon to a centroid in compute, but the file must still
   download and convert). הגבולות המשטרתיים (d01a5ee3) and קדסטר במבנה חדש (bd74ce49) ship an Esri FileGDB, which
   `read_map_file` can't read and there is no GDAL locally. (2026-10-31)
-- **Three new recipes can go quietly wrong as their data moves.** 4eef54bc's `recent` input
-  matches files by `קוד`; a new yearly file named like the 2019 one (`קוד_מיפוי`) is silently
-  skipped, so the page stays on 2024 with no issue (match both names, or fail when the newest
-  CKAN resource isn't read). 4eef54bc also joins authorities across years by name only, so a
-  renamed authority splits in two. ab746a13 uses `pick: "latest"` by `last_modified`: a
-  re-upload of a closed year flips the page to that year. Switch it to `pick: "latest_year"`
-  (exists since this item's fix; concat of its 5 matching years is ~4.3M rows, too big) and
-  bump `recipe_version`, after the builder redeploy. (2026-10-31)
+- **Switch ab746a13 to `pick: "latest_year"`.** It picks by `last_modified`, so a re-upload of a
+  closed year flips the page to that year. `latest_year` exists now (concat of its 5 matching
+  years is ~4.3M rows, too big); switch and bump `recipe_version` after the builder redeploy.
+  (2026-10-31)
+- **4eef54bc still joins authorities by name.** Its authority-code columns (`קוד_רשות`,
+  `קוד_למס`) swap meaning between report years, so compute joins years on the name, folded for
+  quote, hyphen and space drift. A real rename (a new spelling, a merger) still splits an
+  authority in two. A yearly file whose code column has a third name (the 2018 file's
+  `קודמיפוי`) matches neither input and is skipped silently. Fix: map the two code columns to
+  one authority code per report year, then join on it. (2026-11-17)
 - **GIS layers with no recipe could get maps now.** `map: true` reads their SHP/KMZ zips
   directly, but they have no recipe and no open issue, so nothing queues them:
   `python -m services.page_builder.map_backfill list` reports them as `no_recipe` (63 on
   2026-10-31; the transport/Ayalon family 30cc4889, 5f6d04bf, 7fb47ed4, cdd75af3, e74cc3c7,
   ee1265d8, 360fb8b4 among them). Open `new`-style issues for the ones worth a page (the
   backfill only files issues for recipe'd pages). (2026-10-31)
-- **Decide the next precheck lever from a week of B′ data.** The content-hash skip
-  (`unchanged … content_hash`) still pays the export and compute for a re-upload whose page
-  doesn't change. Read the `refresh precheck` lines. If `inputs_same_unordered=True` dominates
-  the identical renders (rows only reordered) and no `FALSE-SKIP candidate —
-inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute only). If it is
-  mostly `False` (an edited column the page doesn't read), declare `columns` in those recipes:
-  a smaller export, and B then only sees the columns the page uses. (2026-10-31)
-- **Recipes written for pandas 2 can still trip on pandas 3 dates.** pandas 3 parses to
-  `datetime64[us]`, so junk dates far outside 1677–2262 now parse instead of becoming NaT.
-  `a9d7da6b` nulls only years ≥ 2262, so a year-1412 value fails its `.astype("datetime64[ns]")`
-  with OutOfBoundsDatetime (a clean `recipe_failed`, page kept); `e6ef4310` builds a ns Series the
-  same way. A raw numpy ns buffer (as 6d8bf87d had) segfaults instead. Fix: bound both ends
-  (`between(pd.Timestamp.min, pd.Timestamp.max)`) wherever a recipe casts to ns, or grep the
-  corpus for `datetime64[ns]` and drop the cast. (2026-10-30)
+- **Long tail of identical re-renders.** B′ data (2026-11-10..17: 356 `False` vs 67 `True`, 0
+  FALSE-SKIP) favoured `columns` over a B′ skip; the top recipes declare it now. Fix: add
+  `columns` to others that recur in the `refresh precheck` logs. (2026-11-17)
 - **Heavy recipes share the job's 4Gi.** A recipe with `limits` runs last and its compute is
   heap-capped (`REFRESH_COMPUTE_MEMORY_MB`, 3072 by default) and first in line for the OOM
   killer, but its exported CSVs sit in the same memory (`/tmp` is RAM on Cloud Run). If heavy
