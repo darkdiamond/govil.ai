@@ -34,8 +34,8 @@ TASK_TIMEOUT=${TASK_TIMEOUT:-7200s}
 RUN_LEASE_TTL_S=${RUN_LEASE_TTL_S:-900}
 MAX_RETRIES=${MAX_RETRIES:-0}
 # Scheduled runs inside this weekly window (Israel time) end `skipped_quiet`:
-# Friday 15:00 to Saturday 21:00. Empty = never quiet.
-QUIET_WINDOW=${QUIET_WINDOW-fri15-sat21}
+# Friday 17:00 to Saturday 16:00 (since 2026-11-16). Empty = never quiet.
+QUIET_WINDOW=${QUIET_WINDOW-fri17-sat16}
 
 PUBLISH_VIA=${PUBLISH_VIA:-github}
 TRIGGER_ID=${PUBLISH_TRIGGER_ID:-govdata-publish}
@@ -98,8 +98,9 @@ PROVIDER_CBS_RELEASES_ENABLED=${PROVIDER_CBS_RELEASES_ENABLED:-true}
 PROVIDER_CBS_INDEX_ENABLED=${PROVIDER_CBS_INDEX_ENABLED:-true}
 # 19:00 catches the indices on release evening (the 15th, 18:30). On a Friday
 # or a holiday eve CBS publishes at 14:00, about when the 14:00 tick syncs, and
-# 19:00 is inside QUIET_WINDOW: 21:00 is the first tick after it (Saturday).
-PROVIDER_CBS_INDEX_SYNC_HOURS=${PROVIDER_CBS_INDEX_SYNC_HOURS-6,14,19,21}
+# 19:00 is inside QUIET_WINDOW: 16:00 is the first tick after it (Saturday),
+# 21:00 the evening tick.
+PROVIDER_CBS_INDEX_SYNC_HOURS=${PROVIDER_CBS_INDEX_SYNC_HOURS-6,14,16,19,21}
 # How the recipe list is read from git main: `tarball` = one archive download
 # per run (~3s); `files` (code default) = 3+ raw.githubusercontent.com requests
 # per recipe, ~0.6s each (~9.5 min/run at 317 recipes, measured 2026-11-04).
