@@ -236,7 +236,11 @@ Constraints that don't move: every `<script>` block < 50KB (aggregate in
   publishes each **full snapshot** as a new resource ("נכון ליום …"), use
   `{"name": "...", "by_schema": [...], "pick": "latest"}` (no `concat`): only
   the matching resource with the newest CKAN `last_modified` is read, so the
-  page follows new snapshots instead of staying pinned `by_id` to one.
+  page follows new snapshots instead of staying pinned `by_id` to one. When
+  each resource is one **year** named by it ("… 2025", "… 2026"), use
+  `"pick": "latest_year"` instead: the resource whose name carries the newest
+  year is read, so a re-upload of a closed year can't flip the page back to
+  it (ties and names with no year fall back to `last_modified`).
 - `required_columns`: every column `compute` reads. A missing one fails the
   refresh as `schema_changed` (page kept, issue opened) instead of crashing.
 - `columns` (optional): fetch only these columns. The refresh asks CKAN for
@@ -286,6 +290,13 @@ types, source CRS, property columns), or says why it failed.
    the geometry to page size. A new upload re-renders the page like any data
    bump. A file that won't parse fails `schema_changed`; a download the WAF
    blocks 3 runs in a row opens a `download_blocked` issue.
+   `"columns": [...]` keeps only those properties (`__geometry` is always
+   kept; don't list it) and drops the rest before the size target applies:
+   use it on a big layer whose bytes are mostly properties the page never
+   reads. A listed column the file lacks fails `schema_changed`. A zip whose
+   layers are themselves zipped (a bundle of `*_view.zip`) is opened one
+   level down; when it holds several, `"map_member": "Lots_view.zip"` names
+   the one to read.
 2. `compute` gets `frames["<name>"]` like any table: one row per feature,
    properties as strings, plus `__geometry` (the feature's geometry as JSON;
    `json.loads` it). Compute the analysis from the properties and the
@@ -305,6 +316,21 @@ types, source CRS, property columns), or says why it failed.
    is the worked example (lines, coloured by type, popups built with
    `textContent`). Escape every string that goes into a popup or tooltip. Map
    `<name>.__geometry` in `coverage.json` (`map-<id>`).
+
+**Raster layers (GeoTIFF).** A dataset that ships only GeoTIFFs (a `.tif`,
+or a zip of them, one per year) is read by
+`{"name": "wl", "by_id": "<resource_id>", "raster": true}`: downloaded every
+run like a map file (same cap and WAF handling), each TIFF one row:
+`file`, `year` (the first 19xx/20xx in the file name, else empty), `n`
+(valid cells), `nodata`, `mean`, `min`, `p10`, `p50`, `p90`, `max`, and the
+top-left corner and pixel size in the file's CRS (`x0`, `y0`, `dx`, `dy`).
+NaN, the GDAL_NODATA value and ±3.4e38-style sentinels count as no data.
+`"raster_grid": N` (2–1000) adds a `kind` column (`summary` for those rows)
+and, after each file's row, a `cell` row per N×N-pixel block with any valid
+cell: `row`, `col`, the block centre's WGS84 `lat`/`lon`, and the block mean
+`value` (at most 300,000 cells per input; a bigger N fits). 022552b2's
+527×1250 grids at N=25 give about 400 cells a year. No `columns`, `concat`
+or `pick`.
 
 **Fallback: a committed snapshot**, only for a file BRIEF.md lists as
 FAILED to download. Ask the user to download it in a browser (in an

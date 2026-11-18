@@ -22,6 +22,8 @@ from services.page_builder.recipe import (
     Recipe,
     RecipeError,
     RecipeManifest,
+    UpstreamEmpty,
+    name_year,
     resolve_inputs,
 )
 from services.page_builder.tests import test_recipe_refresh
@@ -65,6 +67,8 @@ def _fixture_copy(tmp_path, mutate):
 @pytest.mark.parametrize("inp", [
     {"name": "x", "by_id": RID, "pick": "latest"},                       # latest needs by_schema
     {"name": "x", "by_schema": ["a"], "concat": True, "pick": "latest"},  # latest reads one file
+    {"name": "x", "by_id": RID, "pick": "latest_year"},
+    {"name": "x", "by_schema": ["a"], "concat": True, "pick": "latest_year"},
     {"name": "x", "by_id": RID, "required_columns": ["a", "b"], "columns": ["a"]},
     {"name": "x", "by_id": RID, "columns": ["a", "a"]},
     {"name": "x", "by_id": RID, "columns": []},
@@ -138,6 +142,70 @@ def test_latest_snapshot_missing_a_column_is_schema_changed():
     fields = {"r-old": ["a", "b"], "r-new": ["a"], "r-none": ["a", "b"], "r-other": ["z"]}
     with pytest.raises(RecipeError) as e:
         resolve_inputs(m, _snapshots(), fields.get)
+    assert e.value.reason == "schema_changed"
+
+
+# ── pick: latest_year ────────────────────────────────────────────────────
+
+
+@pytest.mark.parametrize("name, want", [
+    ("מאגר תיקופי מסלקה 2026", 2026), ("data_2019.csv", 2019), ("v12026", None),
+    ("1850 records", None), ("no year", None), (None, None), ("2023-2024", 2023),
+])
+def test_name_year(name, want):
+    assert name_year(name) == want
+
+
+def test_latest_year_ignores_a_reuploaded_closed_year():
+    """ab746a13: the 2025 file was re-uploaded after 2026's, which `latest`
+    would flip to; `latest_year` keeps the newest year."""
+    m = _manifest([{"name": "main", "by_schema": ["a"], "pick": "latest_year"}])
+    res = [
+        {"id": "y26", "name": "מאגר 2026", "format": "CSV", "datastore_active": True,
+         "last_modified": "2026-03-01T00:00:00"},
+        {"id": "y25", "name": "מאגר 2025", "format": "CSV", "datastore_active": True,
+         "last_modified": "2026-11-01T00:00:00"},
+        {"id": "nameless", "name": "מאגר", "format": "CSV", "datastore_active": True,
+         "last_modified": "2027-01-01T00:00:00"},
+    ]
+    assert [r["id"] for r in resolve_inputs(m, res, lambda rid: ["a"])["main"]] == ["y26"]
+
+
+def test_latest_year_ties_and_no_year_fall_back_to_last_modified():
+    m = _manifest([{"name": "main", "by_schema": ["a"], "pick": "latest_year"}])
+    res = [{"id": i, "name": n, "format": "CSV", "datastore_active": True, "last_modified": t}
+           for i, n, t in [("a", "x 2024", "2024-01-01T00:00:00"),
+                           ("b", "x 2024 תיקון", "2024-06-01T00:00:00")]]
+    assert [r["id"] for r in resolve_inputs(m, res, lambda rid: ["a"])["main"]] == ["b"]
+    res[0]["name"], res[1]["name"] = "x", "y"  # distinct: same-name twins are deduped
+    assert [r["id"] for r in resolve_inputs(m, res, lambda rid: ["a"])["main"]] == ["b"]
+
+
+# ── an emptied upstream resource ─────────────────────────────────────────
+
+
+def test_an_emptied_by_id_resource_is_upstream_empty_not_lost_columns():
+    m = _manifest([{"name": "main", "by_id": "r1", "required_columns": ["a"]}])
+    res = [{"id": "r1", "name": "x", "format": "CSV", "datastore_active": True}]
+    with pytest.raises(UpstreamEmpty) as e:
+        resolve_inputs(m, res, lambda rid: ["_id"])
+    assert e.value.reason == "fetch_failed" and "empty upstream" in str(e.value)
+    with pytest.raises(RecipeError) as e:  # a real lost column stays schema_changed
+        resolve_inputs(m, res, lambda rid: ["_id", "b"])
+    assert e.value.reason == "schema_changed" and not isinstance(e.value, UpstreamEmpty)
+
+
+def test_an_emptied_by_schema_match_is_upstream_empty():
+    m = _manifest([{"name": "main", "by_schema": ["a"], "concat": True}])
+    res = [{"id": i, "name": i, "format": "CSV", "datastore_active": True} for i in ("r1", "r2")]
+    with pytest.raises(UpstreamEmpty):
+        resolve_inputs(m, res, {"r1": ["_id"], "r2": ["_id", "z"]}.get)
+    # Still matched elsewhere: the emptied file just drops out, as before.
+    out = resolve_inputs(m, res, {"r1": ["_id"], "r2": ["_id", "a"]}.get)
+    assert [r["id"] for r in out["main"]] == ["r2"]
+    # An ignored resource (`[]`, no columns known) is not an emptied one.
+    with pytest.raises(RecipeError) as e:
+        resolve_inputs(m, res, {"r1": [], "r2": ["z"]}.get)
     assert e.value.reason == "schema_changed"
 
 
