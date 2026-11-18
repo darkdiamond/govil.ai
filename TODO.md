@@ -129,24 +129,10 @@ This repo is public: describe a security gap by what to change, never by how to 
 
 ## CBS reports (cbs_releases provider)
 
-- **Drop `_relink` from `cbs-index-bus-inputs` once the job is deployed.** `cbs_index` now
-  chains the minibus May 2020 row (old-base value under the new label) itself (`_carried`),
-  so the recipe's `_relink` repairs nothing; remove it, and its "repaired links" count, in a
-  recipe PR after the builder job runs that code. (2026-11-17)
-- **`cbs-index-selected-consumer-prices` could list 140743 again.** It was left out because
-  the CBS Index API 500s on its history from 01-2000 (still so on 2026-11-17; from 01-2015 it
-  answers). Once the job is deployed, add it with `"optional_codes": [140743]` and make
-  compute render without it, or give it its own resource with `"start": "01-2015"`. Note the
-  `optional_codes` route leaves the page's CSV download button (`CbsIndexProvider.download_url`)
-  asking for every code over the full range, which is the request the API 500s on; either
-  leave optional codes out of `download_url` or prefer the separate-resource route.
-  (2026-11-17)
-- **`cbs-foreign-trade-by-country` still hand-rolls the "latest release" sort**
-  (`RELEASE_DATE`, then `RELEASE_NO` as a string, so "99/2026" beats "100/2026"). Swap it for
-  `cbs.latest_release`, as the other CBS recipes now do; it was left out of that PR because
-  another change was editing the recipe. `cbs-road-accidents` takes its latest edition from
-  `cbs.latest_release` but still orders `rel` with that string sort for `_first_reports` (the
-  `order` / "later" count, and which of two same-month editions wins). (2026-11-17)
+- **`cbs-road-accidents` `_first_reports` still sorts `RELEASE_NO` as a string** ("99/2026"
+  beats "100/2026"). Its latest edition comes from `cbs.latest_release`, but `rel`'s order still
+  drives the `order` / "later" count and which of two same-month editions wins. Order by govlib's
+  release key, as `cbs.latest_release` does, in a recipe PR. (2026-11-17)
 
 ## Shared recipe code (govlib, gov.j2, page libs)
 
