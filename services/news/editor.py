@@ -48,7 +48,9 @@ def eligible(signals: list[Signal], recent: list[dict], *, cooldown_days: int,
     (nor in `rejected_keys`, see `rejected_signal_keys`).
     Only news articles start a cooldown: an explainer or a digest line about a
     dataset must not keep its next real move off the page (their signal keys
-    still count as used)."""
+    still count as used). And only the datasets a story was ABOUT cool down
+    (`cooled_datasets`), not the ones it drew on for context: a rate story
+    citing housing deals must not hold back the next housing record."""
     now = now or datetime.now(UTC)
     used = {k for a in recent for k in a.get("signal_keys") or []} | set(rejected_keys)
     cool = set()
@@ -57,8 +59,16 @@ def eligible(signals: list[Signal], recent: list[dict], *, cooldown_days: int,
             continue
         ts = published_at(a)
         if ts and now - ts < timedelta(days=cooldown_days):
-            cool.update(a.get("dataset_ids") or [])
+            cool.update(cooled_datasets(a))
     return [s for s in signals if s.key not in used and s.dataset_id not in cool]
+
+
+def cooled_datasets(article: dict) -> set[str]:
+    """The datasets a news article's story is about: those of its signal keys
+    (`<dataset>|<series>|<period>`), else its lead dataset. Supporting
+    datasets in `dataset_ids` are left out."""
+    core = {k.split("|", 1)[0] for k in _strs(article.get("signal_keys")) if "|" in k}
+    return core or set(_strs(article.get("dataset_ids"))[:1])
 
 
 def _strs(x) -> list[str]:
