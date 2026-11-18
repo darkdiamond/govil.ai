@@ -223,7 +223,7 @@
       color: window.GOVIL_PALETTE,
       tooltip: { trigger: "axis", formatter: function (p) {
         var i = p[0].dataIndex;
-        return (i + 1) + " יישובים (עד " + k.names[i] + "): " + k.y[i] + "%";
+        return (i + 1) + " יישובים (עד " + echarts.format.encodeHTML(k.names[i]) + "): " + k.y[i] + "%";
       } },
       grid: { left: 48, right: 16, top: 24, bottom: 40, containLabel: true },
       xAxis: { type: "category", data: k.x, name: "יישובים", axisLabel: { hideOverlap: true } },

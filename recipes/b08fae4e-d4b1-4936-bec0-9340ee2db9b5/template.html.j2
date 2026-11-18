@@ -201,7 +201,7 @@
         color: window.GOVIL_PALETTE,
         tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
           var i = ps[0].dataIndex;
-          return bd.labels[i] + " יחידות<br/>בתים: " + bd.counts[i] + "<br/>יחידות בסך הכול: " + bd.units[i].toLocaleString("he-IL");
+          return echarts.format.encodeHTML(bd.labels[i]) + " יחידות<br/>בתים: " + bd.counts[i] + "<br/>יחידות בסך הכול: " + bd.units[i].toLocaleString("he-IL");
         } },
         grid: { left: 8, right: 16, top: 16, bottom: 32, containLabel: true },
         xAxis: { type: "category", data: bd.labels, name: "יחידות בבית", nameLocation: "middle", nameGap: 26 },

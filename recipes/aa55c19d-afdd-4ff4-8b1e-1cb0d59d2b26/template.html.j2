@@ -255,7 +255,7 @@
       color: window.GOVIL_PALETTE,
       tooltip: { trigger: "axis", formatter: function (ps) {
         var i = ps[0].dataIndex;
-        var s = f.ranges[i] + "<br>מורי דרך: " + f.counts[i].toLocaleString("he-IL");
+        var s = echarts.format.encodeHTML(f.ranges[i]) + "<br>מורי דרך: " + f.counts[i].toLocaleString("he-IL");
         s += f.fill[i] === null ? "<br>(טווח חלקי, ללא שיעור)" : "<br>שיעור מילוי: " + f.fill[i] + "%";
         return s;
       } },
@@ -296,7 +296,7 @@
       color: window.GOVIL_PALETTE,
       tooltip: { trigger: "axis", formatter: function (ps) {
         var i = ps[0].dataIndex;
-        return b.ranges[i] + "<br>ללא פרטי קשר: " + b.none[i] + "%<br>מורי דרך בטווח: " + b.counts[i].toLocaleString("he-IL");
+        return echarts.format.encodeHTML(b.ranges[i]) + "<br>ללא פרטי קשר: " + b.none[i] + "%<br>מורי דרך בטווח: " + b.counts[i].toLocaleString("he-IL");
       } },
       grid: { left: 16, right: 16, top: 32, bottom: 32, containLabel: true },
       xAxis: { type: "category", data: b.x, name: "תחילת הטווח", nameLocation: "middle", nameGap: 40,

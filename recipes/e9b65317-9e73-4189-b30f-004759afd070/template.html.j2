@@ -182,7 +182,7 @@
       color: window.GOVIL_PALETTE,
       tooltip: { trigger: "item", formatter: function (p) {
         var i = U.names.length - 1 - p.dataIndex;
-        return "קודים " + U.ranges[i] + ": " + window.__nkFmt(U.values[i]) + " שימושים<br>" +
+        return "קודים " + echarts.format.encodeHTML(U.ranges[i]) + ": " + window.__nkFmt(U.values[i]) + " שימושים<br>" +
           U.members[i].map(function (m) { return echarts.format.encodeHTML(m); }).join("<br>");
       } },
       grid: { left: 8, right: 40, top: 8, bottom: 16, containLabel: true },

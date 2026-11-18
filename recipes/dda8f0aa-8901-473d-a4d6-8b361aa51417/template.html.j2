@@ -368,7 +368,7 @@
         color: window.GOVIL_PALETTE,
         tooltip: { trigger: "axis", formatter: function (p) {
           var i = p[0].dataIndex;
-          return (full ? full[i] : d.names[i]) + "<br/>" + p[0].value.toLocaleString("he-IL") + " " + unit;
+          return echarts.format.encodeHTML(full ? full[i] : d.names[i]) + "<br/>" + p[0].value.toLocaleString("he-IL") + " " + unit;
         } },
         grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
         xAxis: { type: "value", splitNumber: el.clientWidth < 500 ? 3 : 5 },

@@ -150,15 +150,14 @@ This repo is public: describe a security gap by what to change, never by how to 
 
 ## Shared recipe code (govlib, gov.j2, page libs)
 
-- **Tooltip closure strings still unescaped in a few recipes.** The 2026-11-17/18 sweeps wrapped
-  the closure strings tooltip formatters append in `echarts.format.encodeHTML`, but these still
-  append dataset strings raw: b2370286 (`h.y` / `h.x`, template ~line 219; skipped because its
-  export flips, see its item, so `author verify` can't run), 392abd0a and 5c8c7be1 (`k.names`),
-  4d95a5ed (`h.y`, `h.groups`, `h.x`, `d.names`), ed8ce28e (`g.full`), bfe4e10f (`dt.full`,
-  `dt.laws`) and 8687fefe (`d.names`). Fix: the same wrapping plus a `recipe_version` bump each.
-  Two hand sweeps missed these, so a check.py (or automerge guard) lint that flags a closure
-  lookup appended in a tooltip formatter without `encodeHTML` would keep new recipes from adding
-  more. (2026-11-01, narrowed 2026-11-18)
+- **b2370286 still appends tooltip closure strings raw.** Its heatmap tooltip (`h.y` / `h.x`,
+  template ~line 219) skips `echarts.format.encodeHTML`. It was left out of the 2026-11-17/18
+  sweeps because its export flips (see its item), so `author verify` can't run. Fix: the same
+  wrapping plus a `recipe_version` bump once it verifies. (2026-11-01, narrowed 2026-11-18)
+- **No mechanical check for unescaped closure strings in tooltip formatters.** Two hand sweeps
+  missed some, and only a scripted audit (2026-11-18) found the rest. A check.py or automerge
+  guard lint that flags a closure lookup appended in a tooltip formatter outside
+  `encodeHTML`/a local escape helper would keep new recipes from regressing. (2026-11-18)
 
 ## Tags, related datasets and list pages
 

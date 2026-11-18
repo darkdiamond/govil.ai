@@ -403,7 +403,7 @@
       color: [P[0], P[1]],
       tooltip: { trigger: "item", formatter: function (p) {
         var i = p.dataIndex;
-        return echarts.format.encodeHTML(d.names[i]) + "<br>לקהל הרחב: עד " + d.pub[i] + "%<br>למדבירים בלבד: עד " + d.pro[i] + "%<br>יחס: ×" + d.ratio[i];
+        return echarts.format.encodeHTML(d.names[i]) + "<br>לקהל הרחב: עד " + d.pub[i] + "%<br>למדבירים בלבד: עד " + d.pro[i] + "%<br>יחס: ×" + echarts.format.encodeHTML(d.ratio[i]);
       } },
       legend: { bottom: 0, data: ["לקהל הרחב", "למדבירים בלבד"] },
       grid: { left: 16, right: 24, top: 16, bottom: 44, containLabel: true },

@@ -297,7 +297,7 @@
     var c = echarts.init(el);
     c.setOption(window.GovEcharts.option({
       tooltip: { position: "top", formatter: function (p) {
-        var v = p.data; return echarts.format.encodeHTML(h.y[v[1]]) + "<br>" + h.x[v[0]] + ": " + String(v[2]) + " צווים";
+        var v = p.data; return echarts.format.encodeHTML(h.y[v[1]]) + "<br>" + echarts.format.encodeHTML(h.x[v[0]]) + ": " + String(v[2]) + " צווים";
       } },
       grid: { left: 8, right: 16, top: 8, bottom: narrow ? 8 : 56, containLabel: true },
       xAxis: { type: "category", data: h.x, splitArea: { show: true }, axisLabel: { fontSize: narrow ? 9 : 11, rotate: narrow ? 90 : 0 } },

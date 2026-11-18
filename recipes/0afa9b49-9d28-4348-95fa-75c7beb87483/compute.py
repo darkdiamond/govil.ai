@@ -485,6 +485,11 @@ def compute(frames):
         "agent_data": {
             "summary_he": summary,
             "dataset_kind": "timeseries",
+            "seo": {
+                "title": "צווי הגבלה של בתי הדין הרבניים לפי חוק כפיית ציות",
+                "description": ("צווי ההגבלה (סנקציות) שבתי הדין הרבניים נתנו לפי חוק כפיית ציות: מספר הצווים בכל שנה, הסנקציות הנפוצות וההגבלות על אסירים."),
+                "name": "סנקציות על פי חוק כפיית ציות: צווי הגבלה של בתי הדין הרבניים",
+            },
             "temporal_coverage": f"{y_min}/{y_max}",
             "spatial_coverage": "ישראל",
         },

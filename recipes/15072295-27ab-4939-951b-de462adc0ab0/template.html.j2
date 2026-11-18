@@ -226,7 +226,7 @@
       tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
         var i = p[0].dataIndex;
         return echarts.format.encodeHTML(d.names[i]) + "<br>" + d.y[i].toLocaleString("he-IL") +
-          " מ״ק לשנייה<br>" + d.date[i] + "<br>" + echarts.format.encodeHTML(d.region[i]);
+          " מ״ק לשנייה<br>" + echarts.format.encodeHTML(d.date[i]) + "<br>" + echarts.format.encodeHTML(d.region[i]);
       } },
       grid: { left: 16, right: 48, top: 16, bottom: 32, containLabel: true },
       xAxis: { type: "value", name: "מ״ק/ש׳" },
@@ -341,7 +341,7 @@
       color: window.GOVIL_PALETTE,
       tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
         var i = p[0].dataIndex;
-        return d.x[i] + "<br>" + d.y[i] + " תחנות קבעו שיא<br>הגבוהה: " + echarts.format.encodeHTML(d.lead[i]) +
+        return echarts.format.encodeHTML(d.x[i]) + "<br>" + d.y[i] + " תחנות קבעו שיא<br>הגבוהה: " + echarts.format.encodeHTML(d.lead[i]) +
           ", " + d.maxq[i].toLocaleString("he-IL") + " מ״ק לשנייה";
       } },
       grid: { left: 16, right: 16, top: 24, bottom: 16, containLabel: true },

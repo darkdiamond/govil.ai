@@ -200,7 +200,7 @@
     c2.setOption(window.GovEcharts.option({
       color: window.GOVIL_PALETTE,
       tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
-                 formatter: function (p) { var i = p[0].dataIndex; return k.names[i] + ": " + k.values[i] + "% (" + k.counts[i] + ")"; } },
+                 formatter: function (p) { var i = p[0].dataIndex; return echarts.format.encodeHTML(k.names[i]) + ": " + k.values[i] + "% (" + k.counts[i] + ")"; } },
       grid: { left: 40, right: 16, top: 24, bottom: 32, containLabel: true },
       xAxis: { type: "category", data: k.names },
       yAxis: { type: "value", max: 100, name: "%" },
