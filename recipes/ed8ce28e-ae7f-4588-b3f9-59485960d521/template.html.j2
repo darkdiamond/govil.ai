@@ -248,7 +248,7 @@
     var g = {{ model.charts.groups | tojson }};
     mk("chart-groups", {
       tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
-        var i = ps[0].dataIndex, out = g.full[i];
+        var i = ps[0].dataIndex, out = echarts.format.encodeHTML(g.full[i]);
         ps.forEach(function (p) { out += "<br>" + p.marker + p.seriesName + ": " + p.value.toLocaleString("he-IL"); });
         return out;
       } },

@@ -422,7 +422,7 @@
       color: window.GOVIL_PALETTE,
       tooltip: { trigger: "item", formatter: function (p) {
         var i = p.dataIndex;
-        return "<div style=\"max-width:260px;white-space:normal\">" + dt.full[i] + "<br>" + dt.laws[i] +
+        return "<div style=\"max-width:260px;white-space:normal\">" + echarts.format.encodeHTML(dt.full[i]) + "<br>" + echarts.format.encodeHTML(dt.laws[i]) +
                ": " + p.value.toLocaleString("he-IL") + " עיצומים</div>";
       } },
       grid: { left: 16, right: 24, top: 8, bottom: 24, containLabel: true },

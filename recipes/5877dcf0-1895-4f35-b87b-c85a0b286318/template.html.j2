@@ -206,7 +206,7 @@
         color: CAT,
         tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
                    formatter: d.ranges ? function (ps) {
-                     var s = d.ranges[ps[0].dataIndex];
+                     var s = echarts.format.encodeHTML(d.ranges[ps[0].dataIndex]);
                      ps.forEach(function (p) { if (p.value) { s += "<br>" + p.marker + p.seriesName + ": " + p.value.toLocaleString("he-IL"); } });
                      return s;
                    } : undefined },

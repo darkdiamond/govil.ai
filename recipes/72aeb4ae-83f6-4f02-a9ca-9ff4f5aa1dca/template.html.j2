@@ -293,7 +293,7 @@
         var i = ps[0].dataIndex;
         var v = d.d[i];
         var word = v > 0 ? "עלייה" : (v < 0 ? "ירידה" : "ללא שינוי");
-        return d.x[i] + "<br>שינוי שנתי חציוני: " + v.toFixed(2) + " מ׳ (" + word + ")" +
+        return echarts.format.encodeHTML(d.x[i]) + "<br>שינוי שנתי חציוני: " + v.toFixed(2) + " מ׳ (" + word + ")" +
           "<br>מדד מצטבר: " + d.cum[i].toFixed(2) + " מ׳" +
           "<br>קידוחים משווים: " + d.n[i].toLocaleString("he-IL");
       } },
@@ -328,7 +328,7 @@
       color: window.GOVIL_PALETTE,
       tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
         var i = ps[0].dataIndex;
-        return d.x[i] + ": " + d.y[i].toLocaleString("he-IL") + " קידוחים (" + d.rows[i].share + ")";
+        return echarts.format.encodeHTML(d.x[i]) + ": " + d.y[i].toLocaleString("he-IL") + " קידוחים (" + echarts.format.encodeHTML(d.rows[i].share) + ")";
       } },
       grid: { left: 16, right: 16, top: 24, bottom: 16, containLabel: true },
       xAxis: { type: "value", name: "קידוחים" },
@@ -375,7 +375,7 @@
       color: window.GOVIL_PALETTE,
       tooltip: { trigger: "axis", formatter: function (ps) {
         var i = ps[0].dataIndex;
-        return d.x[i] + ": " + d.y[i].toFixed(2) + " מ׳ " + (d.y[i] >= 0 ? "מעל" : "מתחת ל") + "ממוצע השנה";
+        return echarts.format.encodeHTML(d.x[i]) + ": " + d.y[i].toFixed(2) + " מ׳ " + (d.y[i] >= 0 ? "מעל" : "מתחת ל") + "ממוצע השנה";
       } },
       grid: { left: 16, right: 16, top: 32, bottom: 16, containLabel: true },
       xAxis: { type: "category", data: d.x, axisLabel: { interval: 0, rotate: 45 } },
@@ -397,7 +397,7 @@
       color: window.GOVIL_PALETTE,
       tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
         var i = ps[0].dataIndex;
-        return d.x[i] + ": " + d.y[i].toLocaleString("he-IL") + " קידוחים (" + d.rows[i].share + ")";
+        return echarts.format.encodeHTML(d.x[i]) + ": " + d.y[i].toLocaleString("he-IL") + " קידוחים (" + echarts.format.encodeHTML(d.rows[i].share) + ")";
       } },
       grid: { left: 16, right: 16, top: 24, bottom: 16, containLabel: true },
       xAxis: { type: "category", data: d.x, axisLabel: { interval: 0, rotate: 35 } },

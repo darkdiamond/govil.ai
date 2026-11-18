@@ -553,7 +553,13 @@ def compute(frames):
 
     return {
         "agent_data": {"summary_he": summary, "dataset_kind": "timeseries",
-                       "temporal_coverage": temporal, "spatial_coverage": "ישראל"},
+                       "temporal_coverage": temporal, "spatial_coverage": "ישראל",
+                       "seo": {
+                           "title": "מפלס מי התהום בקידוחי ניטור: מגמות לפי שנה",
+                           "description": ("מפלסי מי התהום בקידוחי הניטור בישראל: השינוי השנתי החציוני, "
+                                           "מדד מצטבר לאורך השנים והתפלגות הקידוחים לפי עומק ומגמה."),
+                           "name": "מפלסי קידוחים: מפלס מי התהום בקידוחי הניטור",
+                       }},
         "kpis": kpis,
         "charts": {"yearly": chart_yearly, "index": chart_index, "change": chart_change,
                    "season": chart_season, "depth": chart_depth, "inst": chart_inst,

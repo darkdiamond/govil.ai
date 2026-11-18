@@ -128,7 +128,7 @@
       color: window.GOVIL_PALETTE,
       tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
         var i = p[0].dataIndex;
-        return "חוברת " + d.x[i] + " (" + d.years[i] + ")<br>" + p[0].value + " מאמרים";
+        return "חוברת " + echarts.format.encodeHTML(d.x[i]) + " (" + d.years[i] + ")<br>" + p[0].value + " מאמרים";
       } },
       grid: { left: 16, right: 16, top: 24, bottom: 16, containLabel: true },
       xAxis: { type: "category", data: d.x, axisLabel: { hideOverlap: true } },

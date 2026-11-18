@@ -338,7 +338,7 @@
           trigger: "axis",
           formatter: function (ps) {
             var i = ps[0].dataIndex;
-            return [k.long[i]].concat(ps.map(function (p) { return p.marker + p.seriesName + ": " + p.value; })).join("<br/>");
+            return [echarts.format.encodeHTML(k.long[i])].concat(ps.map(function (p) { return p.marker + p.seriesName + ": " + p.value; })).join("<br/>");
           }
         },
         legend: { bottom: 0 },

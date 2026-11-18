@@ -289,7 +289,7 @@
       color: window.GOVIL_PALETTE,
       tooltip: { position: "top", formatter: function (p) {
         var v = p.value;
-        return h.y[v[1]] + " (" + h.groups[v[1]] + ")<br>" + h.x[v[0]] + ": " + v[3] + " " + v[4] +
+        return echarts.format.encodeHTML(h.y[v[1]]) + " (" + echarts.format.encodeHTML(h.groups[v[1]]) + ")<br>" + echarts.format.encodeHTML(h.x[v[0]]) + ": " + v[3] + " " + v[4] +
           "<br>" + v[2] + "% מהגבוה בקבוצה";
       } },
       grid: { left: 8, right: 16, top: 8, bottom: 96, containLabel: true },
@@ -318,7 +318,7 @@
       color: window.GOVIL_PALETTE,
       tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
         var i = ps[0].dataIndex;
-        return d.names[i] + "<br>אומת: " + d.from[i] + "<br>בתוקף עד: " + d.to[i] + "<br>פריטים: " + d.items[i];
+        return echarts.format.encodeHTML(d.names[i]) + "<br>אומת: " + echarts.format.encodeHTML(d.from[i]) + "<br>בתוקף עד: " + echarts.format.encodeHTML(d.to[i]) + "<br>פריטים: " + d.items[i];
       } },
       grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
       xAxis: { type: "value", min: d.min, max: d.max, interval: 1,

@@ -296,10 +296,10 @@
       legend: { bottom: 0 },
       grid: { left: 16, right: 24, top: 16, bottom: 72, containLabel: true },
       tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
-        var i = ps[0].dataIndex, out = s.x[i];
+        var i = ps[0].dataIndex, out = echarts.format.encodeHTML(s.x[i]);
         ps.forEach(function (p) {
           var x = s.series[p.seriesIndex];
-          out += "<br>" + p.marker + x.name + ": " + x.share[i] + "% (" + x.data[i].toLocaleString("he-IL") + ")";
+          out += "<br>" + p.marker + echarts.format.encodeHTML(x.name) + ": " + x.share[i] + "% (" + x.data[i].toLocaleString("he-IL") + ")";
         });
         return out;
       } },
@@ -320,7 +320,7 @@
       color: window.GOVIL_PALETTE,
       tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
         var i = ps[0].dataIndex;
-        return r.x[i] + "<br>" + r.rates[i] + "% · " + r.counts[i].toLocaleString("he-IL") + " נוסחים לא קבילים";
+        return echarts.format.encodeHTML(r.x[i]) + "<br>" + r.rates[i] + "% · " + r.counts[i].toLocaleString("he-IL") + " נוסחים לא קבילים";
       } },
       grid: { left: 16, right: 32, top: 16, bottom: 24, containLabel: true },
       xAxis: { type: "value", splitNumber: 3, axisLabel: { formatter: "{value}%" } },
