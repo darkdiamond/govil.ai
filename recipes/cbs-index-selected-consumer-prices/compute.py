@@ -6,7 +6,9 @@ Inputs (all from the CBS Index API, one row per code and month):
   home            cooking gas, repair services, cleaning products, appliances.
   toiletries      toiletries and bath products (140743), alone and from 01-2015:
                   the API answers HTTP 500 for its history from 01-2000. Shown
-                  with the home items; the page renders without it.
+                  with the home items. Compute renders without it, but the
+                  input is required: if the API fails 140743 from 01-2015 too,
+                  the provider sync fails and the whole page stays last-good.
   transport       bus, train, taxi, flights abroad, fuel, cars, car insurance.
   services        dental care, medicines, gym, cinema, hotels, TV, internet,
                   haircuts, bank fees.
@@ -415,7 +417,7 @@ def compute(frames):
                         "theme": [THEME_HE[i["theme"]] for i in since0], "cpi": _r(cpi0)}
     tables["since0"] = [[i["name"], THEME_HE[i["theme"]], _sp(i["cum"])] for i in since0]
     labels["since0_note"] = (f"השינוי המצטבר מ{fmt.month_he(B0)} עד {month_txt}, רק לפריטים "
-                             f"שנמדדו כבר אז ({len(since0):,} מתוך {len(item_codes):,})"
+                             f"שיש להם נתונים מאז ({len(since0):,} מתוך {len(item_codes):,})"
                              + (f". המדד הכללי עלה ב-{fmt.pct_of(cpi0)}" if cpi0 is not None
                                 else "") + ".")
     labels["since0_aria"] = f"השינוי המצטבר לפי פריט מ{fmt.month_he(B0)} עד {month_txt}"

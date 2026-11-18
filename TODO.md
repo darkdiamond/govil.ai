@@ -129,7 +129,10 @@ This repo is public: describe a security gap by what to change, never by how to 
 
 ## CBS reports (cbs_releases provider)
 
-- `cbs-road-accidents` `_first_reports` still sorts `RELEASE_NO` as a string ("99/2026" beats "100/2026"). (2026-11-17)
+- **`cbs-road-accidents` `_first_reports` still sorts `RELEASE_NO` as a string** ("99/2026"
+  beats "100/2026"). Its latest edition comes from `cbs.latest_release`, but `rel`'s order still
+  drives the `order` / "later" count and which of two same-month editions wins. Order by govlib's
+  release key, as `cbs.latest_release` does, in a recipe PR. (2026-11-17)
 
 ## Shared recipe code (govlib, gov.j2, page libs)
 
