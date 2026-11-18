@@ -16,12 +16,6 @@ This repo is public: describe a security gap by what to change, never by how to 
   Pillow in the image), then author it. `wl_tiff.zip` is 85% of `REFRESH_MAP_MAX_BYTES`: a few
   more yearly files and it needs a recipe `limits` or a higher cap. (2026-11-09)
 
-- **The preview's Tailwind misses classes added after the dev server started.** A chart height
-  like `h-[30rem]` that no page had when `preview` started renders at 0px until
-  `preview stop` and a restart. Production builds are unaffected (they scan every body at
-  once), but authors waste fix rounds on it. Fix: have `preview` restart the dev server, or
-  touch the Tailwind config, when a newly rendered body adds unseen classes. (2026-11-09)
-
 - **Check the "חברה ורווחה" GSC split around 2026-12-15.** 1ba21c94 and e4c3e3d0 split the
   query's impressions (56 vs 14 a week, both at position 7.3). They hold different data:
   1ba21c94's CSV is the English edition (English titles, authors and abstract PDFs, 2021 on),
