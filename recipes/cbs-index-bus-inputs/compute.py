@@ -14,14 +14,8 @@ Rules (BRIEF.md, Source rules): levels and long-run ratios use VALUE_CHAINED;
 month-on-month and year-on-year changes are CBS's published PERCENT /
 PERCENT_YEAR, quoted as published.
 
-Chain repair: at two base switches the chained series jumps against the
-published monthly change (buses, Feb 2007: the old-base rows lack the
-1993->2007 link; minibuses, May 2020: one row carries the old-base value under
-the new base label). `_relink` walks each series from the newest month back and,
-wherever the chained step disagrees with the published PERCENT by more than
-RELINK_PP points, rescales the older rows so that step equals PERCENT, the
-same method the provider uses where CBS publishes no coefficient. A clean
-series is left untouched.
+Chaining: VALUE_CHAINED comes linked from the provider, including the minibus
+May 2020 base switch (a row with the old-base value under the new label).
 
 The bus general index is required; every other code is optional, so a code
 CBS retires drops its views instead of failing the page. An unknown code
@@ -94,7 +88,6 @@ COMPARE = [
     ("שונות", 440370, 451280, 432370),
 ]
 
-RELINK_PP = 1.0
 RECENT_MONTHS = 24
 REBASE_YEARS = 10
 
@@ -102,41 +95,10 @@ REBASE_YEARS = 10
 # ── parsing ──────────────────────────────────────────────────────────────
 
 
-def _relink(s):
-    """Re-link chained levels where a step contradicts the published PERCENT.
-    Returns (series, number of links repaired)."""
-    v = s["v"].tolist()
-    p = s["p"].tolist()
-    t = list(s.index)
-    fixed = 0
-    factor = 1.0
-    out = [None] * len(v)
-    out[-1] = v[-1]
-    for i in range(len(v) - 1, 0, -1):
-        cur, prev = out[i], v[i - 1]
-        if pd.isna(prev) or cur is None or pd.isna(cur):
-            out[i - 1] = None if pd.isna(prev) else prev * factor
-            continue
-        # PERCENT is a one-month change: compare only consecutive months.
-        if (t[i].year - t[i - 1].year) * 12 + t[i].month - t[i - 1].month != 1:
-            out[i - 1] = prev * factor
-            continue
-        pub = p[i]
-        step = (cur / (prev * factor) - 1) * 100 if prev else None
-        if pd.notna(pub) and step is not None and abs(step - pub) > RELINK_PP:
-            factor = cur / (1 + pub / 100) / prev
-            fixed += 1
-        out[i - 1] = prev * factor
-    s = s.copy()
-    s["v"] = out
-    return s, fixed
-
-
 def _load(frames):
     """code → DataFrame indexed by month (Timestamp), monthly rows only;
-    plus names, the resource each code came from, and repaired-link count."""
+    plus names and the resource each code came from."""
     out, names, origin = {}, {}, {}
-    relinked = 0
     for key in ("buses", "lines", "minibus"):
         df = frames.get(key)
         if df is None or df.empty:
@@ -160,12 +122,10 @@ def _load(frames):
             s = s[s["v"].notna()]
             if s.empty:
                 continue
-            s, n = _relink(s)
-            relinked += n
             out[code] = s
             names[code] = s["name"].iloc[-1]
             origin[code] = key
-    return out, names, origin, relinked
+    return out, names, origin
 
 
 def _label(code, names):
@@ -348,7 +308,7 @@ def insight_yoy_trend(bus, last):
 
 
 def compute(frames):
-    series, names, origin, relinked = _load(frames)
+    series, names, origin = _load(frames)
     bus = series.get(BUS)
     if bus is None:
         raise ValueError("no rows for the bus general index (code 440010)")
@@ -656,8 +616,6 @@ def compute(frames):
         cum_col=f"שינוי מ{fmt.month_he(common)}" if common is not None else "",
         base_note=(f"הלמ\"ס מחליפה את בסיס המדד מעת לעת (הבסיס הנוכחי של מדד האוטובוסים: {chain_base} "
                    "= 100). הגרפים מציגים כל סדרה על הבסיס העדכני שלה לפי מקדמי הקישור הרשמיים. "
-                   + ("במעבר בסיס שבו הסדרה המקושרת לא התיישבה עם השינוי החודשי שפורסם, היא קושרה "
-                      "לפי השינוי החודשי שפורסם (דיוק של כעשירית האחוז). " if relinked else "")
                    + "שינויים מצטברים שחושבו כאן עשויים להיות שונים במעט מחישוב לפי ערכים מעוגלים."),
     )
 

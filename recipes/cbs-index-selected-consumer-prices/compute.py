@@ -4,6 +4,9 @@ Inputs (all from the CBS Index API, one row per code and month):
   staples, food   food items (subject 40): bread, flour, rice, oil, sugar,
                   cheese, coffee, meat, chicken, fish, sweets, drinks.
   home            cooking gas, repair services, cleaning products, appliances.
+  toiletries      toiletries and bath products (140743), alone and from 01-2015:
+                  the API answers HTTP 500 for its history from 01-2000. Shown
+                  with the home items; the page renders without it.
   transport       bus, train, taxi, flights abroad, fuel, cars, car insurance.
   services        dental care, medicines, gym, cinema, hotels, TV, internet,
                   haircuts, bank fees.
@@ -32,8 +35,8 @@ THEME_HE = {
     "other": "אחר",
 }
 THEME_ORDER = ("food", "home", "transport", "services", "other")
-INPUT_THEME = {"staples": "food", "food": "food", "home": "home", "transport": "transport",
-               "services": "services"}
+INPUT_THEME = {"staples": "food", "food": "food", "home": "home", "toiletries": "home",
+               "transport": "transport", "services": "services"}
 CODE_THEME = {120240: "food", 120430: "food", 120590: "home", 120620: "home",
               121070: "services"}
 SHORT = {
