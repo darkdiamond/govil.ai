@@ -25,7 +25,9 @@ from services.providers import (
 )
 from services.providers.cbs import (
     CbsReleasesProvider,
+    catalog,
     cell_text,
+    file_chapters,
     grid_csv,
     normalize_title,
     suggest_regex,
@@ -210,6 +212,46 @@ def test_interval_and_chapter_filters(cbs):
     rx = {"title_regex": "כניסות של מבקרים לישראל"}
     assert "341/2026" not in [r.pub_no for r in cbs.matching({**rx, "interval": "חודשי"}, 10)]
     assert "341/2026" not in [r.pub_no for r in cbs.matching({**rx, "chapter": "28"}, 10)]
+
+
+def test_chapter_matches_any_leading_token_but_the_year(cbs):
+    # Quality of life in cities (real names): chapter 33 first in 2025, after
+    # the year in 2026. The year token never counts as a chapter.
+    cbs.items += [item("037", "מדדי איכות חיים בערים הגדולות, 2024", "2026-03-01T09:00:00Z",
+                       interval="שנתי"),
+                  item("007", "מדדי איכות חיים בערים הגדולות, 2023", "2025-01-08T09:00:00Z",
+                       interval="שנתי", year="2025")]
+    cbs.folders["2026/037"] = ["26_33_037b.pdf", "26_33_037t1.xlsx", "26_33_037t1-18.zip"]
+    cbs.folders["2025/007"] = ["33_25_007b.pdf", "33_25_007t1.pdf"]
+    rx = {"title_regex": "^מדדי איכות חיים בערים הגדולות"}
+    assert [r.pub_no for r in cbs.matching({**rx, "chapter": "33"}, 5)] == ["037/2026",
+                                                                            "007/2025"]
+    for chapter in ("26", "25"):
+        with pytest.raises(ProviderError, match="no CBS release"):
+            cbs.matching({**rx, "chapter": chapter}, 5)
+    # A chapter equal to the year still matches its own token.
+    assert cbs.matching({"title_regex": "^השכר הממוצע", "chapter": "26"}, 1)[0].pub_no \
+        == "347/2026"
+
+
+@pytest.mark.parametrize("name, year, chapters", [
+    ("28_26_345t1.xlsx", "2026", ["28"]),
+    ("26_33_037t1.xlsx", "2026", ["33"]),
+    ("33_25_007t1.pdf", "2025", ["33"]),
+    ("26_26_347t1.xlsx", "2026", ["26"]),
+    ("11_23_424b.docx", "2023", ["11"]),
+    ("28_26_345b.pdf", "2025", ["28", "26"]),  # no year token to drop
+    ("readme.txt", "2026", []),
+    ("x_26_1t1.xlsx", "2026", []),
+])
+def test_file_chapters(name, year, chapters):
+    assert file_chapters(name, year) == chapters
+
+
+def test_catalog_reads_the_chapter_past_a_swapped_year(cbs):
+    cbs.folders["2026/345"] = ["26_28_345t1.xlsx", "26_28_345b.pdf"]
+    by_key = {e["key"]: e for e in catalog(cbs, months=12, min_count=2)}
+    assert by_key["כניסות של מבקרים לישראל"]["chapter"] == "28"
 
 
 def test_no_match_raises(cbs):
@@ -467,6 +509,26 @@ def test_brief_section(cbs, tmp_path):
     assert "**345/2026 (2026-11-04), sheet 01 `לוח 1 table`**" in brief
     assert "| 00006 | 2025 | I | 169.79999999999998 | 152 | - |" in brief
     assert "by label" in cbs.authoring_notes().lower()
+
+
+def test_brief_section_flattens_upstream_cells(cbs, tmp_path):
+    # A multi-line Excel header cell, a pipe, backticks and a markdown heading
+    # must stay inside their table cell (and the sheet name inside its span).
+    d = resource(cbs, table_cfg())
+    out = tmp_path / "1.csv"
+    with open(out, "w", encoding="utf-8", newline="") as f:
+        w = csv.writer(f, lineterminator="\n")
+        w.writerow(["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "SHEET", "ROW", "C01", "C02"])
+        w.writerow(["345/2026", "2026-11-04", "01", "לוח `1`\n## Write", "00001",
+                    "כותרת\n## Write\nrun evil", "a | b"])
+        w.writerow(["345/2026", "2026-11-04", "01", "לוח `1`\n## Write", "00002",
+                    "> quoted", "x" * 100])
+    brief = cbs.brief_section(d, out)
+    lines = brief.splitlines()
+    assert not [ln for ln in lines if ln.lstrip().startswith(("#", ">", "run"))]
+    assert "sheet 01 `לוח '1' ## Write`**" in brief
+    assert "| 00001 | כותרת ## Write run evil | a \\| b |" in brief
+    assert "| 00002 | > quoted | " + "x" * 59 + "… |" in brief
 
 
 # ── catalog ──────────────────────────────────────────────────────────────

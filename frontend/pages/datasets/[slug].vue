@@ -377,6 +377,7 @@ onMounted(async () => {
         <article ref="bodyEl" class="dataset-body" v-html="body" />
         <DatasetExplorer
           v-if="hasExplorer"
+          :dataset-id="entry.id"
           :resources="entry.resources ?? []"
           :primary-resource-id="entry.primary_resource_id"
           :record-count="entry.record_count"

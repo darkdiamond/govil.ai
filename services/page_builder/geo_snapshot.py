@@ -8,7 +8,8 @@ file a browser downloaded, and commits the result for a `snapshot` input:
     .prj/.cpg when present). Pure Python: the builder image has no geo
     libraries. A downloaded file is untrusted: no DTDs, a cap on what a zip
     may inflate to, every geometry checked before it is walked, and
-    `load_map` turns any malformed input into a SnapshotError;
+    `load_map` turns any malformed input into a SnapshotError. A zip of
+    zips is opened one level down (`read_map_stream`);
   - reprojects ITM (EPSG:2039, the usual Israeli grid) to WGS84;
   - rounds to 5 decimals (~1 m), simplifies lines and rings
     (Douglas-Peucker) only as far as needed to fit the size target;
@@ -704,14 +705,15 @@ def _checked(feats: Iterator, name: str) -> Iterator[dict]:
         raise _malformed(name, e) from None
 
 
-def iter_map(src: bytes | Path, name: str) -> tuple[Iterator[dict], str]:
+def iter_map(src: bytes | Path, name: str, *,
+             member: str | None = None) -> tuple[Iterator[dict], str]:
     """(features, crs) from a downloaded file (its bytes, or its path), for
     `map` inputs, the features as a one-pass stream (see `read_map_stream`).
     The file is untrusted: every geometry is checked before anything walks
     it, and any failure of any reader, now or while iterating, is a
     SnapshotError, never a struct/zip/XML/zlib exception from deep inside one."""
     try:
-        raw, prj = read_map_stream(src, name)
+        raw, prj = read_map_stream(src, name, member=member)
     except (SnapshotError, MemoryError):
         raise
     except Exception as e:  # noqa: BLE001
@@ -789,14 +791,23 @@ def _shp_stream(z: zipfile.ZipFile, member: str, dbf: bytes | None, cpg: str) ->
         z.close()
 
 
-def read_map_stream(src: bytes | Path, name: str) -> tuple[Iterator[dict], str]:
+def read_map_stream(src: bytes | Path, name: str, *, member: str | None = None,
+                    _depth: int = 0) -> tuple[Iterator[dict], str]:
     """(features, prj text) from a file's bytes or path; `name` hints the
     format. The features are a one-pass stream: a zipped shapefile is read
     record by record straight from the zip (from disk, given a path), and a
     parsed GeoJSON or KML hands each feature over and lets go of it, so a
-    consumer that converts as it goes never holds the whole raw layer."""
+    consumer that converts as it goes never holds the whole raw layer.
+
+    A zip holding no layer but a zip (one layer zipped per file inside a
+    bundle, as data.gov.il ships some GIS layers) is opened one level down,
+    with the same inflate cap on the inner zip; a zip in that one is refused.
+    `member` names the inner zip to read (its file name, any case) when the
+    bundle holds several."""
     suffix = _sniff(src, name)
     if suffix in (".geojson", ".json", ".kml"):
+        if member is not None:
+            raise SnapshotError(f"{name}: not a zip, so it has no member {member!r}")
         data = src if isinstance(src, bytes) else Path(src).read_bytes()
         return _drain(_read_kml(data) if suffix == ".kml" else _read_geojson(data)), ""
     z = zipfile.ZipFile(io.BytesIO(src) if isinstance(src, bytes) else src)
@@ -810,25 +821,225 @@ def read_map_stream(src: bytes | Path, name: str) -> tuple[Iterator[dict], str]:
                 raise SnapshotError(f"{name}: {len(hits)} {ext} files; extract the one you want")
             return names[hits[0]] if hits else None
 
+        def nested(inner: str) -> tuple[Iterator[dict], str]:
+            if _depth >= 1:
+                raise SnapshotError(f"{name}: a zip inside a zip inside a zip; not read")
+            with z:
+                data = z.read(inner)
+            return read_map_stream(data, f"{name}/{Path(inner).name}", _depth=_depth + 1)
+
+        if member is not None:
+            want = member.lower()
+            hits = sorted(n for n in names
+                          if n.endswith(".zip") and n.rsplit("/", 1)[-1] == want)
+            if len(hits) != 1:
+                raise SnapshotError(f"{name}: {len(hits)} inner zips named {member!r}")
+            return nested(names[hits[0]])
         if shp := one(".shp"):
             stem = shp[:-4].lower()
             get = lambda ext: z.read(names[stem + ext]) if stem + ext in names else None
             cpg = (get(".cpg") or b"").decode("ascii", errors="ignore")
             prj = (get(".prj") or b"").decode("utf-8", errors="ignore")
             return _shp_stream(z, shp, get(".dbf"), cpg), prj  # it closes the zip
-        with z:
-            if kml := one(".kml"):
+        if kml := one(".kml"):
+            with z:
                 return _drain(_read_kml(z.read(kml))), ""
-            if gj := one(".geojson") or one(".json"):
+        if gj := one(".geojson") or one(".json"):
+            with z:
                 return _drain(_read_geojson(z.read(gj))), ""
-            if kmz := one(".kmz"):  # a KMZ zipped again (data.gov.il does this)
-                with zipfile.ZipFile(io.BytesIO(z.read(kmz))) as inner:
-                    _check_unzipped(inner, name)
-                    kmls = sorted(n for n in inner.namelist() if n.lower().endswith(".kml"))
-                    if not kmls:
-                        raise SnapshotError(f"{name}: the KMZ holds no .kml")
-                    return _drain(_read_kml(inner.read(kmls[0]))), ""
+        if kmz := one(".kmz"):  # a KMZ zipped again (data.gov.il does this)
+            with z, zipfile.ZipFile(io.BytesIO(z.read(kmz))) as inner:
+                _check_unzipped(inner, name)
+                kmls = sorted(n for n in inner.namelist() if n.lower().endswith(".kml"))
+                if not kmls:
+                    raise SnapshotError(f"{name}: the KMZ holds no .kml")
+                return _drain(_read_kml(inner.read(kmls[0]))), ""
+        if zips := sorted(n for n in names if n.endswith(".zip")
+                          and not n.rsplit("/", 1)[-1].startswith("._")):  # macOS forks
+            if len(zips) > 1:
+                raise SnapshotError(
+                    f"{name}: {len(zips)} inner zips; name the one to read (map_member)"
+                )
+            return nested(names[zips[0]])
     except BaseException:
         z.close()
         raise
-    raise SnapshotError(f"{name}: no .shp, .kml, .kmz or .geojson inside")
+    z.close()
+    raise SnapshotError(f"{name}: no .shp, .kml, .kmz, .geojson or .zip inside")
+
+
+# ── rasters (GeoTIFF) ────────────────────────────────────────────────────
+# A `raster` input: a GeoTIFF, or a zip of them (one per year, as 022552b2
+# ships its aquifer level/chloride maps), read with Pillow + numpy into one
+# summary row per TIFF and, with `grid`, the block means of N×N-pixel blocks.
+
+RASTER_COLUMNS = ["file", "year", "n", "nodata", "mean", "min", "p10", "p50", "p90", "max",
+                  "x0", "y0", "dx", "dy"]
+# With `raster_grid`, appended after RASTER_COLUMNS (and a leading `kind`).
+RASTER_GRID_COLUMNS = ["file", "year", "row", "col", "lat", "lon", "value"]
+# Untrusted files: refuse more than this many pixels per TIFF (before any
+# pixel is decoded), TIFFs per zip, and grid rows per input.
+MAX_RASTER_PIXELS = 16_000_000  # ~128MB as float64; the builder heap is uncapped
+MAX_RASTERS = 500
+MAX_GRID_ROWS = 300_000
+# GDAL's float32 "no value" (-3.4028235e38) and its kin.
+_NODATA_SENTINEL = 1e30
+_TIFF_MAGIC = (b"II*\0", b"MM\0*")
+_TIFF_SUFFIXES = (".tif", ".tiff")
+_YEAR_RE = re.compile(r"(?<!\d)(?:19|20)\d\d(?!\d)")
+
+
+def _rnum(v: float) -> str:
+    """A stat as text: 6 significant digits, no exponent noise for ints."""
+    return format(float(v), ".6g")
+
+
+def _rcoord(v: float) -> str:
+    return format(round(float(v), 6), ".6f").rstrip("0").rstrip(".")
+
+
+def _tiff_members(src: bytes | Path, name: str) -> Iterator[tuple[str, bytes]]:
+    """(file name, bytes) of each TIFF: the file itself, or every .tif in a
+    zip (sorted by name, so the rows come out in the same order every run)."""
+    if isinstance(src, bytes):
+        head = src[:4]
+    else:
+        with open(src, "rb") as f:
+            head = f.read(4)
+    if head in _TIFF_MAGIC:
+        yield Path(name).name, src if isinstance(src, bytes) else Path(src).read_bytes()
+        return
+    zsrc = io.BytesIO(src) if isinstance(src, bytes) else src  # a path: read off disk
+    if not zipfile.is_zipfile(zsrc):
+        raise SnapshotError(f"{name}: not a TIFF or a zip")
+    with zipfile.ZipFile(zsrc) as z:
+        try:
+            _check_unzipped(z, name)
+        except SnapshotError as e:  # the data outgrew the cap: too_large, not a new shape
+            raise SnapshotTooLarge(str(e)) from None
+        tifs = sorted(n for n in z.namelist()
+                      if not n.endswith("/") and n.lower().endswith(_TIFF_SUFFIXES)
+                      and not Path(n).name.startswith("._"))  # macOS resource forks
+        if not tifs:
+            raise SnapshotError(f"{name}: the zip holds no .tif")
+        if len(tifs) > MAX_RASTERS:
+            raise SnapshotTooLarge(f"{name}: {len(tifs)} TIFFs, over {MAX_RASTERS}")
+        for n in tifs:
+            yield Path(n).name, z.read(n)
+
+
+def _read_tiff(data: bytes, what: str):
+    """(pixels as float64 with nodata as NaN, (x0, y0, dx, dy)) from one
+    GeoTIFF's bytes. x0/y0 is the top-left corner in the file's CRS."""
+    import numpy as np
+    from PIL import Image
+
+    try:
+        img = Image.open(io.BytesIO(data))
+    except Exception as e:  # noqa: BLE001
+        raise SnapshotError(f"{what}: not a readable TIFF ({type(e).__name__})") from None
+    with img:
+        w, h = img.size
+        if w * h > MAX_RASTER_PIXELS:
+            raise SnapshotTooLarge(f"{what}: {w}x{h} pixels, over {MAX_RASTER_PIXELS:,}")
+        if len(img.getbands()) != 1:  # before decoding: the pixel cap assumes one band
+            raise SnapshotError(f"{what}: {len(img.getbands())} bands; one band expected")
+        f32 = img.mode == "F"  # float32 cells: the nodata text is compared at that precision
+        tags = getattr(img, "tag_v2", {})
+        scale, tie = tags.get(33550), tags.get(33922)
+        if not scale or not tie or len(scale) < 2 or len(tie) < 6:
+            raise SnapshotError(f"{what}: no GeoTIFF georeference (ModelPixelScale/ModelTiepoint)")
+        nodata = tags.get(42113)
+        try:
+            img.load()
+            a = np.array(img, dtype=np.float64)  # one writable copy
+        except Exception as e:  # noqa: BLE001
+            raise SnapshotError(f"{what}: pixels unreadable ({type(e).__name__})") from None
+    if a.ndim != 2:
+        raise SnapshotError(f"{what}: {a.ndim}-D pixels; one band expected")
+    dx, dy = float(scale[0]), float(scale[1])
+    i, j, x, y = float(tie[0]), float(tie[1]), float(tie[3]), float(tie[4])
+    if not (dx > 0 and dy > 0 and all(map(math.isfinite, (i, j, x, y)))):
+        raise SnapshotError(f"{what}: bad georeference")
+    bad = ~np.isfinite(a) | (np.abs(a) >= _NODATA_SENTINEL)
+    if nodata is not None:
+        try:
+            nv = float(str(nodata).strip().strip("\0"))
+        except ValueError:
+            nv = None
+        if nv is not None:
+            bad |= a == nv
+            if f32 and abs(nv) < 3.4e38:  # "-9999.99" is stored as float32(-9999.99)
+                bad |= a == float(np.float32(nv))
+    a[bad] = np.nan
+    return a, (x - i * dx, y + j * dy, dx, dy)
+
+
+def _raster_crs(x0: float, y0: float) -> str:
+    if abs(x0) <= 180 and abs(y0) <= 90:
+        return "wgs84"
+    if 100_000 <= x0 <= 300_000 and 350_000 <= y0 <= 1_400_000:
+        return "itm"
+    raise SnapshotError(f"unknown raster projection (origin {x0}, {y0})")
+
+
+def raster_table(src: bytes | Path, name: str, *,
+                 grid: int | None = None) -> tuple[list[str], list[list[str]]]:
+    """A `raster` input's table: one row per TIFF (RASTER_COLUMNS: valid cell
+    count `n`, `nodata` count, mean/min/percentiles/max of the valid cells,
+    the top-left corner and pixel size in the file's CRS), `year` = the first
+    19xx/20xx in the file name. With `grid` = N, a `kind` column marks those
+    rows `summary` and adds `cell` rows after each: the mean of each N×N-pixel
+    block with a valid cell (`row`, `col`, centre `lat`/`lon` in WGS84,
+    `value`; RASTER_GRID_COLUMNS), blank where a column isn't the row's."""
+    import numpy as np
+
+    rows: list[list[str]] = []
+    n_cells = 0
+    for fname, data in _tiff_members(src, name):
+        a, (x0, y0, dx, dy) = _read_tiff(data, f"{name}: {fname}")
+        m = _YEAR_RE.search(fname)
+        year = m.group(0) if m else ""
+        v = a[~np.isnan(a)]
+        n_valid = int(v.size)
+        stats = (["", "", "", "", "", ""] if n_valid == 0 else
+                 [_rnum(v.mean()), _rnum(v.min()),
+                  *(_rnum(q) for q in np.percentile(v, [10, 50, 90])), _rnum(v.max())])
+        del v  # the valid cells' copy: not needed for the grid
+        summary_row = [fname, year, str(n_valid), str(int(a.size - n_valid)), *stats,
+                       _rcoord(x0), _rcoord(y0), _rcoord(dx), _rcoord(dy)]
+        if grid is None:
+            rows.append(summary_row)
+            continue
+        rows.append(["summary", *summary_row, "", "", "", "", ""])
+        if n_valid == 0:
+            continue
+        crs = _raster_crs(x0, y0)
+        h, w = a.shape
+        nr, nc = -(-h // grid), -(-w // grid)
+        if (nr * grid, nc * grid) != (h, w):  # pad the edge blocks out with no-data
+            pad = np.full((nr * grid, nc * grid), np.nan)
+            pad[:h, :w] = a
+            a = pad
+            del pad
+        # `a` is this function's own copy: zero its no-data cells in place and
+        # count them from a bool mask, instead of nansum's full float copy.
+        valid = ~np.isnan(a)
+        a[~valid] = 0.0
+        counts = valid.reshape(nr, grid, nc, grid).sum(axis=(1, 3))
+        del valid
+        sums = a.reshape(nr, grid, nc, grid).sum(axis=(1, 3))
+        blank = [""] * (len(RASTER_COLUMNS) - 2)
+        for r, c in zip(*np.nonzero(counts), strict=True):
+            n_cells += 1
+            if n_cells > MAX_GRID_ROWS:
+                raise SnapshotTooLarge(f"{name}: over {MAX_GRID_ROWS:,} grid cells; raise raster_grid")
+            # The block's centre (of the clipped block at the right/bottom edge).
+            cx = x0 + (c * grid + min(grid, w - c * grid) / 2) * dx
+            cy = y0 - (r * grid + min(grid, h - r * grid) / 2) * dy
+            lon, lat = itm_to_wgs(cx, cy) if crs == "itm" else (cx, cy)
+            rows.append(["cell", fname, year, *blank, str(int(r)), str(int(c)),
+                         _rcoord(lat), _rcoord(lon), _rnum(sums[r, c] / counts[r, c])])
+    if grid is None:
+        return list(RASTER_COLUMNS), rows
+    return ["kind", *RASTER_COLUMNS, *RASTER_GRID_COLUMNS[2:]], rows
