@@ -56,6 +56,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from services.shared import lease, model_history, schedule
+from services.shared.env import env_float
 from services.shared.env import env_int as _env_int
 from services.shared.states import ArticleKind, NewsRunStatus, StoryResult
 
@@ -65,12 +66,20 @@ from . import digest as digest_mod
 from . import features as features_mod
 from . import images as images_mod
 from . import llm as llm_mod
+from . import registry
 from .editor import REJECT_DAYS, choose, choose_features, eligible, rejected_signal_keys
 from .ledger import Ledger
 from .links import attach_links, load_edges
 from .llm import LLMError, LLMTransient, LLMUnavailable
 from .series import Series, extract_series
-from .signals import Signal, detect_all, is_new_dataset, new_dataset_signal, rank
+from .signals import (
+    RELEASE_PREFIXES,
+    Signal,
+    detect_all,
+    is_new_dataset,
+    new_dataset_signal,
+    rank,
+)
 from .snapshots import GcsSnapshots, History, LocalSnapshots, Snapshot, history
 from .store import CONTROL, LIVE_STATUSES, LOCK_DOC, STATE, published_at
 from .tools import Toolbox
@@ -89,6 +98,12 @@ def _digest_weekday() -> int | None:
 
 def _env_flag(name: str) -> bool:
     return os.environ.get(name, "").strip().lower() in ("1", "true", "yes", "on")
+
+
+def _env_float(name: str) -> float | None:
+    """A positive number, else None (unset, empty, 0 or malformed: off)."""
+    v = env_float(name, 0.0)
+    return v if v > 0 else None
 
 
 # A render is stamped just before its model is uploaded: the window stops
@@ -134,7 +149,8 @@ def find_signals(store, *, today: date, cutoff: str | None = None, upto: str | N
                  ids: list[str] | None = None,
                  context: dict | None = None, releases: bool = False,
                  new_datasets: bool = False, source_lookup=None,
-                 new_dataset_days: int = 30, now: datetime | None = None) -> tuple[list[Signal], dict]:
+                 new_dataset_days: int = 30, now: datetime | None = None,
+                 registries: bool = False) -> tuple[list[Signal], dict]:
     """Every dataset's signals, linked and scored (unranked). `cutoff`
     (a `YYYYmmddTHHMMSSZ` stamp, normally the last news run): only datasets
     re-rendered since then can signal, and only with what is new since.
@@ -148,7 +164,12 @@ def find_signals(store, *, today: date, cutoff: str | None = None, upto: str | N
     ever is in this window, created at its source within `new_dataset_days`
     of `now`, also signals `new_dataset`. The creation date comes from
     `source_lookup(id)` (the `sources/<id>` doc; default `_read_source`);
-    off, nothing is looked up."""
+    off, nothing is looked up.
+
+    `registries` (NEWS_REGISTRY_SIGNALS): datasets outside the official
+    releases also signal snapshot diffs (a new maker in a ranking, a KPI past
+    a threshold) and get monthly KPI-history series (`registry.py`); this
+    loads up to a month-end snapshot per month for each re-rendered one."""
     ids = ids if ids is not None else store.ids()
     with ThreadPoolExecutor(max_workers=workers) as ex:
         read = dict(zip(ids, ex.map(lambda i: _safe_pair(store, i, cutoff, upto), ids),
@@ -160,7 +181,7 @@ def find_signals(store, *, today: date, cutoff: str | None = None, upto: str | N
     models: dict[str, dict] = {}
     signals: list[Signal] = []
     firsts: list[tuple[str, Snapshot]] = []
-    with_history = rendered = 0
+    with_history = rendered = registry_signals = reg_errors = 0
     for ds, h in pairs.items():
         latest, base = h.latest, h.base
         if latest is None:
@@ -178,6 +199,16 @@ def find_signals(store, *, today: date, cutoff: str | None = None, upto: str | N
             prev_map = {s.path: s for s in _series_of(base, today)}
             with_history += 1
         signals += detect_all(cur, today, prev_map, releases=releases)
+        if registries and not ds.startswith(RELEASE_PREFIXES) and prev_map is not None:
+            try:
+                reg_sigs, kpi_series = _registry_signals(store, ds, h, today)
+            except Exception:
+                log.warning("news: registry signals of %s failed", ds, exc_info=True)
+                reg_errors += 1
+            else:
+                signals += reg_sigs
+                cur += kpi_series
+                registry_signals += len(reg_sigs)
         if h.first:
             firsts.append((ds, latest))
 
@@ -202,7 +233,55 @@ def find_signals(store, *, today: date, cutoff: str | None = None, upto: str | N
              "linked": sum(bool(s.links) for s in signals),
              "catalog": len(catalog or {}), "demand_datasets": len(demand_by_id or {}),
              "snapshot_errors": snapshot_errors} | new_stats
+    if registries:
+        stats |= {"registry_signals": registry_signals, "registry_errors": reg_errors}
     return signals, stats
+
+
+def _registry_signals(store, ds: str, h: History,
+                      today: date) -> tuple[list[Signal], list[Series]]:
+    """One re-rendered dataset's snapshot-diff signals and KPI-history series
+    (with their own detector signals). Only same-recipe snapshots: a recipe
+    change reshapes the KPIs and charts."""
+    version = h.latest.recipe_version
+    latest_ts = h.names[0][0] if h.names else None
+    # What the last run had seen: the baseline and every render before it. A
+    # render after the baseline but before the latest is new to us too, so it
+    # never counts as "seen before" (it would hide an entrant it introduced).
+    before = [(ts, r) for ts, r in h.names if ts and h.base_ts and ts <= h.base_ts]
+    month_all, month_before = registry.month_picks(h.names), registry.month_picks(before)
+    ref_pick = registry.pick_ref(h.names, latest_ts) if latest_ts else None
+
+    loaded: dict[str, Snapshot | None] = {h.names[0][1]: h.latest}
+    if before:   # before[0] is the baseline itself
+        loaded[before[0][1]] = h.base if h.base.recipe_version == version else None
+    todo = {r for _, r in month_all + month_before}
+    if ref_pick:
+        todo.add(ref_pick[1])
+    todo = sorted(todo - set(loaded))
+    with ThreadPoolExecutor(max_workers=REGISTRY_LOAD_WORKERS) as ex:
+        for r, snap in zip(todo, ex.map(lambda r: store.load(ds, r), todo), strict=True):
+            loaded[r] = snap if snap.recipe_version == version else None
+
+    def models(picks):
+        return [(ts, snap.model) for ts, r in picks if (snap := loaded.get(r)) is not None]
+
+    ref = loaded.get(ref_pick[1]) if ref_pick else None
+    sigs = registry.detect_registry(
+        ds, h.latest.model, latest_ts, h.base.model, h.base_ts,
+        ref.model if ref else None, ref_pick[0] if ref else None,
+        history=[m for ts, m in models(month_before) if ts != h.base_ts])
+
+    cur = registry.kpi_history_series(ds, models(month_all), today)
+    if before:
+        prev = {s.path: s for s in registry.kpi_history_series(
+            ds, models(month_before), registry.ts_date(h.base_ts) or today)}
+        sigs += detect_all(cur, today, prev)
+    return sigs, cur
+
+
+# Month-end snapshots one dataset's registry signals load at once (GCS reads).
+REGISTRY_LOAD_WORKERS = 8
 
 
 def _safe_pair(store, ds: str, cutoff: str | None, upto: str | None = None) -> History | None:
@@ -550,7 +629,8 @@ def write_day(llm, *, ranked: list[Signal], series_by_ds: dict, models: dict, ca
               feature_cooldown_days: int = 60, fill_attempts: int = 2,
               feature_tool_calls: int | None = None, digest_weekday: int | None = None,
               digest_hour: int | None = None, floor_hour: int | None = None,
-              floor_hour_friday: int | None = None, now: datetime | None = None) -> dict:
+              floor_hour_friday: int | None = None, now: datetime | None = None,
+              breaking_surprise: float | None = None) -> dict:
     """One day's editorial pass. Returns the summary (also what main prints).
     `stored` (if given) collects the slugs stored so far, so a caller still
     sees them when the pass raises.
@@ -568,7 +648,9 @@ def write_day(llm, *, ranked: list[Signal], series_by_ds: dict, models: dict, ca
     (explainers and the digest don't count). Signal keys of event stories
     rejected in the last REJECT_DAYS stay off the editor's list. With
     `digest_hour` / `floor_hour` (+ `floor_hour_friday`) set, the digest and
-    the fill are tried once per Israel date (`news_state/daily`)."""
+    the fill are tried once per Israel date (`news_state/daily`). With
+    `breaking_surprise` (NEWS_BREAKING_SURPRISE), a signal that surprising on
+    new data skips its dataset's cooldown (`editor.eligible`)."""
     now = now or datetime.now(UTC)
     il_now = now.astimezone(IL_TZ)
     il_today = il_now.date()
@@ -583,7 +665,7 @@ def write_day(llm, *, ranked: list[Signal], series_by_ds: dict, models: dict, ca
         log.warning("news: reading recent rejects failed", exc_info=True)
         rejected_keys = set()
     cands = eligible(ranked, recent, cooldown_days=cooldown_days,
-                     rejected_keys=rejected_keys)
+                     rejected_keys=rejected_keys, breaking_surprise=breaking_surprise)
     if any(is_new_dataset(s) for s in cands):
         cands = _new_dataset_gate(cands, store=store, recent=recent, now=now,
                                   feature_cooldown_days=feature_cooldown_days)
@@ -1002,7 +1084,8 @@ def _run(a, *, live: bool, gated: bool, articles, lease_state: str | None) -> in
                                   demand_by_id=dem, ids=a.dataset, context=ctx,
                                   releases=_env_flag("NEWS_RELEASE_SIGNALS"),
                                   new_datasets=_env_flag("NEWS_NEW_DATASET_SIGNALS"),
-                                  new_dataset_days=_env_int("NEWS_NEW_DATASET_DAYS", 30), now=now)
+                                  new_dataset_days=_env_int("NEWS_NEW_DATASET_DAYS", 30), now=now,
+                                  registries=_env_flag("NEWS_REGISTRY_SIGNALS"))
     for ds, entry in (ctx.get("new_datasets") or {}).items():
         # The deployed catalog lags a first render: the source doc gives the
         # editor, the writer and the gates' link check its title and page.
@@ -1050,6 +1133,7 @@ def _run(a, *, live: bool, gated: bool, articles, lease_state: str | None) -> in
                         feature_cooldown_days=_env_int("NEWS_FEATURE_COOLDOWN_DAYS", 60),
                         fill_attempts=_env_int("NEWS_FILL_ATTEMPTS", 2),
                         feature_tool_calls=_env_int("NEWS_FEATURE_MAX_TOOL_CALLS", 35),
+                        breaking_surprise=_env_float("NEWS_BREAKING_SURPRISE"),
                         **hours)
         # An accepted story the store lost (event, digest or fill) turns the
         # job red: a store that fails every day must not look like a quiet one.

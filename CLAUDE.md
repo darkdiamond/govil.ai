@@ -533,7 +533,7 @@ catalog` lists chapters → subjects → codes.
      sees its own previous review and raises new points only when substantive, and on
      the last round a "revise" scoring ≥4 everywhere with only style notes open
      (`blocking: false`) passes (`critic_final_round` on the article); a CBS/BoI periodic release is marked `RELEASE:` for it) → image → store.
-   - **daily floor** (`NEWS_MIN_PER_DAY`, code default 0, prod 1): when event news
+   - **daily floor** (`NEWS_MIN_PER_DAY`, code default 0, prod 2): when event news
      leaves the Israel date short (this run's articles plus earlier runs'), the
      run writes explainers (`kind: feature`, shown as "ניתוח נתונים"): candidates are
      datasets with a model, ranked by GSC demand, minus any dataset an article used
@@ -544,7 +544,9 @@ catalog` lists chapters → subjects → codes.
      missing article, each with `NEWS_FEATURE_MAX_TOOL_CALLS` (35) tool calls, so a
      day can still end empty; a rejected explainer's dataset sits out the fill for
      7 days (`article_rejects`). Only `news` articles start the 21-day event
-     cooldown, so an explainer never keeps a dataset's next real move off the page.
+     cooldown (`NEWS_DATASET_COOLDOWN_DAYS`), and only for the datasets of their
+     signal keys, not the context datasets they cite (`editor.cooled_datasets`),
+     so an explainer never keeps a dataset's next real move off the page.
      `--min-articles N` overrides it for one run (seeding). With
      `NEWS_FLOOR_HOUR` (prod 20; `NEWS_FLOOR_HOUR_FRIDAY` 13, before the quiet
      window) the fill is tried once per Israel date, by the first run at or
@@ -580,6 +582,24 @@ catalog` lists chapters → subjects → codes.
      explainers' 60-day dataset cooldown and 7-day reject rule, and never goes
      into the digest pool. Its catalog entry comes from the source doc, since
      the deployed catalog lags a first render.
+   - **registries** (`NEWS_REGISTRY_SIGNALS`, code off, prod on; `registry.py`): a
+     list of entities has no newest period, so outside the CBS/BoI releases a
+     re-render is also diffed against the one the last run saw: `new_entrant` /
+     `exit` (a named entry of a complete breakdown; a top-N list's newcomer is
+     only a rank change and never counts, nor a name seen in an earlier month-end
+     snapshot), `leader_change`, and `kpi_move` (a KPI ≥10% and ≥5 units, or
+     ≥3 points, off the render ≥28 days older, once, when it crosses; rolling
+     KPIs like `ytd`/`last30` skipped). Weaker than any record; never breaking.
+     Each KPI's month-end values also become `kpi_history.<k>` monthly series
+     for the ordinary detectors (history began 2026-11-09, so they wait on
+     `MIN_HISTORY`). It loads up to 25 month-end snapshots per re-rendered
+     dataset.
+   - **breaking news** (`NEWS_BREAKING_SURPRISE`, code off, prod 2.5): a signal
+     that surprising (a record, a rate decision, a z ≥ 5 move; not
+     `suspect_incomplete`, not a release/new-dataset/registry flag) skips its
+     dataset's event cooldown, however recent the last article, unless an
+     article in the cooldown already used its period. It carries
+     `follows_article`, and editor and writer treat it as a follow-up.
    - **/news/ is a front page** (`frontend/utils/news-front.ts`): today's edition,
      the digest band, news, analyses, topic desks (≥3 stories), then the archive.
      It leans on two things the job guarantees: every `news`/`feature` story has

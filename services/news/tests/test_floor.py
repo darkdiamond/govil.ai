@@ -167,6 +167,23 @@ def test_only_news_articles_start_a_dataset_cooldown():
         assert bool(eligible([sig], recent, cooldown_days=21)) is kept, kind
 
 
+def test_only_a_storys_own_datasets_cool_down():
+    from dataclasses import replace
+
+    from services.news.editor import eligible
+
+    lead = _world()[2]
+    ctx = replace(lead, dataset_id="context-ds")
+    now = datetime.now(UTC).isoformat()
+    article = {"kind": "news", "dataset_ids": [lead.dataset_id, "context-ds"],
+               "signal_keys": [f"{lead.dataset_id}|other.series|2020-01"], "published_at": now}
+    # the story's own dataset sits out; the one it cited for context doesn't
+    assert eligible([lead, ctx], [article], cooldown_days=21) == [ctx]
+    # no parseable signal key: the lead dataset alone cools
+    article["signal_keys"] = []
+    assert eligible([lead, ctx], [article], cooldown_days=21) == [ctx]
+
+
 def test_floor_respects_max_per_day(tmp_path):
     llm = FloorLLM([_draft()])
     out, _ = _day(tmp_path, llm, min_per_day=5, max_per_run=0)
