@@ -458,7 +458,10 @@ SHEET, ROW, C01..`) that compute.py reads by label.
    chaining coefficients (`coef=true`). Where CBS publishes no coefficient (seasonal
    produce items), a switch is linked by the published PERCENT / PERCENT_YEAR, and
    with neither, `VALUE_CHAINED` is blank before the break. A scale break hidden
-   under one base label (the 1985 rows, 100× off) is split off and linked by PERCENT. `python -m services.providers.cbs_index
+   under one base label (the 1985 rows, 100× off) is split off and linked by PERCENT,
+   and a row carrying the old base's value under the new label (minibus inputs, May 2020) is chained on the old base. All of a resource's codes go in one request, so
+   one code the API 500s fails them all; a code in the resource's `optional_codes` is
+   then fetched alone and dropped (logged) if it fails. `python -m services.providers.cbs_index
 catalog` lists chapters → subjects → codes.
    Every job run calls
    `providers.sync.sync_provider_sources` after loading the recipe list.
