@@ -332,7 +332,7 @@
       tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
         var i = ps[0].dataIndex, t = 0, lines = [];
         ps.forEach(function (p) { t += p.value; if (p.value) { lines.push(p.marker + p.seriesName + ": " + p.value); } });
-        return b.full[i] + "<br>" + lines.join("<br>") + "<br>סה״כ: " + t;
+        return echarts.format.encodeHTML(b.full[i]) + "<br>" + lines.join("<br>") + "<br>סה״כ: " + t;
       } },
       legend: { bottom: 0 },
       grid: { left: 16, right: 24, top: 16, bottom: 48, containLabel: true },

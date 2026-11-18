@@ -327,6 +327,12 @@ def compute(frames):
             "suggested_tags": ["בטיחות", "רכבת", "רכבת ישראל", "תחבורה ציבורית", "תאונות"],
             "temporal_coverage": f"{years_all[0]}/{years_all[-1]}",
             "spatial_coverage": "ישראל",
+            "seo": {
+                "name": "בטיחות ברכבת",
+                "title": "אירועי בטיחות ברכבת ישראל לפי שנה וסוג אירוע",
+                "description": ("אירועים בטיחותיים ברכבת ישראל לאורך השנים: מספר האירועים בכל שנה, "
+                                "פילוח לפי סיווג ראשי, והסיווגים שעלו או ירדו."),
+            },
         },
         "kpis": kpis,
         "charts": {"decomp": decomp, "cats": cats, "trend": trend, "heat": heat,

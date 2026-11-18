@@ -246,7 +246,7 @@
     const d = {{ model.charts.heat | tojson }};
     const chart = echarts.init(document.getElementById("chart-heat"));
     chart.setOption(window.GovEcharts.option({
-      tooltip: { position: "top", formatter: (p) => echarts.format.encodeHTML(d.months[p.value[0]]) + " " + d.years[p.value[1]] + ": " + (p.value[2] > 0 ? "+" : "") + p.value[2].toFixed(1) + "%" },
+      tooltip: { position: "top", formatter: (p) => echarts.format.encodeHTML(d.months[p.value[0]]) + " " + echarts.format.encodeHTML(d.years[p.value[1]]) + ": " + (p.value[2] > 0 ? "+" : "") + p.value[2].toFixed(1) + "%" },
       grid: { left: 8, right: 8, top: 8, bottom: 72, containLabel: true },
       xAxis: { type: "category", data: d.months, splitArea: { show: true }, axisLabel: { interval: 0, fontSize: 10 } },
       yAxis: { type: "category", data: d.years, inverse: true },

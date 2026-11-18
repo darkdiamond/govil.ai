@@ -205,7 +205,7 @@
     var ch = echarts.init(document.getElementById("chart-heat"));
     ch.setOption(window.GovEcharts.option({
       tooltip: { position: "top", formatter: function (p) {
-        return h.y[p.value[1]] + " · " + h.x[p.value[0]] + ": " + p.value[2];
+        return echarts.format.encodeHTML(h.y[p.value[1]]) + " · " + echarts.format.encodeHTML(h.x[p.value[0]]) + ": " + p.value[2];
       } },
       grid: { left: 16, right: 16, top: 16, bottom: 110, containLabel: true },
       xAxis: { type: "category", data: h.x, axisLabel: { interval: 0, rotate: 40, width: 90, overflow: "truncate" } },
@@ -226,7 +226,7 @@
       color: window.GOVIL_PALETTE,
       tooltip: { trigger: "axis", formatter: function (ps) {
         var i = ps[0].dataIndex;
-        return b.ranges[i] + "<br>" + b.names[i] + ": " + b.values[i];
+        return echarts.format.encodeHTML(b.ranges[i]) + "<br>" + echarts.format.encodeHTML(b.names[i]) + ": " + b.values[i];
       } },
       grid: { left: 16, right: 40, top: 16, bottom: 24, containLabel: true },
       xAxis: { type: "value", splitNumber: 3, axisLabel: { hideOverlap: true } },
@@ -242,7 +242,7 @@
       color: window.GOVIL_PALETTE,
       tooltip: { trigger: "item", formatter: function (p) {
         var v = p.value;
-        return x.names[p.dataIndex] + "<br>חציון: " + v[3].toFixed(2) + "°<br>מחצית אמצעית: " +
+        return echarts.format.encodeHTML(x.names[p.dataIndex]) + "<br>חציון: " + v[3].toFixed(2) + "°<br>מחצית אמצעית: " +
           v[2].toFixed(2) + "°–" + v[4].toFixed(2) + "°<br>טווח: " + v[1].toFixed(2) + "°–" + v[5].toFixed(2) + "°";
       } },
       grid: { left: 16, right: 16, top: 40, bottom: 24, containLabel: true },

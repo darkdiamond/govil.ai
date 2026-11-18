@@ -405,7 +405,7 @@
       color: window.GOVIL_PALETTE,
       tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
                  formatter: function (ps) { var i = ps[0].dataIndex;
-                   return d.names[i] + "<br>" + d.n[i].toLocaleString("he-IL") + " מסגרות · תפוסה " +
+                   return echarts.format.encodeHTML(d.names[i]) + "<br>" + d.n[i].toLocaleString("he-IL") + " מסגרות · תפוסה " +
                      d.cap[i].toLocaleString("he-IL"); } },
       grid: { left: 16, right: 40, top: 8, bottom: 16, containLabel: true },
       xAxis: { type: "value", splitNumber: 3, axisLabel: { hideOverlap: true } },

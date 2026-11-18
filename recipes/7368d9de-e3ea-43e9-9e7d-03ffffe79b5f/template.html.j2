@@ -640,7 +640,7 @@
     c.setOption(window.GovEcharts.option({
       tooltip: { position: "top", formatter: function (p) {
         var v = p.value[2];
-        return h.x[p.value[0]] + " " + h.y[p.value[1]] + ": " + (v === "-" ? "פחות מחמישה" : v.toLocaleString("he-IL")) + " חוזים";
+        return echarts.format.encodeHTML(h.x[p.value[0]]) + " " + echarts.format.encodeHTML(h.y[p.value[1]]) + ": " + (v === "-" ? "פחות מחמישה" : v.toLocaleString("he-IL")) + " חוזים";
       } },
       grid: { left: 16, right: 16, top: 16, bottom: 72, containLabel: true },
       xAxis: { type: "category", data: h.x, splitArea: { show: true } },

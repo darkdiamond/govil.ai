@@ -287,7 +287,7 @@
       tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
         var i = ps[0].dataIndex, v = t.active[i] || t.passive[i] || t.other[i] || 0;
         var kind = t.passive[i] ? " (נוגדנים, חיסון סביל)" : "";
-        return t.names[i] + " · " + t.gloss[i] + kind + "<br>" + fmt(v) + " אצוות";
+        return echarts.format.encodeHTML(t.names[i]) + " · " + echarts.format.encodeHTML(t.gloss[i]) + kind + "<br>" + fmt(v) + " אצוות";
       } },
       legend: { bottom: 0 },
       grid: { left: 16, right: 24, top: 16, bottom: 40, containLabel: true },
@@ -357,7 +357,7 @@
     mk("chart-pareto", {
       tooltip: { trigger: "axis", formatter: function (ps) {
         var i = ps[0].dataIndex;
-        return "מקום " + pa.x[i] + ": " + pa.names[i] + "<br>" + fmt(pa.values[i]) + " אצוות · מצטבר " + pa.cum[i] + "%";
+        return "מקום " + pa.x[i] + ": " + echarts.format.encodeHTML(pa.names[i]) + "<br>" + fmt(pa.values[i]) + " אצוות · מצטבר " + pa.cum[i] + "%";
       } },
       legend: { bottom: 0 },
       grid: { left: 16, right: 16, top: 32, bottom: 48, containLabel: true },
@@ -393,7 +393,7 @@
       var c = echarts.init(document.getElementById(id));
       c.setOption(window.GovEcharts.option({
         tooltip: { position: "top", formatter: function (p) {
-          return h.y[p.value[1]] + " · " + xname + h.x[p.value[0]] + ": " + p.value[2].toLocaleString("he-IL") + " " + unit;
+          return echarts.format.encodeHTML(h.y[p.value[1]]) + " · " + xname + echarts.format.encodeHTML(h.x[p.value[0]]) + ": " + p.value[2].toLocaleString("he-IL") + " " + unit;
         } },
         grid: { left: 16, right: 16, top: 16, bottom: 72, containLabel: true },
         xAxis: { type: "category", data: h.x, splitArea: { show: true }, axisLabel: { interval: 0, rotate: h.x.length > 10 ? 45 : 0 } },
@@ -439,7 +439,7 @@
     mk("chart-evo", {
       tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
         var i = ps[0].dataIndex;
-        return ev.names[i] + " (" + ev.mf[i] + ")<br>קוד " + ev.codes[i] + " · " + ev.values[i].toLocaleString("he-IL") + " אצוות";
+        return echarts.format.encodeHTML(ev.names[i]) + " (" + echarts.format.encodeHTML(ev.mf[i]) + ")<br>קוד " + ev.codes[i] + " · " + ev.values[i].toLocaleString("he-IL") + " אצוות";
       } },
       grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
       xAxis: { type: "value", splitNumber: 3, axisLabel: { hideOverlap: true } },

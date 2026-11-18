@@ -445,6 +445,12 @@ def compute(frames):
         "agent_data": {
             "summary_he": summary,
             "dataset_kind": "timeseries",
+            "seo": {
+                "name": "תיקופי מסלקה בתחבורה ציבורית: נסיעות ברב-קו לפי יום, שעה, מפעיל וקו",
+                "title": "תיקופי רב-קו בתחבורה ציבורית: נסיעות לפי שעה, מפעיל וקו",
+                "description": ("כמה נוסעים עולים לתחבורה הציבורית: תיקופי רב-קו לפי יום, שעה, מפעיל וקו, "
+                                "עם שעות השיא ביום חול ממוצע והקווים העמוסים ביותר."),
+            },
             "temporal_coverage": f"{first_date.isoformat()}/{last_date.isoformat()}",
             "spatial_coverage": "ישראל",
         },

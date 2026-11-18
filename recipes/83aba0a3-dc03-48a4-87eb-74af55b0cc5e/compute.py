@@ -353,6 +353,12 @@ def compute(frames):
             ],
             "temporal_coverage": f"{first['d'].strftime('%Y-%m-%d')}/{last['d'].strftime('%Y-%m-%d')}",
             "spatial_coverage": "כנרת",
+            "seo": {
+                "title": "מליחות הכנרת: ריכוז הכלוריד לאורך השנים",
+                "description": ("ריכוז הכלוריד (מליחות) במי הכנרת מהדיגום השבועי: הדגימה האחרונה, "
+                                "ממוצע וטווח בכל שנה, מחזור עונתי ושינוי לאורך העשורים."),
+                "name": "ריכוז הכלוריד (מליחות) בכנרת",
+            },
         },
         "kpis": kpis,
         "kpi_labels": kpi_labels,

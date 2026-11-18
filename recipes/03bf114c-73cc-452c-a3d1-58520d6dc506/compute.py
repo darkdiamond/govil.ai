@@ -218,6 +218,12 @@ def compute(frames):
             "suggested_tags": ["נגישות", "אנשים עם מוגבלות", "אכיפה", "רשויות מקומיות"],
             "related_ids": ["49f21b3f-3ffc-43d1-b8c8-d9abad2ace9a"],
             "temporal_coverage": f"{cases['ordered'].min().strftime('%Y-%m-%d')}/{anchor.strftime('%Y-%m-%d')}",
+            "seo": {
+                "name": "צווי נגישות שנשלחו לחייבים",
+                "title": "צווי נגישות לעסקים ולרשויות | נציבות שוויון זכויות",
+                "description": (f"איתור צווי נגישות שהוציאה נציבות שוויון זכויות לאנשים עם מוגבלות "
+                                f"לפי גורם, יישוב וסוג ליקוי: {_int(n_cases)} צווים מאז {years[0]}."),
+            },
         },
         "kpis": {
             "cases": {"value": n_cases, "display": _int(n_cases), "tone": "brand"},

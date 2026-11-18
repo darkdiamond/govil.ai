@@ -401,7 +401,7 @@
       color: window.GOVIL_PALETTE,
       tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
         var i = ps[0].dataIndex;
-        return s.names[i] + "<br>" + s.share[i] + "% · " + Number(s.dut[i]).toLocaleString("he-IL") + " שורות";
+        return echarts.format.encodeHTML(s.names[i]) + "<br>" + s.share[i] + "% · " + Number(s.dut[i]).toLocaleString("he-IL") + " שורות";
       } },
       grid: { left: 16, right: 32, top: 16, bottom: 24, containLabel: true },
       xAxis: { type: "value", max: 100, splitNumber: 4, axisLabel: { formatter: "{value}%" } },
@@ -463,7 +463,7 @@
     var c = echarts.init(document.getElementById("chart-cross"));
     c.setOption(window.GovEcharts.option({
       tooltip: { position: "top", formatter: function (p) {
-        return "מכס: " + h.x[p.value[0]] + "<br>מס קנייה: " + h.y[p.value[1]] + "<br>" + Number(p.value[2]).toLocaleString("he-IL") + " שורות";
+        return "מכס: " + echarts.format.encodeHTML(h.x[p.value[0]]) + "<br>מס קנייה: " + echarts.format.encodeHTML(h.y[p.value[1]]) + "<br>" + Number(p.value[2]).toLocaleString("he-IL") + " שורות";
       } },
       grid: { left: 16, right: 16, top: 16, bottom: 72, containLabel: true },
       xAxis: { type: "category", data: h.x, splitArea: { show: true }, axisLabel: { interval: 0, width: 80, overflow: "break", fontSize: 10 } },

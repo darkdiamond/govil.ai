@@ -277,7 +277,7 @@
     var c = echarts.init(document.getElementById("chart-mheat"));
     c.setOption(window.GovEcharts.option({
       tooltip: { position: "top", formatter: function (p) {
-        return h.x[p.value[0]] + " " + h.y[p.value[1]] + ": " + p.value[2].toLocaleString("he-IL");
+        return echarts.format.encodeHTML(h.x[p.value[0]]) + " " + echarts.format.encodeHTML(h.y[p.value[1]]) + ": " + p.value[2].toLocaleString("he-IL");
       } },
       grid: { left: 16, right: 16, top: 16, bottom: 72, containLabel: true },
       xAxis: { type: "category", data: h.x, splitArea: { show: true } },
@@ -362,8 +362,8 @@
     var c = echarts.init(document.getElementById("chart-theat"));
     c.setOption(window.GovEcharts.option({
       tooltip: { position: "top", formatter: function (p) {
-        var v = p.seriesIndex === 1 ? h.low_label : p.value[2].toLocaleString("he-IL");
-        return h.y[p.value[1]] + " · " + h.x[p.value[0]] + ": " + v;
+        var v = p.seriesIndex === 1 ? echarts.format.encodeHTML(h.low_label) : p.value[2].toLocaleString("he-IL");
+        return echarts.format.encodeHTML(h.y[p.value[1]]) + " · " + echarts.format.encodeHTML(h.x[p.value[0]]) + ": " + v;
       } },
       grid: { left: 16, right: 16, top: 16, bottom: 72, containLabel: true },
       xAxis: { type: "category", data: h.x, axisLabel: { rotate: 45, interval: 0 }, splitArea: { show: true } },

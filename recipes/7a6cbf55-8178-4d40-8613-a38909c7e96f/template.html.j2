@@ -502,7 +502,7 @@
     var m = {{ model.charts.moa | tojson }};
     hbar("chart-moa", m, "תכשירים", function (ps) {
       var p = ps[0];
-      return p.axisValue + "<br>" + m.desc[p.dataIndex] + "<br>" + p.value.toLocaleString("he-IL") + " תכשירים";
+      return p.axisValue + "<br>" + echarts.format.encodeHTML(m.desc[p.dataIndex]) + "<br>" + p.value.toLocaleString("he-IL") + " תכשירים";
     });
     hbar("chart-crops", {{ model.charts.crops | tojson }}, "תכשירים");
     hbar("chart-pests", {{ model.charts.pests | tojson }}, "תכשירים");
@@ -521,7 +521,7 @@
     var c = echarts.init(el);
     c.setOption(window.GovEcharts.option({
       tooltip: { position: "top", formatter: function (p) {
-        return h.y[p.value[1]] + " · " + h.x[p.value[0]] + ": " + p.value[2].toLocaleString("he-IL") + " תכשירים";
+        return echarts.format.encodeHTML(h.y[p.value[1]]) + " · " + echarts.format.encodeHTML(h.x[p.value[0]]) + ": " + p.value[2].toLocaleString("he-IL") + " תכשירים";
       } },
       grid: { left: 8, right: 8, top: 8, bottom: 56, containLabel: true },
       xAxis: { type: "category", data: h.x, splitArea: { show: true },

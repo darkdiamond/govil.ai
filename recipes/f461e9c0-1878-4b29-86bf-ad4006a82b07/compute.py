@@ -729,6 +729,12 @@ def compute(frames):
         "dataset_kind": "timeseries",
         "temporal_coverage": f"{y_min}/{y_max}",
         "spatial_coverage": stream_list,
+        "seo": {
+            "title": "איכות המים בנחלים: תוצאות ניטור לפי נחל ותחנה",
+            "description": (f"תוצאות ניטור איכות המים בנחלי ישראל לפי נחל ותחנה, {y_min} עד {y_max}: "
+                            f"BOD, אמוניום, זרחן, חנקן, קוליפורמים צואתיים וחמצן מומס."),
+            "name": "ניטור נחלים: תוצאות בדיקות איכות המים",
+        },
     }
 
     return {

@@ -678,6 +678,12 @@ def compute(frames):
                             "246d949c-a253-4811-8a11-41a137d3d613"],
             "temporal_coverage": f"{first_year}/{last_year}",
             "spatial_coverage": "ישראל",
+            "seo": {
+                "name": "רשם הירושה: בקשות לצו ירושה ולצו קיום צוואה",
+                "title": "בקשות לצו ירושה וצו קיום צוואה: נתוני רשם הירושה",
+                "description": (f"נתוני בקשות לצו ירושה ולצו קיום צוואה ברשם הירושה: {n(total)} בקשות "
+                                "לפי שנה, מחוז, סוג בקשה, סטטוס וזמן טיפול."),
+            },
         },
         "kpis": kpis,
         "kpi_order": kpi_order,

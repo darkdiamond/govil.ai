@@ -225,7 +225,7 @@
     function opt() {
       return {
         tooltip: { position: "top", formatter: function (p) {
-          return d.months[p.value[0]] + " " + d.years[p.value[1]] + ": " + p.value[2].toLocaleString("he-IL") + " הרשאות";
+          return echarts.format.encodeHTML(d.months[p.value[0]]) + " " + echarts.format.encodeHTML(d.years[p.value[1]]) + ": " + p.value[2].toLocaleString("he-IL") + " הרשאות";
         } },
         grid: { left: 8, right: 8, top: 8, bottom: 56, containLabel: true },
         xAxis: { type: "category", data: d.months, splitArea: { show: true },

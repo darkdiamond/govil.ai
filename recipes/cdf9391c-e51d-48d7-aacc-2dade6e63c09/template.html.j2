@@ -461,7 +461,7 @@
     var c2 = echarts.init(document.getElementById("chart-court-heat"));
     c2.setOption(window.GovEcharts.option({
       tooltip: { position: "top", formatter: function (p) {
-        return h.y[p.value[1]] + " · " + h.x[p.value[0]] + ": " + p.value[2].toLocaleString("he-IL") + " תיקים";
+        return echarts.format.encodeHTML(h.y[p.value[1]]) + " · " + echarts.format.encodeHTML(h.x[p.value[0]]) + ": " + p.value[2].toLocaleString("he-IL") + " תיקים";
       } },
       grid: { left: 16, right: 16, top: 16, bottom: 72, containLabel: true },
       xAxis: { type: "category", data: h.x, splitArea: { show: true } },
@@ -501,7 +501,7 @@
     var c2 = echarts.init(document.getElementById("chart-con-heat"));
     c2.setOption(window.GovEcharts.option({
       tooltip: { position: "top", formatter: function (p) {
-        return h.x[p.value[0]] + " " + h.y[p.value[1]] + ": " + p.value[2].toLocaleString("he-IL") + " חוזים";
+        return echarts.format.encodeHTML(h.x[p.value[0]]) + " " + echarts.format.encodeHTML(h.y[p.value[1]]) + ": " + p.value[2].toLocaleString("he-IL") + " חוזים";
       } },
       grid: { left: 16, right: 16, top: 16, bottom: 72, containLabel: true },
       xAxis: { type: "category", data: h.x, splitArea: { show: true } },

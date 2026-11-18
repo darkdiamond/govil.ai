@@ -738,6 +738,12 @@ def compute(frames):
             "related_ids": ["3bd97fde-6cc3-456d-ab63-1caad16b2b6a", "08645753-6d8b-4bb3-be0f-9cec2cd7557a", "6b729165-dc9c-49b3-afc6-eceabd8fef70"],
             "temporal_coverage": f"{all_years[0]}/{latest}",
             "spatial_coverage": "ישראל",
+            "seo": {
+                "name": "יישובים בישראל: קובץ היישובים וסמלי היישובים של הלמ״ס",
+                "title": "קובץ היישובים של הלמ״ס: סמלי יישובים ואוכלוסייה",
+                "description": ("רשימת היישובים בישראל וסמלי היישובים של הלמ״ס: אוכלוסייה לפי מחוז, "
+                                "צורת יישוב, מעמד מוניציפלי ומועצה אזורית, ושינויים לאורך השנים."),
+            },
         },
         "kpis": kpis,
         "kpi_order": order,

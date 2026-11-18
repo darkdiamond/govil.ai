@@ -262,7 +262,7 @@
         trigger: "axis", axisPointer: { type: "shadow" },
         formatter: function (ps) {
           const i = ps[0].dataIndex;
-          let s = "גילאי " + d.labels[i] + "<br/>" + Number(d.values[i]).toLocaleString("he-IL") + " תושבים (" + d.shares[i] + "%)";
+          let s = "גילאי " + echarts.format.encodeHTML(d.labels[i]) + "<br/>" + Number(d.values[i]).toLocaleString("he-IL") + " תושבים (" + d.shares[i] + "%)";
           if (d.widths[i]) s += "<br/>ממוצע לשנתון: " + Math.round(d.values[i] / d.widths[i]).toLocaleString("he-IL");
           return s;
         }
@@ -313,7 +313,7 @@
       tooltip: {
         position: "top",
         formatter: function (p) {
-          return echarts.format.encodeHTML(d.y[p.value[1]]) + "<br/>גילאי " + d.x[p.value[0]] + ": " + p.value[2] + "%";
+          return echarts.format.encodeHTML(d.y[p.value[1]]) + "<br/>גילאי " + echarts.format.encodeHTML(d.x[p.value[0]]) + ": " + p.value[2] + "%";
         }
       },
       grid: { left: 8, right: 16, top: 8, bottom: 64, containLabel: true },
@@ -351,7 +351,7 @@
           const v = p.value;
           return "אג״ס " + echarts.format.encodeHTML(v[3]) + ": " + echarts.format.encodeHTML(v[4]) +
             "<br/>" + Number(v[2]).toLocaleString("he-IL") + " תושבים" +
-            "<br/>" + LB.kids + ": " + v[0] + "%<br/>" + LB.old + ": " + v[1] + "%";
+            "<br/>" + echarts.format.encodeHTML(LB.kids) + ": " + v[0] + "%<br/>" + echarts.format.encodeHTML(LB.old) + ": " + v[1] + "%";
         }
       },
       grid: { left: 8, right: 24, top: 32, bottom: 40, containLabel: true },

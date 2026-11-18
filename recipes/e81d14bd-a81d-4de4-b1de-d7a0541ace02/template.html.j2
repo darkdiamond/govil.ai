@@ -215,7 +215,7 @@
       tooltip: { trigger: "axis", formatter: function (p) {
         var i = p[0].dataIndex, v = d.y[i];
         var tag = v < d.dry ? " (שנה שחונה)" : (v >= d.wet ? " (שנה גשומה)" : "");
-        return d.x[i] + "<br>" + Math.round(v) + "% מהרגיל" + tag + "<br>" + d.n[i] + " תחנות במדד, " +
+        return echarts.format.encodeHTML(d.x[i]) + "<br>" + Math.round(v) + "% מהרגיל" + tag + "<br>" + d.n[i] + " תחנות במדד, " +
           Math.round(d.above[i]) + "% מהן מעל החציון";
       } },
       grid: { left: 48, right: 16, top: 24, bottom: 72, containLabel: true },
@@ -240,7 +240,7 @@
     var c = echarts.init(document.getElementById("chart-heat"));
     c.setOption(window.GovEcharts.option({
       tooltip: { position: "top", formatter: function (p) {
-        return echarts.format.encodeHTML(d.stations[p.value[1]]) + "<br>" + d.years[p.value[0]] + ": " + p.value[2] + "% מהחציון";
+        return echarts.format.encodeHTML(d.stations[p.value[1]]) + "<br>" + echarts.format.encodeHTML(d.years[p.value[0]]) + ": " + p.value[2] + "% מהחציון";
       } },
       grid: { left: 8, right: 8, top: 8, bottom: 96, containLabel: true },
       xAxis: { type: "category", data: d.years, splitArea: { show: true } },
@@ -276,7 +276,7 @@
       tooltip: { trigger: "axis", formatter: function (p) {
         var i = p[0].dataIndex, v = d.y[i];
         var tag = d.x[i] === d.lo ? " (שפל)" : (d.x[i] === d.hi ? " (שיא)" : "");
-        return d.x[i] + "<br>" + (v === null ? "שנה חסרה או חלקית" : v.toLocaleString("he-IL") + " מיליון מ״ק" + tag);
+        return echarts.format.encodeHTML(d.x[i]) + "<br>" + (v === null ? "שנה חסרה או חלקית" : v.toLocaleString("he-IL") + " מיליון מ״ק" + tag);
       } },
       grid: { left: 40, right: 16, top: 24, bottom: 64, containLabel: true },
       xAxis: { type: "category", data: d.x },
@@ -412,7 +412,7 @@
       color: window.GOVIL_PALETTE,
       tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
         var i = p[0].dataIndex;
-        return echarts.format.encodeHTML(d.names[i]) + "<br>" + d.dates[i] + "<br>" + d.q[i].toLocaleString("he-IL") + " מ״ק בשנייה";
+        return echarts.format.encodeHTML(d.names[i]) + "<br>" + echarts.format.encodeHTML(d.dates[i]) + "<br>" + d.q[i].toLocaleString("he-IL") + " מ״ק בשנייה";
       } },
       grid: { left: 16, right: 40, top: 16, bottom: 32, containLabel: true },
       xAxis: { type: "value", name: "מ״ק בשנייה", min: 0 },

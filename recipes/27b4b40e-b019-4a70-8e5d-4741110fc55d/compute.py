@@ -356,6 +356,12 @@ def compute(frames):
                             "013bf5b9-c7ff-4282-b402-73ed20deeacc", "89fbf87e-6bc0-4e26-acc7-a288c31b12a1"],
             "temporal_coverage": as_of.strftime("%Y-%m-%d") if as_of is not None else None,
             "spatial_coverage": "ישראל",
+            "seo": {
+                "name": "סניפי ברזל",
+                "title": "סניפי ברזל: סופרמרקטים פתוחים בחירום, מפה ורשימה",
+                "description": ("מפת סניפי הברזל של רשתות המזון, הסניפים שיישארו פתוחים בשעת חירום: "
+                                "חלוקה לפי רשת ויישוב, ופיזור הסניפים בכל הארץ."),
+            },
         },
         "kpis": {
             "branches": {"value": n, "display": _int(n), "tone": "brand"},

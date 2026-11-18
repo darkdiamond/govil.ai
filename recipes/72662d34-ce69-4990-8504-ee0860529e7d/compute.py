@@ -580,6 +580,12 @@ def compute(frames):
                                "בריאות בעלי חיים", "משרד החקלאות"],
             "temporal_coverage": f"{first_year}/{ref.strftime('%Y-%m-%d')}",
             "spatial_coverage": "ישראל",
+            "seo": {
+                "name": "רופאים וטרינרים בישראל",
+                "title": "רופאים וטרינרים מורשים בישראל | מרשם ומומחיות",
+                "description": (f"מרשם הרופאים הווטרינרים בעלי רישיון בישראל לפי שנת רישוי ותחום מומחיות: "
+                                f"{n(total)} רופאים וטרינרים, מהם {n(n_spec)} בעלי מומחיות מוכרת."),
+            },
         },
         "kpis": kpis,
         "charts": charts,

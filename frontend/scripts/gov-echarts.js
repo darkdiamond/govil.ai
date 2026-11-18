@@ -8,22 +8,31 @@
 // (govdata-agent.yaml). If the palette or base config changes there,
 // change it here too — they're the single source of truth at runtime
 // and the prompt is the contract.
-;(function () {
-  'use strict';
+(function () {
+  "use strict";
 
   var GOVIL_PALETTE = [
-    '#0068f5', '#0b3668', '#6c9fd8', '#0053c4', '#0c3058',
-    '#3d70b0', '#b7d2f7', '#2658a0', '#dbe8fb', '#0c1f3d',
+    "#0068f5",
+    "#0b3668",
+    "#6c9fd8",
+    "#0053c4",
+    "#0c3058",
+    "#3d70b0",
+    "#b7d2f7",
+    "#2658a0",
+    "#dbe8fb",
+    "#0c1f3d",
   ];
 
   var base = {
     color: GOVIL_PALETTE,
-    textStyle: { fontFamily: 'Rubik, sans-serif', color: '#0c3058' },
+    textStyle: { fontFamily: "Rubik, sans-serif", color: "#0c3058" },
     tooltip: {
-      textStyle: { fontFamily: 'Rubik', color: '#0c3058' },
-      backgroundColor: '#fff',
-      borderColor: '#c3cfe7',
-      extraCssText: 'direction: rtl; box-shadow: 0 6px 24px -8px rgba(0,104,245,.18);',
+      textStyle: { fontFamily: "Rubik", color: "#0c3058" },
+      backgroundColor: "#fff",
+      borderColor: "#c3cfe7",
+      extraCssText:
+        "direction: rtl; box-shadow: 0 6px 24px -8px rgba(0,104,245,.18);",
     },
     grid: { left: 48, right: 64, top: 40, bottom: 48, containLabel: true },
   };
@@ -37,15 +46,19 @@
   function fixHbarLabels(o) {
     try {
       var ys = Array.isArray(o.yAxis) ? o.yAxis : o.yAxis ? [o.yAxis] : [];
-      var horizontal = ys.some(function (a) { return a && a.type === 'category'; });
+      var horizontal = ys.some(function (a) {
+        return a && a.type === "category";
+      });
       if (!horizontal || !o.series) return o;
       var ss = Array.isArray(o.series) ? o.series : [o.series];
       ss.forEach(function (s) {
-        if (s && s.type === 'bar' && s.label && s.label.position === 'left') {
-          s.label.position = 'right';
+        if (s && s.type === "bar" && s.label && s.label.position === "left") {
+          s.label.position = "right";
         }
       });
-    } catch (e) { /* never break a page over a label position */ }
+    } catch (e) {
+      /* never break a page over a label position */
+    }
     return o;
   }
 
@@ -60,20 +73,29 @@
       if (!o.series) return o;
       var ss = Array.isArray(o.series) ? o.series : [o.series];
       ss.forEach(function (s) {
-        if (!s || !s.label || typeof s.label.formatter !== 'function') return;
+        if (!s || !s.label || typeof s.label.formatter !== "function") return;
         var f = s.label.formatter;
         s.label.formatter = function (p) {
           var r;
-          try { r = f(p); } catch (e) { r = null; }
-          if (typeof r === 'string' && r.indexOf('[object') === -1) return r;
+          try {
+            r = f(p);
+          } catch (e) {
+            r = null;
+          }
+          if (typeof r === "string" && r.indexOf("[object") === -1) return r;
           try {
             var r2 = f(p && p.value !== undefined ? p.value : p);
-            if (typeof r2 === 'string' && r2.indexOf('[object') === -1) return r2;
-          } catch (e2) { /* fall through */ }
-          return p && p.value != null ? String(p.value) : '';
+            if (typeof r2 === "string" && r2.indexOf("[object") === -1)
+              return r2;
+          } catch (e2) {
+            /* fall through */
+          }
+          return p && p.value != null ? String(p.value) : "";
         };
       });
-    } catch (e) { /* never break a page over a label */ }
+    } catch (e) {
+      /* never break a page over a label */
+    }
     return o;
   }
 
@@ -94,7 +116,7 @@
       if (!axes.length || !o.series) return o;
       var ss = Array.isArray(o.series) ? o.series : [o.series];
       axes.forEach(function (ax, i) {
-        if (!ax || ax.type !== 'value') return;
+        if (!ax || ax.type !== "value") return;
         if (ax.scale === true || ax.min != null || ax.max != null) return;
         var vals = [];
         ss.forEach(function (s) {
@@ -103,14 +125,19 @@
           if (idx !== i) return;
           if (Array.isArray(s.data)) {
             s.data.forEach(function (v) {
-              var n = typeof v === 'number' ? v : (v && typeof v === 'object' ? Number(v.value) : NaN);
+              var n =
+                typeof v === "number"
+                  ? v
+                  : v && typeof v === "object"
+                    ? Number(v.value)
+                    : NaN;
               if (isFinite(n)) vals.push(n);
             });
           }
           // markLine thresholds also constrain the axis extent
           if (s.markLine && Array.isArray(s.markLine.data)) {
             s.markLine.data.forEach(function (ml) {
-              var n = ml && typeof ml === 'object' ? Number(ml.yAxis) : NaN;
+              var n = ml && typeof ml === "object" ? Number(ml.yAxis) : NaN;
               if (isFinite(n)) vals.push(n);
             });
           }
@@ -120,10 +147,12 @@
         var dmax = Math.max.apply(null, vals);
         var span = dmax - dmin;
         if (!(span > 0)) return;
-        var dist = dmin > 0 ? dmin : (dmax < 0 ? -dmax : 0);
+        var dist = dmin > 0 ? dmin : dmax < 0 ? -dmax : 0;
         if (dist >= 4 * span) ax.scale = true;
       });
-    } catch (e) { /* never break a page over an axis extent */ }
+    } catch (e) {
+      /* never break a page over an axis extent */
+    }
     return o;
   }
 
@@ -137,9 +166,9 @@
   // to stop tag injection in text content, and it leaves Hebrew labels with
   // quotes/gershayim (ת"א, בע"מ) intact for formatters that compare
   // `p.name === '...'` or use it as a lookup key.
-  var ESCAPED_KEYS = ['name', 'seriesName', 'axisValue', 'axisValueLabel'];
+  var ESCAPED_KEYS = ["name", "seriesName", "axisValue", "axisValueLabel"];
   function escapeText(s) {
-    return s.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    return s.replace(/</g, "&lt;").replace(/>/g, "&gt;");
   }
   // `data` and `value` can carry any dataset string (a treemap node's extra
   // fields, a sankey edge's source/target, a string slot in a value array),
@@ -149,21 +178,65 @@
   // copied only when a string below them changes, so the chart's own data is
   // never mutated and a clean (often large) data array costs one walk.
   // Numbers, null, Dates, functions and class instances pass through.
-  var DEEP_KEYS = ['data', 'value', 'treePathInfo', 'treeAncestors'];
+  var DEEP_KEYS = ["data", "value", "treePathInfo", "treeAncestors"];
   var DEEP_MAX_DEPTH = 5;
   function isPlainObject(v) {
     // Realm-independent: a literal from another frame has its own Object.prototype.
     var pr = Object.getPrototypeOf(v);
     return pr === null || Object.getPrototypeOf(pr) === null;
   }
-  function escapeDeep(v, depth) {
-    if (typeof v === 'string') return /[<>]/.test(v) ? escapeText(v) : v;
-    if (!v || typeof v !== 'object' || depth >= DEEP_MAX_DEPTH) return v;
+  // Past the depth cap a string must not slip through either. The subtree is
+  // scanned once (cycle-safe, each node visited once, the same arrays and
+  // plain objects the walk descends into): a clean one is returned as is,
+  // even when cyclic; one holding a < or > is walked to the end with the same
+  // copy-on-write escape, so Dates, NaN and class instances keep their type.
+  // A dirty subtree with a cycle can't be copied safely and is dropped
+  // (null): fail closed.
+  function scanBeyondCap(v, st, onPath, done) {
+    if (typeof v === "string") {
+      if (/[<>]/.test(v)) st.dirty = true;
+      return;
+    }
+    if (!v || typeof v !== "object") return;
+    if (!Array.isArray(v) && !isPlainObject(v)) return;
+    if (onPath.has(v)) {
+      st.cyclic = true;
+      return;
+    }
+    if (done.has(v)) return;
+    onPath.add(v);
+    var keys = Array.isArray(v) ? v : Object.keys(v);
+    for (var i = 0; i < keys.length; i++) {
+      scanBeyondCap(Array.isArray(v) ? v[i] : v[keys[i]], st, onPath, done);
+    }
+    onPath.delete(v);
+    done.add(v);
+  }
+  function escapeBeyondCap(v) {
+    if (!Array.isArray(v) && !isPlainObject(v)) return v;
+    var st = { dirty: false, cyclic: false };
+    try {
+      scanBeyondCap(v, st, new Set(), new Set());
+    } catch (e) {
+      return null;
+    }
+    if (!st.dirty) return v;
+    if (st.cyclic) return null;
+    try {
+      return escapeDeep(v, 0, true);
+    } catch (e) {
+      return null;
+    }
+  }
+  function escapeDeep(v, depth, uncapped) {
+    if (typeof v === "string") return /[<>]/.test(v) ? escapeText(v) : v;
+    if (!v || typeof v !== "object") return v;
+    if (!uncapped && depth >= DEEP_MAX_DEPTH) return escapeBeyondCap(v);
     var out = null;
     var i, e;
     if (Array.isArray(v)) {
       for (i = 0; i < v.length; i++) {
-        e = escapeDeep(v[i], depth + 1);
+        e = escapeDeep(v[i], depth + 1, uncapped);
         if (e !== v[i]) {
           if (!out) out = v.slice();
           out[i] = e;
@@ -174,7 +247,7 @@
     if (!isPlainObject(v)) return v;
     var keys = Object.keys(v);
     for (i = 0; i < keys.length; i++) {
-      e = escapeDeep(v[keys[i]], depth + 1);
+      e = escapeDeep(v[keys[i]], depth + 1, uncapped);
       if (e !== v[keys[i]]) {
         if (!out) out = Object.assign({}, v);
         out[keys[i]] = e;
@@ -183,10 +256,10 @@
     return out || v;
   }
   function escapeParam(p) {
-    if (!p || typeof p !== 'object') return p;
+    if (!p || typeof p !== "object") return p;
     var q = Object.assign({}, p);
     ESCAPED_KEYS.forEach(function (k) {
-      if (typeof q[k] === 'string') q[k] = escapeText(q[k]);
+      if (typeof q[k] === "string") q[k] = escapeText(q[k]);
     });
     DEEP_KEYS.forEach(function (k) {
       q[k] = escapeDeep(q[k], 0);
@@ -199,10 +272,19 @@
   function safeFormatter(f) {
     if (!f || f.__govSafe) return f;
     var w;
-    if (typeof f === 'function') {
-      w = function (p, ticket, cb) { return f.call(this, escapeParams(p), ticket, cb); };
-    } else if (typeof f === 'string' && window.echarts && window.echarts.format && window.echarts.format.formatTpl) {
-      w = function (p) { return window.echarts.format.formatTpl(f, escapeParams(p)); };
+    if (typeof f === "function") {
+      w = function (p, ticket, cb) {
+        return f.call(this, escapeParams(p), ticket, cb);
+      };
+    } else if (
+      typeof f === "string" &&
+      window.echarts &&
+      window.echarts.format &&
+      window.echarts.format.formatTpl
+    ) {
+      w = function (p) {
+        return window.echarts.format.formatTpl(f, escapeParams(p));
+      };
     } else {
       return f;
     }
@@ -211,26 +293,47 @@
   }
   function secureTooltip(t) {
     (Array.isArray(t) ? t : [t]).forEach(function (tt) {
-      if (tt && typeof tt === 'object' && tt.formatter) tt.formatter = safeFormatter(tt.formatter);
+      if (tt && typeof tt === "object" && tt.formatter)
+        tt.formatter = safeFormatter(tt.formatter);
     });
   }
   function asList(v) {
     return Array.isArray(v) ? v : v ? [v] : [];
   }
-  function secureItemTooltips(items) {
+  // Tree, treemap and sunburst items nest under `children`; each level may
+  // carry its own `tooltip`, at any depth. Each item is visited once, so a
+  // cyclic or shared tree can't hang the page and no level is left unwrapped.
+  function secureItemTooltips(items, seen) {
     if (!Array.isArray(items)) return;
-    items.forEach(function (d) { if (d && typeof d === 'object' && d.tooltip) secureTooltip(d.tooltip); });
+    seen = seen || new Set();
+    items.forEach(function (d) {
+      if (!d || typeof d !== "object" || seen.has(d)) return;
+      seen.add(d);
+      if (d.tooltip) secureTooltip(d.tooltip);
+      secureItemTooltips(d.children, seen);
+    });
   }
   // Top-level components that accept their own `tooltip` block.
-  var TOOLTIP_COMPONENTS = ['legend', 'toolbox', 'geo', 'xAxis', 'yAxis', 'radiusAxis', 'angleAxis',
-    'singleAxis', 'parallelAxis', 'radar', 'calendar'];
-  var MARK_KEYS = ['markPoint', 'markLine', 'markArea'];
+  var TOOLTIP_COMPONENTS = [
+    "legend",
+    "toolbox",
+    "geo",
+    "xAxis",
+    "yAxis",
+    "radiusAxis",
+    "angleAxis",
+    "singleAxis",
+    "parallelAxis",
+    "radar",
+    "calendar",
+  ];
+  var MARK_KEYS = ["markPoint", "markLine", "markArea"];
   function secureOptionTooltips(o) {
-    if (!o || typeof o !== 'object') return;
+    if (!o || typeof o !== "object") return;
     secureTooltip(o.tooltip);
     TOOLTIP_COMPONENTS.forEach(function (k) {
       asList(o[k]).forEach(function (c) {
-        if (!c || typeof c !== 'object') return;
+        if (!c || typeof c !== "object") return;
         secureTooltip(c.tooltip);
         secureItemTooltips(c.regions);
       });
@@ -242,9 +345,10 @@
       secureItemTooltips(s.nodes);
       secureItemTooltips(s.links);
       secureItemTooltips(s.edges);
+      secureItemTooltips(s.levels);
       MARK_KEYS.forEach(function (k) {
         var m = s[k];
-        if (!m || typeof m !== 'object') return;
+        if (!m || typeof m !== "object") return;
         secureTooltip(m.tooltip);
         secureItemTooltips(m.data);
       });
@@ -254,12 +358,16 @@
   // baseOption, options[] and media[].option.
   function secureTooltips(o) {
     try {
-      if (!o || typeof o !== 'object') return o;
+      if (!o || typeof o !== "object") return o;
       secureOptionTooltips(o);
       secureOptionTooltips(o.baseOption);
       asList(o.options).forEach(secureOptionTooltips);
-      asList(o.media).forEach(function (m) { if (m && typeof m === 'object') secureOptionTooltips(m.option); });
-    } catch (e) { /* never break a page over a tooltip */ }
+      asList(o.media).forEach(function (m) {
+        if (m && typeof m === "object") secureOptionTooltips(m.option);
+      });
+    } catch (e) {
+      /* never break a page over a tooltip */
+    }
     return o;
   }
 
@@ -267,11 +375,15 @@
   // `chart.setOption({...})` without GovEcharts.option. This file loads
   // right after echarts.min.js (utils/dataset-libs.ts), so window.echarts
   // is already defined here.
-  if (window.echarts && typeof window.echarts.init === 'function' && !window.echarts.init.__govSafe) {
+  if (
+    window.echarts &&
+    typeof window.echarts.init === "function" &&
+    !window.echarts.init.__govSafe
+  ) {
     var origInit = window.echarts.init;
     var patchedInit = function () {
       var chart = origInit.apply(this, arguments);
-      if (chart && !chart.__govSafe && typeof chart.setOption === 'function') {
+      if (chart && !chart.__govSafe && typeof chart.setOption === "function") {
         var origSet = chart.setOption;
         chart.setOption = function (opt) {
           var args = Array.prototype.slice.call(arguments);
@@ -290,7 +402,13 @@
   // `Object.assign({}, base, override)` but reads better at the call
   // site: `chart.setOption(GovEcharts.option({xAxis, yAxis, series}))`.
   function option(override) {
-    return secureTooltips(Object.assign({}, base, fixValueAxisScale(fixLabelFormatters(fixHbarLabels(override || {})))));
+    return secureTooltips(
+      Object.assign(
+        {},
+        base,
+        fixValueAxisScale(fixLabelFormatters(fixHbarLabels(override || {})))
+      )
+    );
   }
 
   window.GOVIL_PALETTE = GOVIL_PALETTE;

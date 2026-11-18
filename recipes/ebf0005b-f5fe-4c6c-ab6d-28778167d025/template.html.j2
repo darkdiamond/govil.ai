@@ -240,7 +240,7 @@
     var c7 = echarts.init(document.getElementById("chart-heat"));
     c7.setOption(window.GovEcharts.option({
       tooltip: { position: "top", formatter: function (p) {
-        return hm.months[p.value[1]] + " " + hm.years[p.value[0]] + ": " + p.value[2].toFixed(2);
+        return echarts.format.encodeHTML(hm.months[p.value[1]]) + " " + echarts.format.encodeHTML(hm.years[p.value[0]]) + ": " + p.value[2].toFixed(2);
       } },
       grid: { left: 64, right: 24, top: 16, bottom: 72, containLabel: true },
       xAxis: { type: "category", data: hm.years, splitArea: { show: true } },

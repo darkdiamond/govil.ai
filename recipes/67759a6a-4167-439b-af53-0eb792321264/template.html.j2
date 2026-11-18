@@ -255,7 +255,7 @@
     var c5 = echarts.init(document.getElementById("chart-svc-heat"));
     c5.setOption(window.GovEcharts.option({
       tooltip: { position: "top", formatter: function (p) {
-        return h.banks[p.value[1]] + " · " + h.services[p.value[0]] + ": " + p.value[2] + "% מתוך " + p.value[3] + " מכשירים";
+        return echarts.format.encodeHTML(h.banks[p.value[1]]) + " · " + echarts.format.encodeHTML(h.services[p.value[0]]) + ": " + p.value[2] + "% מתוך " + p.value[3] + " מכשירים";
       } },
       grid: { left: 110, right: 24, top: 16, bottom: 80, containLabel: true },
       xAxis: { type: "category", data: h.services, splitArea: { show: true }, axisLabel: { interval: 0, rotate: 30 } },

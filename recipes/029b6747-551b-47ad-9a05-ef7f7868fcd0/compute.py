@@ -303,6 +303,12 @@ def compute(frames):
             "related_ids": ["ebf84395-4784-4438-b9ca-08caf263beaf", "247efc75-31f2-4b19-bd4e-e670b1bf2783",
                             "a5b7e889-de77-4062-85e1-cf427bfbf9d1"],
             "temporal_coverage": f"{y0}/{anchor.strftime('%Y-%m-%d')}",
+            "seo": {
+                "title": "בקשות לפטנטים בישראל: הגשות, מתן ופקיעה",
+                "description": ("בקשות לפטנט שהוגשו בישראל לפי שנה: כמה הוגשו, כמה הבשילו לפטנט, "
+                                "כמה זמן לוקח מהגשה ועד מתן, וכמה פטנטים עדיין בתוקף."),
+                "name": "בקשות לפטנטים",
+            },
         },
         "kpis": {
             "applications": {"value": n_apps, "display": _int(n_apps), "tone": "brand"},

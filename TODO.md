@@ -150,15 +150,20 @@ This repo is public: describe a security gap by what to change, never by how to 
 
 ## Shared recipe code (govlib, gov.j2, page libs)
 
-- **Tooltip escaping still has gaps the runtime belt can't close.** The gov-echarts.js belt
-  escapes the params' label fields and, deeply, `data`, `value` and the tree path arrays, but
-  a string nested past its depth cap is returned unescaped, a `tooltip` set under a tree
-  node's `children` or a series' `levels` is not wrapped (no recipe sets one today), and it
-  can't reach strings a formatter reads from its own closure (the heatmap formatters'
-  `h.y[p.value[1]]`). Fix: escape past the cap instead of passing through, wrap tooltips under
-  `children`/`levels`, and for closure strings export an escape helper from gov-echarts.js, use
-  it in the formatters that append a model string (about 26 templates) and make that an
-  authoring rule. (2026-11-01)
+- **Tooltip escaping: recipes left out of the 2026-11-17 sweep.** The belt now escapes past its
+  depth cap and wraps tooltips under `children`/`levels`, and 89 templates wrap closure strings in
+  `echarts.format.encodeHTML` (authoring rule in the author-dataset skill). Not yet swept: the 40
+  recipe dirs other open PRs touched that day (#515, #516, #519, #520: the Patent Office pages,
+  14f2521f, d08d4a17, 35c791ca, 3a1ca8fa, 4eef54bc, 5265b154, a3cec603, a9d7da6b, b5dd1f5e,
+  e4c3e3d0, e6ef4310, fdf06a98, 1ba21c94 and 22 `cbs-*`), plus b2370286 (its export flips, see the
+  item about it) and 247efc75 (item below). Fix: the same wrapping, once those PRs are merged.
+  (2026-11-01, narrowed 2026-11-17)
+
+- **247efc75's page depends on row order.** `author verify` fails ORDER-DEPENDENT: the duplicate
+  removal ("27 duplicate rows removed") keeps a different row depending on input order, so a
+  reordered re-upload moves the Israel inventor count (5,847 vs 5,846) and three notes by one. Fix:
+  sort on every column before dropping duplicates, accept the one-off number change, and add its
+  seo block (verify also asks for one). (2026-11-17)
 
 ## Tags, related datasets and list pages
 

@@ -227,7 +227,7 @@
       color: window.GOVIL_PALETTE,
       tooltip: { trigger: "axis", formatter: function (ps) {
         var i = ps[0].dataIndex;
-        var t = a.x[i] + (a.x[i] === a.partial ? " (שנה חלקית)" : "");
+        var t = echarts.format.encodeHTML(a.x[i]) + (a.x[i] === a.partial ? " (שנה חלקית)" : "");
         return t + "<br>ממוצע: " + Math.round(a.mean[i]) + "<br>מינימום: " + Math.round(a.min[i]) +
           "<br>מקסימום: " + Math.round(a.max[i]) + "<br>דגימות: " + a.n[i];
       } },
@@ -274,10 +274,10 @@
       tooltip: { trigger: "item", formatter: function (p) {
         if (p.seriesType === "boxplot") {
           var b = dd.box[p.dataIndex];
-          return dd.x[p.dataIndex] + "<br>מינימום: " + b[0] + "<br>רבעון תחתון: " + b[1] +
+          return echarts.format.encodeHTML(dd.x[p.dataIndex]) + "<br>מינימום: " + b[0] + "<br>רבעון תחתון: " + b[1] +
             "<br>חציון: " + b[2] + "<br>רבעון עליון: " + b[3] + "<br>מקסימום: " + b[4];
         }
-        return dd.x[p.dataIndex] + "<br>ממוצע: " + Math.round(p.value);
+        return echarts.format.encodeHTML(dd.x[p.dataIndex]) + "<br>ממוצע: " + Math.round(p.value);
       } },
       grid: { left: 48, right: 16, top: 24, bottom: 48, containLabel: true },
       xAxis: { type: "category", data: dd.x, axisLabel: { interval: 0, rotate: 30 } },
@@ -316,7 +316,7 @@
     var c7 = echarts.init(document.getElementById("chart-heat"));
     c7.setOption(window.GovEcharts.option({
       tooltip: { position: "top", formatter: function (p) {
-        return hm.months[p.value[1]] + " " + hm.years[p.value[0]] + ": " + Math.round(p.value[2]) + " " + U;
+        return echarts.format.encodeHTML(hm.months[p.value[1]]) + " " + echarts.format.encodeHTML(hm.years[p.value[0]]) + ": " + Math.round(p.value[2]) + " " + echarts.format.encodeHTML(U);
       } },
       grid: { left: 64, right: 24, top: 16, bottom: 72, containLabel: true },
       xAxis: { type: "category", data: hm.years, splitArea: { show: true } },

@@ -296,7 +296,7 @@
     var c = echarts.init(document.getElementById("chart-heat"));
     c.setOption(window.GovEcharts.option({
       tooltip: { position: "top", formatter: function (p) {
-        return h.x[p.value[0]] + " " + h.y[p.value[1]] + ": " + p.value[2].toLocaleString("he-IL") + " היתרים";
+        return echarts.format.encodeHTML(h.x[p.value[0]]) + " " + echarts.format.encodeHTML(h.y[p.value[1]]) + ": " + p.value[2].toLocaleString("he-IL") + " היתרים";
       } },
       grid: { left: 16, right: 16, top: 16, bottom: 72, containLabel: true },
       xAxis: { type: "category", data: h.x, splitArea: { show: true }, axisLabel: { interval: 0, rotate: 45 } },
@@ -336,7 +336,7 @@
     var c2 = echarts.init(document.getElementById("chart-dm"));
     c2.setOption(window.GovEcharts.option({
       tooltip: { position: "top", formatter: function (p) {
-        return h.y[p.value[1]] + " · " + h.x[p.value[0]] + ": " + p.value[2] + "% (" + p.value[3].toLocaleString("he-IL") + " היתרים)";
+        return echarts.format.encodeHTML(h.y[p.value[1]]) + " · " + echarts.format.encodeHTML(h.x[p.value[0]]) + ": " + p.value[2] + "% (" + p.value[3].toLocaleString("he-IL") + " היתרים)";
       } },
       grid: { left: 16, right: 16, top: 16, bottom: 72, containLabel: true },
       xAxis: { type: "category", data: h.x, splitArea: { show: true }, axisLabel: { interval: 0, rotate: 45 } },
@@ -443,7 +443,7 @@
     var c = echarts.init(document.getElementById("chart-towns"));
     c.setOption(window.GovEcharts.option({
       color: window.GOVIL_PALETTE,
-      tooltip: { trigger: "item", formatter: function (p) { return p.name + " (" + t.districts[p.dataIndex] + "): " + p.value.toLocaleString("he-IL") + " היתרים"; } },
+      tooltip: { trigger: "item", formatter: function (p) { return p.name + " (" + echarts.format.encodeHTML(t.districts[p.dataIndex]) + "): " + p.value.toLocaleString("he-IL") + " היתרים"; } },
       grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
       xAxis: { type: "value" },
       yAxis: { type: "category", data: t.names, inverse: true },

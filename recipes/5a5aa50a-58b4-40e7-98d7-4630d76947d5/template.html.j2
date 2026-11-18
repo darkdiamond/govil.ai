@@ -337,7 +337,7 @@
     var c = echarts.init(document.getElementById("chart-lq"));
     c.setOption(window.GovEcharts.option({
       tooltip: { position: "top", formatter: function (p) {
-        return h.y[p.value[1]] + " · " + h.x[p.value[0]] + "<br>מדד ריכוז: " + p.value[2].toFixed(2) +
+        return echarts.format.encodeHTML(h.y[p.value[1]]) + " · " + echarts.format.encodeHTML(h.x[p.value[0]]) + "<br>מדד ריכוז: " + p.value[2].toFixed(2) +
           "<br>רישיונות: " + p.value[3].toLocaleString("he-IL");
       } },
       grid: { left: 16, right: 16, top: 16, bottom: 72, containLabel: true },
@@ -487,7 +487,7 @@
       color: window.GOVIL_PALETTE,
       tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
         var i = ps[0].dataIndex;
-        return g.names[i] + ": " + g.values[i].toLocaleString("he-IL") + " (" + g.shares[i] + "% מהסוג)";
+        return echarts.format.encodeHTML(g.names[i]) + ": " + g.values[i].toLocaleString("he-IL") + " (" + g.shares[i] + "% מהסוג)";
       } },
       grid: { left: 16, right: 56, top: 16, bottom: 24, containLabel: true },
       xAxis: { type: "value", splitNumber: 3, axisLabel: { hideOverlap: true } },

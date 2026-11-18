@@ -271,7 +271,7 @@
     var c = echarts.init(document.getElementById("chart-heat"));
     c.setOption(window.GovEcharts.option({
       tooltip: { position: "top", formatter: function (p) {
-        return h.y[p.value[1]] + " · סיווג " + h.x[p.value[0]] + ": " + p.value[2] + "% (" + p.value[3].toLocaleString("he-IL") + " רישומים)";
+        return echarts.format.encodeHTML(h.y[p.value[1]]) + " · סיווג " + echarts.format.encodeHTML(h.x[p.value[0]]) + ": " + p.value[2] + "% (" + p.value[3].toLocaleString("he-IL") + " רישומים)";
       } },
       grid: { left: 16, right: 16, top: 16, bottom: 72, containLabel: true },
       xAxis: { type: "category", data: h.x, name: "סיווג", nameLocation: "middle", nameGap: 24, splitArea: { show: true }, axisLabel: { interval: 0 } },

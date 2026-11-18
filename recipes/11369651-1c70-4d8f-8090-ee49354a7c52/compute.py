@@ -199,6 +199,12 @@ def compute(frames):
             ],
             "suggested_tags": ["נגישות", "תג נכה", "חניה", "כלי רכב", "תחבורה"],
             "temporal_coverage": f"{df['date'].min().strftime('%Y-%m-%d')}/{ref.strftime('%Y-%m-%d')}",
+            "seo": {
+                "name": "כלי רכב עם תג חניה לנכה",
+                "title": "תג חניה לנכה: בדיקת רכב לפי מספר רישוי",
+                "description": (f"בדיקה אם לרכב יש תג חניה לנכה לפי מספר רישוי: {_int(len(df))} תגים "
+                                "במאגר משרד התחבורה, עם תאריך ההנפקה וסוג התג."),
+            },
         },
         "kpis": {
             "vehicles": {"value": vehicles, "display": _int(vehicles), "tone": "brand"},

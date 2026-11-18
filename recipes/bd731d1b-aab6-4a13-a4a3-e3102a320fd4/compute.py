@@ -598,6 +598,12 @@ def compute(frames):
                            "אזורי תעשייה", "עוטף עזה"],
         "related_ids": ["4acf8b98-776e-4c36-8f98-73cc73fed623"],
         "spatial_coverage": "ישראל",
+        "seo": {
+            "name": "אזורי עדיפות לאומית ואזורי פיתוח",
+            "title": "אזורי עדיפות לאומית ואזורי פיתוח: בדיקה לפי יישוב",
+            "description": ("בדיקה אם יישוב או אזור תעשייה נמצא באזור עדיפות לאומית או באזור פיתוח, "
+                            "לפי דרגה, סוג תוכנית ונפה, כולל היסטוריית הסיווגים."),
+        },
     }
     if first_year and last_year:
         agent_data["temporal_coverage"] = f"{first_year}/{last_year}"

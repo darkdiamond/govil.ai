@@ -232,7 +232,7 @@
     var c = echarts.init(document.getElementById("chart-heat"));
     c.setOption(window.GovEcharts.option({
       tooltip: { position: "top", formatter: function (p) {
-        return h.x[p.value[0]] + " " + h.y[p.value[1]] + ": " + p.value[2].toLocaleString("he-IL") + " מינויים";
+        return echarts.format.encodeHTML(h.x[p.value[0]]) + " " + echarts.format.encodeHTML(h.y[p.value[1]]) + ": " + p.value[2].toLocaleString("he-IL") + " מינויים";
       } },
       grid: { left: 16, right: 16, top: 16, bottom: 72, containLabel: true },
       xAxis: { type: "category", data: h.x, splitArea: { show: true }, axisLabel: { interval: 0, rotate: 45 } },
@@ -273,7 +273,7 @@
     c2.setOption(window.GovEcharts.option({
       color: window.GOVIL_PALETTE,
       tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
-        return k.labels[p[0].dataIndex] + ": " + p[0].value.toLocaleString("he-IL") + " מינויים";
+        return echarts.format.encodeHTML(k.labels[p[0].dataIndex]) + ": " + p[0].value.toLocaleString("he-IL") + " מינויים";
       } },
       grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
       xAxis: { type: "value", splitNumber: 3, axisLabel: { formatter: function (v) { return (v / 1000).toLocaleString("he-IL"); } } },

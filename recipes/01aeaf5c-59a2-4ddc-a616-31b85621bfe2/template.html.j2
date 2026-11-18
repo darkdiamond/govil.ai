@@ -283,7 +283,7 @@
       var c2 = echarts.init(el);
       c2.setOption(window.GovEcharts.option({
         tooltip: { position: "top", formatter: function (p) {
-          return "שבוע " + h.y[p.value[1]] + " · יום " + h.x[p.value[0]] + ": " + p.value[2].toLocaleString("he-IL");
+          return "שבוע " + echarts.format.encodeHTML(h.y[p.value[1]]) + " · יום " + echarts.format.encodeHTML(h.x[p.value[0]]) + ": " + p.value[2].toLocaleString("he-IL");
         } },
         grid: { left: 16, right: 16, top: 16, bottom: 72, containLabel: true },
         xAxis: { type: "category", data: h.x, splitArea: { show: true } },

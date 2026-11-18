@@ -188,6 +188,12 @@ def compute(frames):
             ],
             "suggested_tags": ["ריקול", "כריות אוויר", "בטיחות בדרכים", "כלי רכב", "תחבורה"],
             "temporal_coverage": f"{df['opened'].min().strftime('%Y-%m-%d')}/{ref.strftime('%Y-%m-%d')}",
+            "seo": {
+                "name": "כלי רכב שלא ביצעו ריקול (קריאת שירות)",
+                "title": "ריקול לרכב: כלי רכב שלא ביצעו קריאת שירות",
+                "description": ("כלי הרכב שלא ביצעו תיקון ריקול חצי שנה ויותר אחרי מכתב היבואן, "
+                                "לפי סוג התקלה ושנת קריאת השירות, כולל תיקוני כריות אוויר פתוחים."),
+            },
         },
         "kpis": {
             "vehicles": {"value": vehicles, "display": _int(vehicles), "tone": "brand"},

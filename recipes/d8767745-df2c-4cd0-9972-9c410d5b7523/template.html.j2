@@ -411,7 +411,7 @@
     var c = echarts.init(document.getElementById("chart-space"));
     c.setOption(window.GovEcharts.option({
       tooltip: { position: "top", formatter: function (p) {
-        return echarts.format.encodeHTML(d.y[p.value[1]]) + ", מתחיל ב-" + d.x[p.value[0]] + ": " + p.value[2] + " כבישים";
+        return echarts.format.encodeHTML(d.y[p.value[1]]) + ", מתחיל ב-" + echarts.format.encodeHTML(d.x[p.value[0]]) + ": " + p.value[2] + " כבישים";
       } },
       grid: { left: 16, right: 16, top: 16, bottom: 64, containLabel: true },
       xAxis: { type: "category", data: d.x, name: "ספרה ראשונה", splitArea: { show: true } },

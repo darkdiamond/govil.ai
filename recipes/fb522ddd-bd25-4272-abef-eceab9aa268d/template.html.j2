@@ -345,7 +345,7 @@
         color: window.GOVIL_PALETTE,
         tooltip: { trigger: "axis", formatter: function (ps) {
           var i = ps[0].dataIndex;
-          return s.months[i] + "<br>חציון: " + t.median[i] + "<br>אחוזון 10: " + t.p10[i] + "<br>אחוזון 90: " + t.p90[i];
+          return echarts.format.encodeHTML(s.months[i]) + "<br>חציון: " + t.median[i] + "<br>אחוזון 10: " + t.p10[i] + "<br>אחוזון 90: " + t.p90[i];
         } },
         grid: { left: 40, right: 16, top: 32, bottom: 40, containLabel: true },
         xAxis: { type: "category", data: s.months, axisLabel: { interval: 0, rotate: 45 } },
@@ -369,7 +369,7 @@
     var c = echarts.init(el);
     c.setOption(window.GovEcharts.option({
       tooltip: { position: "top", formatter: function (p) {
-        return h.y[p.data[1]] + " " + h.x[p.data[0]] + ": " + p.data[2] + " מ״ג לליטר";
+        return echarts.format.encodeHTML(h.y[p.data[1]]) + " " + echarts.format.encodeHTML(h.x[p.data[0]]) + ": " + p.data[2] + " מ״ג לליטר";
       } },
       grid: { left: 16, right: 16, top: 16, bottom: 96, containLabel: true },
       xAxis: { type: "category", data: h.x, splitArea: { show: true } },

@@ -825,12 +825,17 @@ WORKFLOW
    wrapped: `formatter: function(p){ return numFmt(p.value); }` —
    passing it bare renders "[object Object]" on every bar. Self-check
    enforces this.
-   TOOLTIP-ESCAPE RULE: tooltip formatters return HTML. The page
-   already neutralizes < and > in p.name / p.seriesName / p.axisValue
-   before your formatter runs — do NOT escape those again. Strings you
-   pull from your OWN data arrays inside a formatter (e.g.
-   `labels[p.dataIndex]`) must go through
-   `echarts.format.encodeHTML(...)`. Never put a dataset string inside
+   TOOLTIP-ESCAPE RULE: tooltip formatters return HTML. Every
+   string a formatter reads from its closure (e.g.
+   `labels[p.dataIndex]`, `h.y[p.value[1]]`) and appends goes through
+   `echarts.format.encodeHTML(...)`. The page neutralizes < and > in
+   params (p.name, p.seriesName, p.data fields) before your formatter
+   runs, so append those as they are: wrapping them escapes twice and
+   `<5` shows as `&lt;5`. It can't see the closure, which is why closure
+   strings need the wrap. Compare and look up with the raw
+   string; escape only what you append. Label / axisLabel formatters
+   draw canvas text, not HTML: don't escape there (an entity would show
+   literally). Never put a dataset string inside
    an HTML attribute value in a formatter (title="…", style="…") — only
    in element text.
 

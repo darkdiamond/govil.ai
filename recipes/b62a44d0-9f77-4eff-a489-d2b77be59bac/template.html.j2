@@ -287,7 +287,7 @@
       color: window.GOVIL_PALETTE,
       tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
         var i = ps[0].dataIndex;
-        var s = d.x[i];
+        var s = echarts.format.encodeHTML(d.x[i]);
         if (d.ref_lo[i] !== null) { s += "<br/>הפניות: " + fmt(d.ref_lo[i]) + (d.ref_band[i] ? " עד " + fmt(d.ref_lo[i] + d.ref_band[i]) : ""); }
         if (d.off_lo[i] !== null) { s += "<br/>עבירות: " + fmt(d.off_lo[i]) + (d.off_band[i] ? " עד " + fmt(d.off_lo[i] + d.off_band[i]) : ""); }
         return s;

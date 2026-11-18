@@ -591,6 +591,12 @@ def compute(frames):
         "agent_data": {
             "summary_he": summary,
             "dataset_kind": "timeseries",
+            "seo": {
+                "title": "מס בלו על דלק: שיעור הבלו על בנזין וסולר לליטר",
+                "description": "כמה מס בלו משלמים על בנזין, סולר, גפ\"מ ומזוט: "
+                               "השיעור העדכני בשקלים חדשים, היסטוריית העדכונים והפער בין בנזין לסולר.",
+                "name": "מס הבלו על הדלק: שיעורי הבלו על בנזין, סולר, גפ\"מ ומזוט",
+            },
             "suggested_tags": tags,
             "related_ids": ["4dd3bb28-a4ef-4ab5-bb57-fd0bd0b79f8f",
                             "61dc38b6-803e-476e-a1ac-0679c354b2ef",

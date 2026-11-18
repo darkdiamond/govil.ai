@@ -371,6 +371,12 @@ def compute(frames):
             "suggested_tags": ["מפלס מים", "כנרת", "הידרומטריה", "משאבי מים"],
             "temporal_coverage": f"{first['d'].strftime('%Y-%m-%d')}/{last['d'].strftime('%Y-%m-%d')}",
             "spatial_coverage": "כנרת",
+            "seo": {
+                "name": "מפלס כנרת",
+                "title": "מפלס הכנרת היום: נתונים יומיים והיסטוריה",
+                "description": (f"מפלס הכנרת היום והשוואה לקווים האדומים: המפלס האחרון {m(last['lvl'])} מ', "
+                                "עם מדידות יומיות של רשות המים לאורך עשרות שנים."),
+            },
         },
         "kpis": kpis,
         "kpi_labels": kpi_labels,

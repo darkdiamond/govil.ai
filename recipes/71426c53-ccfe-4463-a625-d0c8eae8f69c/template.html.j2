@@ -295,7 +295,7 @@
       color: window.GOVIL_PALETTE,
       tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
         formatter: function (p) { var i = p[0].dataIndex;
-          return k.names[i] + ": " + k.values[i].toLocaleString("he-IL") + " (" + k.shares[i] + "%)"; } },
+          return echarts.format.encodeHTML(k.names[i]) + ": " + k.values[i].toLocaleString("he-IL") + " (" + k.shares[i] + "%)"; } },
       grid: { left: 16, right: 16, top: 32, bottom: 24, containLabel: true },
       xAxis: { type: "category", data: k.names, axisLabel: { fontSize: 11, interval: 0 } },
       yAxis: { type: "value", name: "בתי ספר" },
@@ -362,7 +362,7 @@
       c.setOption(window.GovEcharts.option({
         color: window.GOVIL_PALETTE,
         tooltip: { position: "top", formatter: function (p) {
-          return h.y[p.value[1]] + " ← " + h.x[p.value[0]] + ": " + p.value[2] + "% (" + p.value[3].toLocaleString("he-IL") + ")";
+          return echarts.format.encodeHTML(h.y[p.value[1]]) + " ← " + echarts.format.encodeHTML(h.x[p.value[0]]) + ": " + p.value[2] + "% (" + p.value[3].toLocaleString("he-IL") + ")";
         } },
         grid: { left: 16, right: 16, top: 16, bottom: 64, containLabel: true },
         xAxis: { type: "category", data: h.x, splitArea: { show: true }, axisLabel: { fontSize: 10, interval: 0, rotate: 30 } },
