@@ -387,12 +387,7 @@ def _bars_table(rows, total=None):
 
 
 def compute(frames):
-    rel = frames["releases"]
-    rel = rel[rel["RELEASE_DATE"] != ""].sort_values(["RELEASE_DATE", "RELEASE_NO"],
-                                                      kind="stable")
-    if rel.empty:
-        raise ValueError("releases: no edition listed")
-    latest_rel = rel.iloc[-1]
+    latest_rel = cbs.latest_release(frames["releases"])
 
     t2_rows, t2_h, bal = _table(frames, "t2", lambda c: _balance_cols(c, "t2"))
     _, _, usd = _table(frames, "t1", lambda c: _balance_cols(c, "t1"))

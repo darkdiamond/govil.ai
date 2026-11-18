@@ -71,6 +71,15 @@
 </section>
 {%- endif %}
 
+{%- if model.flags.dsales %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "דירות שנמכרו לפי מחוז") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.dsales_note }}</p>
+  {{ gov.chart("chart-dsales", model.labels.dsales_aria, "h-72 md:h-96") }}
+  {{ gov.table(model.labels.dsales_caption, ["מחוז", "חדשות", "יד שנייה", "סך הכל", model.labels.dsales_chg, "חלק מהמכירות"], model.tables.dsales, ltr=(1, 2, 3, 4, 5)) }}
+</section>
+{%- endif %}
+
 <section class="card p-5 mb-6">
   {{ gov.head("list", "דירות חדשות למכירה לפי מחוז") }}
   <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.district_note }}</p>
@@ -209,6 +218,26 @@
       series: [
         { type: "line", name: "נותרו למכירה", data: d.stock, showSymbol: false, lineStyle: { width: 3 }, areaStyle: { opacity: 0.12 } },
         { type: "line", name: "חודשי היצע", yAxisIndex: 1, data: d.supply, showSymbol: false, connectNulls: false }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.dsales %}
+  (function () {
+    const d = {{ model.charts.dsales | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-dsales"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[2], pal[0]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL") + " דירות" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 8, containLabel: true },
+      xAxis: { type: "value", axisLabel: { show: false }, splitLine: { show: false } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 120, overflow: "break" } },
+      series: [
+        { type: "bar", name: "חדשות", stack: "s", data: d.new },
+        { type: "bar", name: "יד שנייה", stack: "s", data: d.second }
       ]
     }));
     window.addEventListener("resize", () => chart.resize());

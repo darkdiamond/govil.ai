@@ -1,7 +1,7 @@
 {
   "contract_version": 1,
   "dataset_id": "cbs-construction-starts",
-  "recipe_version": 1,
+  "recipe_version": 2,
   "authored_at": "2026-11-05T12:00:00Z",
   "authored_against": {
     "metadata_modified": "2026-09-17T00:00:00Z",
@@ -123,8 +123,7 @@
         "RELEASE_DATE",
         "SHEET_NO",
         "ROW",
-        "C01",
-        "C02"
+        "C01"
       ]
     },
     {
@@ -135,8 +134,7 @@
         "RELEASE_DATE",
         "SHEET_NO",
         "ROW",
-        "C01",
-        "C02"
+        "C01"
       ]
     },
     {
@@ -147,8 +145,7 @@
         "RELEASE_DATE",
         "SHEET_NO",
         "ROW",
-        "C01",
-        "C02"
+        "C01"
       ]
     },
     {
@@ -159,8 +156,7 @@
         "RELEASE_DATE",
         "SHEET_NO",
         "ROW",
-        "C01",
-        "C02"
+        "C01"
       ]
     },
     {
@@ -171,8 +167,7 @@
         "RELEASE_DATE",
         "SHEET_NO",
         "ROW",
-        "C01",
-        "C02"
+        "C01"
       ]
     },
     {
@@ -183,8 +178,7 @@
         "RELEASE_DATE",
         "SHEET_NO",
         "ROW",
-        "C01",
-        "C02"
+        "C01"
       ]
     },
     {
@@ -195,8 +189,7 @@
         "RELEASE_DATE",
         "SHEET_NO",
         "ROW",
-        "C01",
-        "C02"
+        "C01"
       ]
     },
     {

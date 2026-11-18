@@ -31,42 +31,50 @@
       {
         "id": "t15",
         "name": "נתוני התרשימים בהודעה, קובץ 15",
-        "table": "t15"
+        "table": "t15",
+        "optional": true
       },
       {
         "id": "t16",
         "name": "נתוני התרשימים בהודעה, קובץ 16",
-        "table": "t16"
+        "table": "t16",
+        "optional": true
       },
       {
         "id": "t17",
         "name": "נתוני התרשימים בהודעה, קובץ 17",
-        "table": "t17"
+        "table": "t17",
+        "optional": true
       },
       {
         "id": "t18",
         "name": "נתוני התרשימים בהודעה, קובץ 18",
-        "table": "t18"
+        "table": "t18",
+        "optional": true
       },
       {
         "id": "t19",
         "name": "נתוני התרשימים בהודעה, קובץ 19",
-        "table": "t19"
+        "table": "t19",
+        "optional": true
       },
       {
         "id": "t20",
         "name": "נתוני התרשימים בהודעה, קובץ 20",
-        "table": "t20"
+        "table": "t20",
+        "optional": true
       },
       {
         "id": "t21",
         "name": "נתוני התרשימים בהודעה, קובץ 21",
-        "table": "t21"
+        "table": "t21",
+        "optional": true
       },
       {
         "id": "t22",
         "name": "נתוני התרשימים בהודעה, קובץ 22",
-        "table": "t22"
+        "table": "t22",
+        "optional": true
       },
       {
         "id": "releases",
