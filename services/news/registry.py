@@ -58,14 +58,20 @@ MIN_CATEGORIES = 3
 MAX_CHURN = 0.3        # more than this share of names changed: an unstable axis (bins, labels with counts)
 
 # KPIs over a rolling window or measured from today move on their own; their
-# move says nothing about the registry.
-_ROLLING_KPI = re.compile(r"(ytd|last|^d\d|_d\d|\d+d$|change|chg|delta|diff|yoy|mom|age|lag|days|trend|recent)",
-                          re.IGNORECASE)
+# move says nothing about the registry. Matched per word of the key (`last30`,
+# `avg_age`, `d7`), never inside one: `wage`, `managers`, `vintage` are KPIs.
+_ROLLING_WORD = re.compile(r"^(?:(?:ytd|last|change|chg|delta|diff|yoy|mom|age|lag|days?|trend|recent)"
+                           r"\d*[a-z]?|d\d+|\d+d)$")
 _OTHER = {"אחר", "אחרים", "שונות", "other", "others", "לא צוין", "לא ידוע", "ללא", "unknown"}
 _WEEKDAYS = {"ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"}
 _SEASONAL = set(MONTHS_HE) | {m[:3] + "׳" for m in MONTHS_HE} | {m[:3] + "'" for m in MONTHS_HE} | _WEEKDAYS
 _NUMERIC = re.compile(r"^[\d\s.,:/%\-–+<>≥≤()]+$")
 _COUNT_IN_LABEL = re.compile(r"\(\s*[\d,.]+")
+
+
+def _rolling(key: str) -> bool:
+    words = re.split(r"[^0-9a-z]+", re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", key).lower())
+    return any(_ROLLING_WORD.match(w) for w in words if w)
 
 
 def _named(label: str) -> bool:
@@ -169,11 +175,17 @@ def _pp(model: dict, key: str, v: float) -> float | None:
     return round(v * 100, 9) if abs(v) <= 1 and abs(shown - v * 100) <= 0.6 else None
 
 
-def _day(ts: str | None) -> str:
+def ts_date(ts: str | None) -> date | None:
+    """A snapshot stamp's (UTC) date, or None."""
     try:
-        return datetime.strptime(ts or "", model_history.TS_FORMAT).date().isoformat()
+        return datetime.strptime(ts or "", model_history.TS_FORMAT).date()
     except ValueError:
-        return (ts or "")[:10]
+        return None
+
+
+def _day(ts: str | None) -> str:
+    d = ts_date(ts)
+    return d.isoformat() if d else (ts or "")[:10]
 
 
 def _crossed(model_a: dict, model_b: dict, key: str, a: float, b: float) -> tuple[bool, dict]:
@@ -203,9 +215,10 @@ def detect_registry(dataset_id: str, latest: dict, latest_ts: str | None, base: 
     day = _day(latest_ts)
     out: list[Signal] = []
 
-    def sig(path, label, value, flag, weight, facts):
+    def sig(path, label, value, flag, weight, facts, since=base_ts):
+        # `compared_to`: the render this change is measured against (`ref` for a KPI move)
         out.append(Signal(dataset_id, path, label, "", day, day, float(value or 0), [flag], round(weight, 3),
-                          facts | {"compared_to": _day(base_ts)}, True))
+                          facts | {"compared_to": _day(since)}, True))
 
     charts_b, charts_a = latest.get("charts") or {}, base.get("charts") or {}
     seen_names, seen_leaders = _seen(list(history) + ([ref] if ref is not None else []))
@@ -215,6 +228,8 @@ def detect_registry(dataset_id: str, latest: dict, latest_ts: str | None, base: 
         if not now_c or not then_c:
             continue
         (cb, capped), (ca, capped_a) = now_c, then_c
+        if not cb or not ca:
+            continue  # nothing but "other" buckets
         capped = capped or capped_a or len(cb) == len(ca) and set(cb) != set(ca)
         new, gone = [n for n in cb if n not in ca], [n for n in ca if n not in cb]
         if (len(new) + len(gone)) > MAX_CHURN * max(len(cb), len(ca)):
@@ -256,7 +271,7 @@ def detect_registry(dataset_id: str, latest: dict, latest_ts: str | None, base: 
     if ref is not None:
         kb, ka, kr = kpi_values(latest), kpi_values(base), kpi_values(ref)
         for key, v in kb.items():
-            if _ROLLING_KPI.search(key) or key not in kr:
+            if _rolling(key) or key not in kr:
                 continue
             hit, facts = _crossed(ref, latest, key, kr[key], v)
             if not hit or (key in ka and _crossed(ref, base, key, kr[key], ka[key])[0]):
@@ -267,7 +282,7 @@ def detect_registry(dataset_id: str, latest: dict, latest_ts: str | None, base: 
                 now_v, then_v = _pp(latest, key, v), _pp(ref, key, kr[key])
             sig(f"kpi:{key}", _label(latest, key, "kpi"), now_v, KPI_MOVE, min(0.8 + size, KPI_MAX_WEIGHT),
                 facts | {"kpi": key, "display": ((latest.get("kpis") or {}).get(key) or {}).get("display"),
-                         "previous": {"period": _day(ref_ts), "value": then_v}})
+                         "previous": {"period": _day(ref_ts), "value": then_v}}, since=ref_ts)
     return out
 
 
@@ -315,7 +330,7 @@ def kpi_history_series(dataset_id: str, monthly: list[tuple[str, dict]], as_of: 
         y, m = int(ts[:4]), int(ts[4:6])
         p = Period(date(y, m, 1), _month_end(y, m), "M", f"{y}-{m:02d}")
         for key, v in kpi_values(model).items():
-            if _ROLLING_KPI.search(key):
+            if _rolling(key):
                 continue
             val = _pp(model, key, v) if _is_pct(model, key) else v
             if val is not None:

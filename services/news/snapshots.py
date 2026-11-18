@@ -136,7 +136,7 @@ class History:
     base: Snapshot | None
     fresh: bool
     first: bool | None = False
-    # (ts, ref) of every snapshot inside the window, newest first, and the
+    # (ts, ref) of every snapshot up to `upto` (the whole history), newest first, and the
     # baseline's timestamp: what registry signals load more history from.
     names: list[tuple[str, str]] = field(default_factory=list)
     base_ts: str | None = None

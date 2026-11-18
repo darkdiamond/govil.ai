@@ -182,6 +182,14 @@ This repo is public: describe a security gap by what to change, never by how to 
 
 ## News
 
+- **`kpi_move` can re-signal a KPI that hovers around its threshold.** Its "once" guard
+  compares the baseline with the current reference render, and the reference (the render
+  ≥28 days older, `registry.pick_ref`) slides forward daily, so a KPI near ±10% that dips under
+  and climbs back on different days opens a new key (`<id>|kpi:<k>|<day>`) each time and the
+  editor sees the same move again. Fix: dedupe per KPI per reference month (key period = the
+  ref's month), or require the move to clear the threshold by a margin before re-arming.
+  Watch `registry_signals` in the run summary first: it is low today. (2026-11-18)
+
 - **The writer's `fetch_url` gets HTTP 403 from www.gov.il pages.** In the 2026-11-11 explainer
   dry run, all 4 gov.il fetches (contractor classification pages, the doctors' registry service
   page) were refused, so an article can't cite or quote an official gov.il page and the attempts

@@ -56,6 +56,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from services.shared import lease, model_history, schedule
+from services.shared.env import env_float
 from services.shared.env import env_int as _env_int
 from services.shared.states import ArticleKind, NewsRunStatus, StoryResult
 
@@ -101,10 +102,7 @@ def _env_flag(name: str) -> bool:
 
 def _env_float(name: str) -> float | None:
     """A positive number, else None (unset, empty, 0 or malformed: off)."""
-    try:
-        v = float(os.environ.get(name, "").strip())
-    except ValueError:
-        return None
+    v = env_float(name, 0.0)
     return v if v > 0 else None
 
 
@@ -203,7 +201,7 @@ def find_signals(store, *, today: date, cutoff: str | None = None, upto: str | N
         signals += detect_all(cur, today, prev_map, releases=releases)
         if registries and not ds.startswith(RELEASE_PREFIXES) and prev_map is not None:
             try:
-                reg_sigs, kpi_series = _registry_signals(store, ds, h, today, cutoff)
+                reg_sigs, kpi_series = _registry_signals(store, ds, h, today)
             except Exception:
                 log.warning("news: registry signals of %s failed", ds, exc_info=True)
                 reg_errors += 1
@@ -240,49 +238,50 @@ def find_signals(store, *, today: date, cutoff: str | None = None, upto: str | N
     return signals, stats
 
 
-def _registry_signals(store, ds: str, h: History, today: date,
-                      cutoff: str | None) -> tuple[list[Signal], list[Series]]:
+def _registry_signals(store, ds: str, h: History,
+                      today: date) -> tuple[list[Signal], list[Series]]:
     """One re-rendered dataset's snapshot-diff signals and KPI-history series
     (with their own detector signals). Only same-recipe snapshots: a recipe
     change reshapes the KPIs and charts."""
     version = h.latest.recipe_version
-    loaded: dict[str, Snapshot | None] = {}
-
-    def load(ref: str) -> Snapshot | None:
-        if ref not in loaded:
-            snap = store.load(ds, ref)
-            loaded[ref] = snap if snap.recipe_version == version else None
-        return loaded[ref]
-
-    def monthly(names):
-        out = []
-        for ts, r in registry.month_picks(names):
-            if (snap := load(r)) is not None:
-                out.append((ts, snap.model))
-        return out
-
     latest_ts = h.names[0][0] if h.names else None
-    months = monthly(h.names)
+    # What the last run had seen: the baseline and every render before it. A
+    # render after the baseline but before the latest is new to us too, so it
+    # never counts as "seen before" (it would hide an entrant it introduced).
+    before = [(ts, r) for ts, r in h.names if ts and h.base_ts and ts <= h.base_ts]
+    month_all, month_before = registry.month_picks(h.names), registry.month_picks(before)
     ref_pick = registry.pick_ref(h.names, latest_ts) if latest_ts else None
-    ref = load(ref_pick[1]) if ref_pick else None
+
+    loaded: dict[str, Snapshot | None] = {h.names[0][1]: h.latest}
+    if before:   # before[0] is the baseline itself
+        loaded[before[0][1]] = h.base if h.base.recipe_version == version else None
+    todo = {r for _, r in month_all + month_before}
+    if ref_pick:
+        todo.add(ref_pick[1])
+    todo = sorted(todo - set(loaded))
+    with ThreadPoolExecutor(max_workers=REGISTRY_LOAD_WORKERS) as ex:
+        for r, snap in zip(todo, ex.map(lambda r: store.load(ds, r), todo), strict=True):
+            loaded[r] = snap if snap.recipe_version == version else None
+
+    def models(picks):
+        return [(ts, snap.model) for ts, r in picks if (snap := loaded.get(r)) is not None]
+
+    ref = loaded.get(ref_pick[1]) if ref_pick else None
     sigs = registry.detect_registry(
         ds, h.latest.model, latest_ts, h.base.model, h.base_ts,
         ref.model if ref else None, ref_pick[0] if ref else None,
-        history=[m for ts, m in months if ts not in (latest_ts, h.base_ts)])
+        history=[m for ts, m in models(month_before) if ts != h.base_ts])
 
-    cur = registry.kpi_history_series(ds, months, today)
-    before = [(ts, r) for ts, r in h.names if cutoff and ts and ts < cutoff]
-    prev = {s.path: s for s in registry.kpi_history_series(
-        ds, monthly(before), _ts_date(h.base_ts) or today)} if before else None
-    sigs += detect_all(cur, today, prev) if prev is not None else []
+    cur = registry.kpi_history_series(ds, models(month_all), today)
+    if before:
+        prev = {s.path: s for s in registry.kpi_history_series(
+            ds, models(month_before), registry.ts_date(h.base_ts) or today)}
+        sigs += detect_all(cur, today, prev)
     return sigs, cur
 
 
-def _ts_date(ts: str | None) -> date | None:
-    try:
-        return datetime.strptime(ts or "", model_history.TS_FORMAT).date()
-    except ValueError:
-        return None
+# Month-end snapshots one dataset's registry signals load at once (GCS reads).
+REGISTRY_LOAD_WORKERS = 8
 
 
 def _safe_pair(store, ds: str, cutoff: str | None, upto: str | None = None) -> History | None:

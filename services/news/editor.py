@@ -81,9 +81,11 @@ def eligible(signals: list[Signal], recent: list[dict], *, cooldown_days: int,
                        if k.count("|") >= 2 and k.split("|", 1)[0] == s.dataset_id}
             if s.period in covered:
                 continue  # the same release, retold from another series
-            last = max(cooling, key=lambda a: published_at(a) or now)
+            # every cooling article has a readable timestamp (it passed the window check)
+            last_ts, last = max(((published_at(a), a) for a in cooling), key=lambda p: p[0])
+            # with its UTC offset: "an hour ago" must not read as three
             s.facts["follows_article"] = {"headline": last.get("headline"),
-                                          "published_at": str(last.get("published_at"))[:16]}
+                                          "published_at": last_ts.isoformat(timespec="minutes")}
         out.append(s)
     return out
 

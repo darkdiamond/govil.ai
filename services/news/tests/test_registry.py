@@ -234,3 +234,36 @@ def test_env_float_parses_or_turns_off(monkeypatch):
         monkeypatch.setenv("NEWS_BREAKING_SURPRISE", raw)
         assert run._env_float("NEWS_BREAKING_SURPRISE") == want
     assert registry.REGISTRY_FLAGS == {"new_entrant", "exit", "leader_change", "kpi_move"}
+
+
+# ── review fixes ────────────────────────────────────────────────────────
+
+def test_rolling_kpis_match_whole_words_only():
+    assert all(registry._rolling(k) for k in ("ytd", "last30", "avg_age", "d7", "30d", "pct_change",
+                                              "lastMonth", "days_open"))
+    assert not any(registry._rolling(k) for k in ("wage", "avg_wage", "managers", "vintage",
+                                                  "stages", "agency", "active"))
+
+
+def test_kpi_move_is_compared_to_the_reference_render():
+    ref = _model(kpis={"active": {"value": 100, "display": "100"}})
+    base = _model(kpis={"active": {"value": 95, "display": "95"}})
+    latest = _model(kpis={"active": {"value": 85, "display": "85"}})
+    [s] = detect_registry("ds", latest, "20261117T080000Z", base, "20261116T080000Z",
+                          ref, "20261020T080000Z")
+    assert s.facts["compared_to"] == "2026-10-20" == s.facts["previous"]["period"]
+
+
+def test_a_list_of_only_other_buckets_is_skipped():
+    other = _model(names=["אחר", "אחרים", "שונות"], values=(3, 2, 1))
+    assert detect_registry("ds", other, "t", other, "x") == []
+
+
+def test_an_entrant_from_an_unseen_render_in_the_window_still_signals(tmp_path):
+    with_eilat = {"names": CITIES + ["אילת"], "values": (50, 40, 30, 20, 10, 2)}
+    _snap(tmp_path, "reg", "20261031T080000Z", _model())                      # baseline (seen)
+    _snap(tmp_path, "reg", "20261031T200000Z", _model(**with_eilat))         # October's last render, unseen
+    _snap(tmp_path, "reg", "20261101T090000Z", _model(**with_eilat))         # latest
+    on, _ = run.find_signals(LocalSnapshots(tmp_path), today=date(2026, 11, 1),
+                             cutoff="20261031T100000Z", workers=2, registries=True)
+    assert [s.flags for s in on] == [["new_entrant"]]
