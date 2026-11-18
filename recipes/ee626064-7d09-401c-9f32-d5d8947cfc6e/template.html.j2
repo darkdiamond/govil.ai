@@ -26,7 +26,7 @@
 {{ gov.insights(model.insights) }}
 
 <section class="card p-5 mb-6">
-  {{ gov.head("map-pin", "מפת שיקום שכונות ומחוזות משרד הבינוי והשיכון") }}
+  {{ gov.head("map-pin", "מפת שיקום שכונות, מחיר למשתכן ומחוזות משרד הבינוי והשיכון") }}
   <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.map_note }}</p>
   <div id="map-layers" class="h-80 md:h-[460px]" role="region" aria-label="{{ model.labels.map_aria }}" data-fallback="explorer"></div>
   <ul id="map-legend" class="flex flex-wrap gap-x-4 gap-y-2 mt-3 mb-0 ps-0 list-none text-sm text-subtle"></ul>
@@ -81,12 +81,24 @@
   </details>
 </section>
 
+{% if model.flags.dira %}
+<h2 class="text-xl font-semibold text-ink-deep mb-4">מחיר למשתכן: פרויקטים והגרלות</h2>
+
+{% if model.flags.dira_years %}
+{{ chart_section("chart-dira-years", "database", "דירות בהגרלות לפי שנת פתיחת ההרשמה", model.labels.dira_years_note, model.labels.dira_years_aria, model.labels.dira_years_cap, model.tables.dira_years) }}
+{% endif %}
+
+{{ chart_section("chart-dira-towns", "building-2", "היישובים עם הכי הרבה דירות במחיר למשתכן", model.labels.dira_towns_note, model.labels.dira_towns_aria, model.labels.dira_towns_cap, model.tables.dira_towns, "h-72 md:h-96") }}
+
+{{ chart_section("chart-dira-price", "tag", "מחיר למ״ר בהגרלות", model.labels.dira_price_note, model.labels.dira_price_aria, model.labels.dira_price_cap, model.tables.dira_price, "h-64 md:h-80") }}
+{% endif %}
+
 <section class="card p-5 mb-6">
   {{ gov.head("info", "על השכבות בקובץ") }}
-  <p class="m-0 text-sm text-subtle">המאגר כולל ארבע שכבות בפורמט Shapefile: גבולות אזורי שיקום השכונות, מבני תוכנית שיפוץ המבנים, מחוזות המשרד ושכבות מחיר למשתכן. שכבות מחיר למשתכן ארוזות כקבצים דחוסים בתוך קובץ דחוס, ולכן אינן מוצגות בעמוד זה; אפשר להוריד אותן מרשימת הקבצים. משמעות השדות בשכבת שיפוץ המבנים לקוחה ממסמך המקרא המצורף למאגר.</p>
+  <p class="m-0 text-sm text-subtle">המאגר כולל ארבע שכבות בפורמט Shapefile: גבולות אזורי שיקום השכונות, מבני תוכנית שיפוץ המבנים, מחוזות המשרד ושכבות מחיר למשתכן. קובץ מחיר למשתכן אורז כמה שכבות: פרויקטים, מגרשים, תוכניות ומרכזי יישובים. בעמוד זה מוצגת שכבת הפרויקטים וההגרלות שלהם; את שאר השכבות אפשר להוריד מרשימת הקבצים. משמעות השדות בשכבת שיפוץ המבנים לקוחה ממסמך המקרא המצורף למאגר.</p>
 </section>
 
-{%- for key in ["d", "h", "r"] %}
+{%- for key in ["d", "h", "r", "m"] %}
 {%- for chunk in model.map[key] %}
 <script type="application/json" id="map-{{ key }}-{{ loop.index0 }}">{{ chunk | tojson }}</script>
 {%- endfor %}
@@ -131,18 +143,33 @@
       L.circleMarker(pt(f[8], f[9]), { radius: 3.5, stroke: false, fillColor: c, fillOpacity: 0.9 }).bindPopup(info).addTo(bDots);
     });
     var bld = L.layerGroup();
+    var famColor = ["#0c1f3d", "#2658a0", "#6c757d"];
+    function fColor(i) { return famColor[Math.min(i, famColor.length - 1)]; }
+    var pShapes = L.featureGroup(), pDots = L.featureGroup();
+    feats("m").forEach(function (f) {
+      var info = popup(f[1], [["יישוב", f[2]], ["שיטת שיווק", M.mkts[f[7]]], ["יזם", f[3]], ["הגרלות", f[4] > 0 ? num(f[4]) : ""],
+        ["דירות", num(f[5])], ["מחיר למ״ר", f[6] ? f[6] + " ₪" : ""], ["שלב", M.stages[f[8]]]]);
+      var c = fColor(f[0]);
+      L.polygon(polys(f[11]), { color: c, weight: 1.5, fillColor: c, fillOpacity: 0.35 }).bindPopup(info).addTo(pShapes);
+      L.circleMarker(pt(f[9], f[10]), { radius: 3.5, color: c, weight: 1.5, fillColor: "#ffffff", fillOpacity: 0.9 }).bindPopup(info).addTo(pDots);
+    });
+    var dira = L.layerGroup();
     function syncBuildings() {
       var near = map.getZoom() >= 16;
       bld.clearLayers();
       bld.addLayer(near ? bShapes : bDots);
+      dira.clearLayers();
+      dira.addLayer(map.getZoom() >= 15 ? pShapes : pDots);
     }
     dist.addTo(map);
+    if (M.fams.length) { dira.addTo(map); }
     hoods.addTo(map);
     bld.addTo(map);
     var overlays = {};
     overlays["מחוזות"] = dist;
     overlays["אזורי שיקום"] = hoods;
     overlays["מבני תוכנית השיפוץ"] = bld;
+    if (M.fams.length) { overlays["מחיר למשתכן"] = dira; }
     L.control.layers(null, overlays, { collapsed: window.innerWidth < 640 }).addTo(map);
     map.on("zoomend", syncBuildings);
     map.fitBounds(M.bounds, { padding: [8, 8] });
@@ -163,6 +190,9 @@
     });
     M.statuses.forEach(function (s, i) {
       item("width:10px;height:10px;border-radius:50%;background:" + stColor(i), "מבנה: " + s);
+    });
+    M.fams.forEach(function (s, i) {
+      item("width:10px;height:10px;border-radius:50%;border:2px solid " + fColor(i) + ";background:#ffffff", "פרויקט " + s);
     });
     item("width:18px;height:12px;border:2px dashed #0b3668;border-radius:2px", "גבול מחוז");
   })();
@@ -234,6 +264,12 @@
     window.__stack("chart-apts", {{ model.charts.apts | tojson }});
     var F = {{ model.charts.floors | tojson }};
     if (document.getElementById("chart-floors")) { window.__stack("chart-floors", F); }
+    var DY = {{ (model.charts.dira_years or {}) | tojson }};
+    if (document.getElementById("chart-dira-years")) { window.__stack("chart-dira-years", DY); }
+    var DT = {{ (model.charts.dira_towns or {}) | tojson }};
+    if (document.getElementById("chart-dira-towns")) { window.__hbar("chart-dira-towns", DT.names, DT.values, "דירות"); }
+    var DP = {{ (model.charts.dira_price or {}) | tojson }};
+    if (document.getElementById("chart-dira-price")) { window.__stack("chart-dira-price", DP); }
     var S = {{ model.charts.streets | tojson }};
     if (document.getElementById("chart-streets")) {
       window.__stack("chart-streets", { cats: S.names, names: ["שופצו", "טרם שופצו"], tones: ["ok", "warn"], series: [S.done, S.rest] }, { horizontal: true });

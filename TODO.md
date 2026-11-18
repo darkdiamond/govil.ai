@@ -74,20 +74,11 @@ This repo is public: describe a security gap by what to change, never by how to 
   measurement), full-CSV downloads, the engaged-session rate (64%), and GSC CTR for those
   queries. If links get clicked, find other datasets with URL columns worth the same card.
   (2026-11-15)
-- **Add the מחיר למשתכן layer to ee626064.** Its fourth layer (`gis_dira.zip`, 9.2MB) is a zip
-  of `Lots_view.zip`, `Plans_view.zip`, `Projects_view.zip` and `Settelments_Centroid_view.zip`,
-  which `geo_snapshot` now opens one level down. Add a `mehir` map input (with `map_member`
-  naming the layer to read), drop the fixed copy that says the layer is skipped, and bump
-  `recipe_version`, after the builder redeploy. (2026-11-04)
 - **Top-100 legacy map pages that the snapshot path can't serve.** חלקות (dff8a168, 667MB SHP)
   is a national layer far over the 100MB download cap; it would need a pre-aggregation step
   (the גושים/תצ"ר recipes reduce each polygon to a centroid in compute, but the file must still
   download and convert). הגבולות המשטרתיים (d01a5ee3) and קדסטר במבנה חדש (bd74ce49) ship an Esri FileGDB, which
   `read_map_file` can't read and there is no GDAL locally. (2026-10-31)
-- **Switch ab746a13 to `pick: "latest_year"`.** It picks by `last_modified`, so a re-upload of a
-  closed year flips the page to that year. `latest_year` exists now (concat of its 5 matching
-  years is ~4.3M rows, too big); switch and bump `recipe_version` after the builder redeploy.
-  (2026-10-31)
 - **4eef54bc still joins authorities by name.** Its authority-code columns (`קוד_רשות`,
   `קוד_למס`) swap meaning between report years, so compute joins years on the name, folded for
   quote, hyphen and space drift. A real rename (a new spelling, a merger) still splits an
@@ -108,11 +99,6 @@ This repo is public: describe a security gap by what to change, never by how to 
   killer, but its exported CSVs sit in the same memory (`/tmp` is RAM on Cloud Run). If heavy
   recipes multiply, give them their own job execution with more memory (filter on
   `manifest.heavy`) rather than raising the shared job's `--memory`. (2026-10-30)
-- **Give 65dafbb0's map input `columns`.** The תצ"ר layer converts to 49.2MB at tolerance 2e-5,
-  near the 50MB `map_max_kb` ceiling (its floor is 37.6MB), and about a third more plans fails it
-  `too_large`. Most of the bytes are properties the recipe never reads (TALAR_COMM, the ITM
-  bounding box, dates). A map input now takes `columns`, which drop properties before sizing:
-  list the ones the recipe reads, after the builder redeploy. (2026-11-06)
 
 - **The local permission allowlist is broad for an unattended routine.** The gitignored
   `.claude/settings.local.json`, copied into every worktree by `.worktreeinclude`, pre-approves
