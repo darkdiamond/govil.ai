@@ -29,6 +29,7 @@ from pathlib import Path
 from services.shared.states import ArticleKind
 
 from . import gates
+from .registry import REGISTRY_FLAGS
 from .signals import is_release
 from .tools import SUBMIT_SPEC, TOOL_SPECS, Toolbox
 
@@ -72,15 +73,19 @@ def seed_facts(tb: Toolbox, brief: dict) -> list[dict]:
                 if lbl in pts:
                     p, v = pts[lbl]
                     entry[name] = {"period": lbl, "value": v, "fact": tb.point_fact(s, p, v)}
-        for k in ("change_pct", "yoy_pct", "yoy", "change"):
+        elif set(sig.flags) & REGISTRY_FLAGS:
+            entry.update(_registry_seeds(tb, sig))
+        for k in ("change_pct", "yoy_pct", "yoy", "change", "change_pp"):
             v = sig.facts.get(k)
             if isinstance(v, int | float) and not isinstance(v, bool):
                 entry[k] = {"value": v, "fact": tb.ledger.add(
                     v, label=f"{k} · {sig.label or sig.series_path} · {sig.period}",
-                    provenance=f"signal:{sig.key}:{k}", unit="pct" if k.endswith("pct") else None,
+                    provenance=f"signal:{sig.key}:{k}",
+                    unit="pct" if k.endswith(("pct", "pp")) else None,
                     period=sig.period, dataset_id=sig.dataset_id).id}
         for k in ("high_since", "low_since", "record_high", "record_low", "streak",
-                  "rank_high", "rank_low", "n_periods", "first_period", "suspect_incomplete"):
+                  "rank_high", "rank_low", "n_periods", "first_period", "suspect_incomplete",
+                  "follows_article"):
             if k in sig.facts:
                 entry[k] = sig.facts[k]
         if isinstance(entry.get("streak"), int):
@@ -88,6 +93,42 @@ def seed_facts(tb: Toolbox, brief: dict) -> list[dict]:
                                                  provenance=f"signal:{sig.key}:streak").id
         entry["linked"] = sig.links
         out.append(entry)
+    return out
+
+
+def _registry_seeds(tb: Toolbox, sig) -> dict:
+    """Facts for a snapshot-diff signal (`registry.py`), which has no series
+    to read its numbers from: the KPI now and at the comparison render, and
+    each named entrant's, leaver's or leader's count."""
+    f, out = sig.facts, {}
+    pct = "pct" if f.get("unit") == "pct_points" else None
+
+    def add(v, label, tag, unit=None):
+        return tb.ledger.add(v, label=label, provenance=f"signal:{sig.key}:{tag}", unit=unit,
+                             period=sig.period, dataset_id=sig.dataset_id).id
+
+    if "kpi_move" in sig.flags:
+        prev = f.get("previous") or {}
+        out["latest"] = {"date": sig.period, "value": sig.value,
+                         "fact": add(sig.value, f"{sig.label} · {sig.period}", "latest", pct)}
+        if isinstance(prev.get("value"), int | float):
+            out["previous"] = {"date": prev.get("period"), "value": prev["value"],
+                               "fact": add(prev["value"], f"{sig.label} · {prev.get('period')}",
+                                           "previous", pct)}
+    for group, vkey in (("entrants", "value"), ("exits", "value_then")):
+        if f.get(group):
+            out[group] = [e | ({"fact": add(e[vkey], f"{sig.label} · {e['name']}", f"{group}:{e['name']}")}
+                               if isinstance(e.get(vkey), int | float) else {})
+                          for e in f[group]]
+    if f.get("leader"):
+        ld, pl = f["leader"], f.get("previous_leader") or {}
+        out["leader"] = ld | {"fact": add(ld["value"], f"{sig.label} · {ld['name']}", "leader")}
+        if isinstance(pl.get("value_now"), int | float):
+            out["previous_leader"] = pl | {"fact": add(pl["value_now"], f"{sig.label} · {pl['name']}",
+                                                       "previous_leader")}
+    for k in ("chart", "kpi", "display", "compared_to", "top_n_list", "n_categories"):
+        if k in f:
+            out[k] = f[k]
     return out
 
 

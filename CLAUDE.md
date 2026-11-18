@@ -582,6 +582,24 @@ catalog` lists chapters → subjects → codes.
      explainers' 60-day dataset cooldown and 7-day reject rule, and never goes
      into the digest pool. Its catalog entry comes from the source doc, since
      the deployed catalog lags a first render.
+   - **registries** (`NEWS_REGISTRY_SIGNALS`, code off, prod on; `registry.py`): a
+     list of entities has no newest period, so outside the CBS/BoI releases a
+     re-render is also diffed against the one the last run saw: `new_entrant` /
+     `exit` (a named entry of a complete breakdown; a top-N list's newcomer is
+     only a rank change and never counts, nor a name seen in an earlier month-end
+     snapshot), `leader_change`, and `kpi_move` (a KPI ≥10% and ≥5 units, or
+     ≥3 points, off the render ≥28 days older, once, when it crosses; rolling
+     KPIs like `ytd`/`last30` skipped). Weaker than any record; never breaking.
+     Each KPI's month-end values also become `kpi_history.<k>` monthly series
+     for the ordinary detectors (history began 2026-11-09, so they wait on
+     `MIN_HISTORY`). It loads up to 25 month-end snapshots per re-rendered
+     dataset.
+   - **breaking news** (`NEWS_BREAKING_SURPRISE`, code off, prod 2.5): a signal
+     that surprising (a record, a rate decision, a z ≥ 5 move; not
+     `suspect_incomplete`, not a release/new-dataset/registry flag) skips its
+     dataset's event cooldown, however recent the last article, unless an
+     article in the cooldown already used its period. It carries
+     `follows_article`, and editor and writer treat it as a follow-up.
    - **/news/ is a front page** (`frontend/utils/news-front.ts`): today's edition,
      the digest band, news, analyses, topic desks (≥3 stories), then the archive.
      It leans on two things the job guarantees: every `news`/`feature` story has

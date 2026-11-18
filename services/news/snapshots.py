@@ -7,7 +7,7 @@ timestamped object is the latest.
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date, datetime
 from pathlib import Path
 
@@ -136,6 +136,10 @@ class History:
     base: Snapshot | None
     fresh: bool
     first: bool | None = False
+    # (ts, ref) of every snapshot inside the window, newest first, and the
+    # baseline's timestamp: what registry signals load more history from.
+    names: list[tuple[str, str]] = field(default_factory=list)
+    base_ts: str | None = None
 
 
 def history(store, dataset_id: str, cutoff: str | None, upto: str | None = None) -> History:
@@ -156,7 +160,8 @@ def history(store, dataset_id: str, cutoff: str | None, upto: str | None = None)
     else:
         first = len(names) == 1
     if cutoff:
-        base = next((ref for ts, ref in names[1:] if ts and ts < cutoff), None)
+        base_ts, base = next(((ts, ref) for ts, ref in names[1:] if ts and ts < cutoff), (None, None))
     else:
-        base = names[1][1] if len(names) > 1 else None
-    return History(latest, (store.load(dataset_id, base) if base else None), True, first)
+        base_ts, base = names[1] if len(names) > 1 else (None, None)
+    return History(latest, (store.load(dataset_id, base) if base else None), True, first,
+                   names, base_ts or None)

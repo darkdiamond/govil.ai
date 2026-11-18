@@ -32,7 +32,8 @@ Say NO to:
   totals, tiny bases (a "record" of 3 vs 2), reclassifications;
 - niche registries with no public interest, however unusual the number;
 - anything covered by a recent article (listed) unless the new data changes the story;
-- the same dataset twice in one day.
+- the same dataset twice in one day, unless the signal carries `follows_article`
+  (see below).
 
 Prefer:
 
@@ -59,6 +60,27 @@ headline's brief as supporting detail, not a story of its own; skip it alone
 only when the headline itself isn't among the signals and it has no public
 interest of its own. A real anomaly in the same release still leads, with the
 headline figure as context.
+
+A signal whose facts carry `follows_article` is breaking: it is strong (a
+record, a rate decision, a move far outside the usual) and its data is newer
+than what that article (headline and time given) reported, so it passed our
+usual pause between two stories on one dataset, even if that article went out
+an hour ago. Run it when the new data is a development of its own, as a
+follow-up that says what changed since; skip it when it only retells the
+same story.
+
+Signals flagged `new_entrant`, `exit`, `leader_change` or `kpi_move` come from
+registries and lists (licensed businesses, a product catalog, industrial
+zones): datasets with no time series, where the news is how the list changed
+between two of our snapshots (`compared_to` is the earlier snapshot's date).
+`new_entrant` / `exit`: a named entry joined or left a breakdown (a new
+manufacturer, a city that now appears), with its count; `leader_change`: a
+breakdown has a new top entry; `kpi_move`: a headline number of the list
+moved past a threshold against the snapshot of `previous.period`. These
+are stories when the change itself matters to readers (a new vaccine in the
+catalog, a city losing its last licensed clinic, a sharp drop in active
+licences), not when it is clerical churn in a niche list. They rank below
+real records and anomalies; judge them on public interest.
 
 A signal flagged `new_dataset` is not a change in numbers: a dataset just
 appeared on our site for the first time, recently published by its source.

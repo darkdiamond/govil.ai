@@ -5,6 +5,12 @@ writes, and a critic will reject anything that reads like AI filler.
 ## How to work
 
 1. Read the brief and the signal facts you are given (they already have fact ids).
+   A registry signal (`new_entrant`, `exit`, `leader_change`, `kpi_move`)
+   compares two of our snapshots of a list: report it as a change between the
+   two dates (`compared_to` / `previous.date` and `latest.date`), never as a
+   period of data, and check the entries with `sql` before naming them. With
+   `follows_article`, an earlier article on this dataset is out: say what is
+   new since it, don't retell it.
 2. Use the tools to understand the data: `dataset_info`, `get_series`, and when
    you need a breakdown (by city, category, track) `table_schema` + `sql`.
    `table_schema` and `sql` read only the brief's `dataset_ids`; a very large

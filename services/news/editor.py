@@ -16,6 +16,7 @@ from pathlib import Path
 
 from services.shared.states import ArticleKind
 
+from .registry import REGISTRY_FLAGS
 from .signals import Signal, is_new_dataset
 from .store import published_at
 
@@ -43,24 +44,61 @@ def rejected_signal_keys(rejects: list[dict]) -> set[str]:
 
 
 def eligible(signals: list[Signal], recent: list[dict], *, cooldown_days: int,
-             now: datetime | None = None, rejected_keys: set[str] = frozenset()) -> list[Signal]:
+             now: datetime | None = None, rejected_keys: set[str] = frozenset(),
+             breaking_surprise: float | None = None) -> list[Signal]:
     """Signals whose dataset isn't in cooldown and whose key isn't used yet
     (nor in `rejected_keys`, see `rejected_signal_keys`).
     Only news articles start a cooldown: an explainer or a digest line about a
     dataset must not keep its next real move off the page (their signal keys
     still count as used). And only the datasets a story was ABOUT cool down
     (`cooled_datasets`), not the ones it drew on for context: a rate story
-    citing housing deals must not hold back the next housing record."""
+    citing housing deals must not hold back the next housing record.
+
+    Breaking news beats the cooldown: with `breaking_surprise`, a signal at
+    least that surprising (`is_breaking`) on a period no cooling article has
+    covered for its dataset stays eligible, however recent that article. It
+    carries `facts["follows_article"]` (the newest one) so the editor can tell
+    a real development from a rerun."""
     now = now or datetime.now(UTC)
     used = {k for a in recent for k in a.get("signal_keys") or []} | set(rejected_keys)
-    cool = set()
+    cool: dict[str, list[dict]] = {}
     for a in recent:
         if (a.get("kind") or ArticleKind.NEWS) != ArticleKind.NEWS:
             continue
         ts = published_at(a)
         if ts and now - ts < timedelta(days=cooldown_days):
-            cool.update(cooled_datasets(a))
-    return [s for s in signals if s.key not in used and s.dataset_id not in cool]
+            for d in cooled_datasets(a):
+                cool.setdefault(d, []).append(a)
+    out = []
+    for s in signals:
+        if s.key in used:
+            continue
+        cooling = cool.get(s.dataset_id)
+        if cooling:
+            if breaking_surprise is None or not is_breaking(s, breaking_surprise):
+                continue
+            covered = {k.split("|")[2] for a in cooling for k in _strs(a.get("signal_keys"))
+                       if k.count("|") >= 2 and k.split("|", 1)[0] == s.dataset_id}
+            if s.period in covered:
+                continue  # the same release, retold from another series
+            last = max(cooling, key=lambda a: published_at(a) or now)
+            s.facts["follows_article"] = {"headline": last.get("headline"),
+                                          "published_at": str(last.get("published_at"))[:16]}
+        out.append(s)
+    return out
+
+
+# Flags that never make a signal breaking on their own: routine releases, a
+# new dataset, and the snapshot diffs of a registry (`registry.py`).
+NOT_BREAKING = {"new_release", "new_dataset", "year_closed"} | REGISTRY_FLAGS
+
+
+def is_breaking(s: Signal, threshold: float) -> bool:
+    """Surprising enough to publish even while its dataset is in cooldown:
+    `surprise` ≥ threshold (a record, a rate decision, a z ≥ 5 move), not a
+    possibly half-loaded period, and led by a real move."""
+    return (s.surprise >= threshold and not s.facts.get("suspect_incomplete")
+            and bool(s.flags) and s.flags[0] not in NOT_BREAKING)
 
 
 def cooled_datasets(article: dict) -> set[str]:

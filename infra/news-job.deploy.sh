@@ -70,6 +70,12 @@ NEWS_DIGEST_HOUR=${NEWS_DIGEST_HOUR-7}
 # A dataset's first render, created at its source in the last
 # NEWS_NEW_DATASET_DAYS (code default 30), signals `new_dataset` (an explainer).
 NEWS_NEW_DATASET_SIGNALS=${NEWS_NEW_DATASET_SIGNALS:-true}
+# Registries and lists signal too: snapshot diffs (a new entry, an exit, a new
+# leader, a KPI past a threshold) and monthly KPI history (services/news/registry.py).
+NEWS_REGISTRY_SIGNALS=${NEWS_REGISTRY_SIGNALS:-true}
+# A signal at least this surprising on new data skips its dataset's cooldown
+# (a record 3.0, a rate decision 2.5, a z>=5 move); empty or 0 = off.
+NEWS_BREAKING_SURPRISE=${NEWS_BREAKING_SURPRISE-2.5}
 PUBLISH_GITHUB_REPO=${PUBLISH_GITHUB_REPO:-darkdiamond/govil.ai}
 PUBLISH_BRANCH=${PUBLISH_BRANCH:-main}
 
@@ -111,6 +117,8 @@ ENV_PAIRS=(
   "NEWS_DIGEST_WEEKDAY=${NEWS_DIGEST_WEEKDAY}"
   "NEWS_DIGEST_HOUR=${NEWS_DIGEST_HOUR}"
   "NEWS_NEW_DATASET_SIGNALS=${NEWS_NEW_DATASET_SIGNALS}"
+  "NEWS_REGISTRY_SIGNALS=${NEWS_REGISTRY_SIGNALS}"
+  "NEWS_BREAKING_SURPRISE=${NEWS_BREAKING_SURPRISE}"
   "PUBLISH_GITHUB_REPO=${PUBLISH_GITHUB_REPO}"
   "PUBLISH_BRANCH=${PUBLISH_BRANCH}"
   "PROVIDER_BOI_SDMX_ENABLED=true"
