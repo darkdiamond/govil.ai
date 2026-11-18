@@ -255,7 +255,7 @@
       tooltip: {
         trigger: "item",
         confine: true,
-        formatter: function (p) { return p.name + ": " + p.value + " מדינות<br>" + s.lists[p.dataIndex]; },
+        formatter: function (p) { return p.name + ": " + p.value + " מדינות<br>" + echarts.format.encodeHTML(s.lists[p.dataIndex]); },
         extraCssText: "max-width:280px;white-space:normal;"
       },
       grid: { left: 16, right: 32, top: 16, bottom: 16, containLabel: true },

@@ -185,7 +185,7 @@
     chart.setOption(window.GovEcharts.option({
       tooltip: { trigger: "axis", formatter: function (p) {
         const i = p[0].dataIndex;
-        return d.x[i] + " ₪: " + d.y[i] + " סעיפים" + (d.hl[i] ? " (התעריף הנפוץ)" : "");
+        return echarts.format.encodeHTML(d.x[i]) + " ₪: " + d.y[i] + " סעיפים" + (d.hl[i] ? " (התעריף הנפוץ)" : "");
       } },
       grid: { left: 16, right: 16, top: 24, bottom: 40, containLabel: true },
       xAxis: { type: "category", data: d.x, name: "₪", axisLabel: { interval: 0, rotate: 45 } },

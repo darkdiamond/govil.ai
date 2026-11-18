@@ -1,11 +1,11 @@
 {
   "contract_version": 1,
   "dataset_id": "ee626064-7d09-401c-9f32-d5d8947cfc6e",
-  "recipe_version": 1,
+  "recipe_version": 2,
   "authored_at": "2026-11-04T23:30:00Z",
   "authored_against": {
     "metadata_modified": "2026-08-01T07:00:29.040496+00:00",
-    "rows": { "hoods": 106, "reno": 618, "districts": 5 }
+    "rows": { "hoods": 106, "reno": 618, "districts": 5, "dira": 1317 }
   },
   "inputs": [
     {
@@ -49,6 +49,41 @@
       "by_id": "a179fd6a-c493-49d8-ad7c-d225e99b416f",
       "map": true,
       "required_columns": ["CODE", "NAME", "SHAPE_STAr"]
+    },
+    {
+      "name": "dira",
+      "by_id": "942efa87-f180-45a4-9b9a-f041b6021502",
+      "map": true,
+      "map_member": "Projects_view.zip",
+      "map_max_kb": 2500,
+      "columns": [
+        "ActiveProj",
+        "ProjectNam",
+        "Marketin_1",
+        "LamasCode",
+        "LamasName",
+        "ProviderNa",
+        "HousingUni",
+        "PriceForMe",
+        "GrantAmoun",
+        "LotteryId",
+        "StartSignu",
+        "Marketin_2"
+      ],
+      "required_columns": [
+        "ActiveProj",
+        "ProjectNam",
+        "Marketin_1",
+        "LamasCode",
+        "LamasName",
+        "ProviderNa",
+        "HousingUni",
+        "PriceForMe",
+        "GrantAmoun",
+        "LotteryId",
+        "StartSignu",
+        "Marketin_2"
+      ]
     }
   ],
   "min_insights": 4,

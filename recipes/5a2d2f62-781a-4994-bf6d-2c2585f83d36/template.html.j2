@@ -444,7 +444,7 @@
     var c9 = echarts.init(document.getElementById("chart-heat"));
     c9.setOption(window.GovEcharts.option({
       tooltip: { position: "top", formatter: function (p) {
-        return h.months[p.value[0]] + " " + h.years[p.value[1]] + ": " + p.value[2];
+        return echarts.format.encodeHTML(h.months[p.value[0]]) + " " + echarts.format.encodeHTML(h.years[p.value[1]]) + ": " + p.value[2];
       } },
       grid: { left: 16, right: 16, top: 16, bottom: 80, containLabel: true },
       xAxis: { type: "category", data: h.months, axisLabel: { rotate: window.innerWidth < 640 ? 60 : 0 }, splitArea: { show: true } },

@@ -74,20 +74,11 @@ This repo is public: describe a security gap by what to change, never by how to 
   measurement), full-CSV downloads, the engaged-session rate (64%), and GSC CTR for those
   queries. If links get clicked, find other datasets with URL columns worth the same card.
   (2026-11-15)
-- **Add the מחיר למשתכן layer to ee626064.** Its fourth layer (`gis_dira.zip`, 9.2MB) is a zip
-  of `Lots_view.zip`, `Plans_view.zip`, `Projects_view.zip` and `Settelments_Centroid_view.zip`,
-  which `geo_snapshot` now opens one level down. Add a `mehir` map input (with `map_member`
-  naming the layer to read), drop the fixed copy that says the layer is skipped, and bump
-  `recipe_version`, after the builder redeploy. (2026-11-04)
 - **Top-100 legacy map pages that the snapshot path can't serve.** חלקות (dff8a168, 667MB SHP)
   is a national layer far over the 100MB download cap; it would need a pre-aggregation step
   (the גושים/תצ"ר recipes reduce each polygon to a centroid in compute, but the file must still
   download and convert). הגבולות המשטרתיים (d01a5ee3) and קדסטר במבנה חדש (bd74ce49) ship an Esri FileGDB, which
   `read_map_file` can't read and there is no GDAL locally. (2026-10-31)
-- **Switch ab746a13 to `pick: "latest_year"`.** It picks by `last_modified`, so a re-upload of a
-  closed year flips the page to that year. `latest_year` exists now (concat of its 5 matching
-  years is ~4.3M rows, too big); switch and bump `recipe_version` after the builder redeploy.
-  (2026-10-31)
 - **4eef54bc still joins authorities by name.** Its authority-code columns (`קוד_רשות`,
   `קוד_למס`) swap meaning between report years, so compute joins years on the name, folded for
   quote, hyphen and space drift. A real rename (a new spelling, a merger) still splits an
@@ -108,11 +99,6 @@ This repo is public: describe a security gap by what to change, never by how to 
   killer, but its exported CSVs sit in the same memory (`/tmp` is RAM on Cloud Run). If heavy
   recipes multiply, give them their own job execution with more memory (filter on
   `manifest.heavy`) rather than raising the shared job's `--memory`. (2026-10-30)
-- **Give 65dafbb0's map input `columns`.** The תצ"ר layer converts to 49.2MB at tolerance 2e-5,
-  near the 50MB `map_max_kb` ceiling (its floor is 37.6MB), and about a third more plans fails it
-  `too_large`. Most of the bytes are properties the recipe never reads (TALAR_COMM, the ITM
-  bounding box, dates). A map input now takes `columns`, which drop properties before sizing:
-  list the ones the recipe reads, after the builder redeploy. (2026-11-06)
 
 - **The local permission allowlist is broad for an unattended routine.** The gitignored
   `.claude/settings.local.json`, copied into every worktree by `.worktreeinclude`, pre-approves
@@ -129,41 +115,21 @@ This repo is public: describe a security gap by what to change, never by how to 
 
 ## CBS reports (cbs_releases provider)
 
-- **Drop `_relink` from `cbs-index-bus-inputs` once the job is deployed.** `cbs_index` now
-  chains the minibus May 2020 row (old-base value under the new label) itself (`_carried`),
-  so the recipe's `_relink` repairs nothing; remove it, and its "repaired links" count, in a
-  recipe PR after the builder job runs that code. (2026-11-17)
-- **`cbs-index-selected-consumer-prices` could list 140743 again.** It was left out because
-  the CBS Index API 500s on its history from 01-2000 (still so on 2026-11-17; from 01-2015 it
-  answers). Once the job is deployed, add it with `"optional_codes": [140743]` and make
-  compute render without it, or give it its own resource with `"start": "01-2015"`. Note the
-  `optional_codes` route leaves the page's CSV download button (`CbsIndexProvider.download_url`)
-  asking for every code over the full range, which is the request the API 500s on; either
-  leave optional codes out of `download_url` or prefer the separate-resource route.
-  (2026-11-17)
-- **`cbs-foreign-trade-by-country` still hand-rolls the "latest release" sort**
-  (`RELEASE_DATE`, then `RELEASE_NO` as a string, so "99/2026" beats "100/2026"). Swap it for
-  `cbs.latest_release`, as the other CBS recipes now do; it was left out of that PR because
-  another change was editing the recipe. `cbs-road-accidents` takes its latest edition from
-  `cbs.latest_release` but still orders `rel` with that string sort for `_first_reports` (the
-  `order` / "later" count, and which of two same-month editions wins). (2026-11-17)
+- **`cbs-road-accidents` `_first_reports` still sorts `RELEASE_NO` as a string** ("99/2026"
+  beats "100/2026"). Its latest edition comes from `cbs.latest_release`, but `rel`'s order still
+  drives the `order` / "later" count and which of two same-month editions wins. Order by govlib's
+  release key, as `cbs.latest_release` does, in a recipe PR. (2026-11-17)
 
 ## Shared recipe code (govlib, gov.j2, page libs)
 
-- **Tooltip escaping: recipes left out of the 2026-11-17 sweep.** The belt now escapes past its
-  depth cap and wraps tooltips under `children`/`levels`, and 89 templates wrap closure strings in
-  `echarts.format.encodeHTML` (authoring rule in the author-dataset skill). Not yet swept: the 40
-  recipe dirs other open PRs touched that day (#515, #516, #519, #520: the Patent Office pages,
-  14f2521f, d08d4a17, 35c791ca, 3a1ca8fa, 4eef54bc, 5265b154, a3cec603, a9d7da6b, b5dd1f5e,
-  e4c3e3d0, e6ef4310, fdf06a98, 1ba21c94 and 22 `cbs-*`), plus b2370286 (its export flips, see the
-  item about it) and 247efc75 (item below). Fix: the same wrapping, once those PRs are merged.
-  (2026-11-01, narrowed 2026-11-17)
-
-- **247efc75's page depends on row order.** `author verify` fails ORDER-DEPENDENT: the duplicate
-  removal ("27 duplicate rows removed") keeps a different row depending on input order, so a
-  reordered re-upload moves the Israel inventor count (5,847 vs 5,846) and three notes by one. Fix:
-  sort on every column before dropping duplicates, accept the one-off number change, and add its
-  seo block (verify also asks for one). (2026-11-17)
+- **b2370286 still appends tooltip closure strings raw.** Its heatmap tooltip (`h.y` / `h.x`,
+  template ~line 219) skips `echarts.format.encodeHTML`. It was left out of the 2026-11-17/18
+  sweeps because its export flips (see its item), so `author verify` can't run. Fix: the same
+  wrapping plus a `recipe_version` bump once it verifies. (2026-11-01, narrowed 2026-11-18)
+- **No mechanical check for unescaped closure strings in tooltip formatters.** Two hand sweeps
+  missed some, and only a scripted audit (2026-11-18) found the rest. A check.py or automerge
+  guard lint that flags a closure lookup appended in a tooltip formatter outside
+  `encodeHTML`/a local escape helper would keep new recipes from regressing. (2026-11-18)
 
 ## Tags, related datasets and list pages
 

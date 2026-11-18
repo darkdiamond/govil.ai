@@ -547,6 +547,11 @@ def compute(frames):
         "agent_data": {
             "summary_he": summary,
             "dataset_kind": "registry",
+            "seo": {
+                "title": "מורי דרך מורשים בישראל: רשימה ופרטי קשר",
+                "description": ("איתור מורה דרך מורשה של משרד התיירות לפי שם, עם פרטי הקשר שבמרשם וכמה מורי דרך רשומים בו בלי פרטי קשר."),
+                "name": "מורי דרך מורשים בישראל",
+            },
             "suggested_tags": ["מורי דרך", "תיירות", "רישוי מקצועי", "הדרכת טיולים"],
             "related_ids": ["0d51bcd2-aa52-4c7c-8e5f-96d0d193a1fb", "a416609e-f68a-4fea-b278-657f92bfbe73",
                             "b1f49721-9af5-412a-97ae-c9493564e3ec", "0914a18b-b2c9-4e2f-bc25-0a8dfc912acf"],

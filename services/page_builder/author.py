@@ -50,6 +50,7 @@ from services.shared.fetch_types import FetchLimitExceeded, FetchOutcome, FileOu
 from .notify import _fenced
 from .recipe import (
     COMPUTE_FILENAME,
+    GEOMETRY_COLUMN,
     MANIFEST_FILENAME,
     RESOURCE_NAME_COLUMN,
     TEMPLATE_FILENAME,
@@ -1048,8 +1049,35 @@ COVERAGE_FILENAME = "coverage.json"
 _COVERAGE_TAGS = ("kpi:", "insight:", "table:", "text:", "map:", "filter:", "key:")
 
 
+def _map_file_columns(data_dir: Path | None, rid: str, member: str | None) -> list[str] | None:
+    """Every property of a map input's cached file (prepare's copy), before
+    the input's `columns` drop the rest: what coverage.json accounts for.
+    The union over all features, as `feature_table` builds the header (a
+    GeoJSON feature can carry keys the first one lacks). None when prepare
+    has no readable copy."""
+    from . import geo_snapshot as gs
+
+    maps_path = data_dir / "maps.json" if data_dir else None
+    if not maps_path or not maps_path.is_file():
+        return None
+    for m in json.loads(maps_path.read_text(encoding="utf-8")):
+        if m.get("resource_id") == rid and m.get("file") and (data_dir / m["file"]).is_file():
+            keys: dict[str, None] = {}
+            try:
+                feats, _ = gs.iter_map(data_dir / m["file"], m["file"], member=member)
+                for f in feats:
+                    props = f.get("properties") or {}
+                    if isinstance(props, dict):
+                        keys.update(dict.fromkeys(str(k) for k in props))
+            except Exception:  # noqa: BLE001  # the run itself reports a bad file
+                return None
+            return list(keys)
+    return None
+
+
 def _coverage_findings(
-    recipe: Recipe, inputs: dict, manifest: list[dict], html: str, model: dict
+    recipe: Recipe, inputs: dict, manifest: list[dict], html: str, model: dict,
+    data_dir: Path | None = None,
 ) -> tuple[list[str], list[str]]:
     path = recipe.root / COVERAGE_FILENAME
     if not path.is_file():
@@ -1062,24 +1090,39 @@ def _coverage_findings(
     except Exception:  # noqa: BLE001
         return [f"COVERAGE: {COVERAGE_FILENAME} must be a JSON object of strings"], []
     fields = {m["resource_id"]: m["fields"] for m in manifest}
+    # File-backed inputs are keyed by input name: two `map` inputs can read
+    # different `map_member` layers of the same resource.
+    own: dict[str, list[str]] = {}
+    problems = []
     for i in recipe.manifest.inputs:
         if i.snapshot:  # its columns are the snapshot's properties + geometry
-            fields[i.by_id] = snapshot_table(recipe.root / i.snapshot)[0]
+            own[i.name] = snapshot_table(recipe.root / i.snapshot)[0]
         elif i.map or i.raster:  # …and a map/raster file's, as this run converted it
             with open(inputs[i.name][0].file, encoding="utf-8", newline="") as f:
-                fields[i.by_id] = next(csv.reader(f), [])
+                own[i.name] = next(csv.reader(f), [])
+            if i.map and i.columns:  # the properties `columns` dropped still need an entry
+                extra = _map_file_columns(data_dir, i.by_id, i.map_member)
+                if extra is None:
+                    problems.append(f"COVERAGE: input {i.name!r}: no readable copy of map file "
+                                    f"{i.by_id[:8]} from prepare, so the properties its `columns` "
+                                    "drop can't be checked; re-run `author prepare`")
+                have = set(own[i.name])
+                own[i.name] += [c for c in extra or [] if c not in have]
+
+    def cols_of(name: str, part) -> list[str]:
+        return own[name] if name in own else fields.get(part.resource_id, [])
+
     needed = {
         f"{name}.{col}"
         for name, parts in inputs.items()
         for part in parts
-        for col in fields.get(part.resource_id, [])
+        for col in cols_of(name, part)
         if col != "_id"  # datastore row id; dropped from exports (stale preps may list it)
     }
     # Whole resources no input reads (a translated twin, a lookup table)
     # need a reason too: "resource:<id>": "skip: …".
     read = {part.resource_id for parts in inputs.values() for part in parts}
     needed |= {f"resource:{m['resource_id']}" for m in manifest if m["resource_id"] not in read}
-    problems = []
     missing = sorted(needed - cov.keys())
     if missing:
         problems.append(f"COVERAGE: {len(missing)} column(s)/resource(s) unaccounted for: "
@@ -1095,8 +1138,8 @@ def _coverage_findings(
     for i in recipe.manifest.inputs:
         if i.columns:
             for part in inputs.get(i.name, []):
-                unfetched |= {f"{i.name}.{c}" for c in fields.get(part.resource_id, [])
-                              if c not in i.columns}
+                unfetched |= {f"{i.name}.{c}" for c in cols_of(i.name, part)
+                              if c not in i.columns and not (i.map and c == GEOMETRY_COLUMN)}
     for key in sorted(unfetched & cov.keys()):
         if not cov[key].strip().startswith("skip:"):
             problems.append(f"COVERAGE: {key} is marked used but not in the input's "
@@ -1259,7 +1302,7 @@ def verify(dataset_id: str, recipes_root: Path = RECIPES_ROOT, *, allow_order_de
             # Visible opt-outs: each should be a genuinely large series.
             notes.append("explorer fallback (no table): " + ", ".join(explorer))
         cov_problems, cov_notes = _coverage_findings(
-            recipe, inputs, manifest, page.content_html, raw
+            recipe, inputs, manifest, page.content_html, raw, data_dir=p["data"]
         )
         problems += cov_problems
         notes += cov_notes

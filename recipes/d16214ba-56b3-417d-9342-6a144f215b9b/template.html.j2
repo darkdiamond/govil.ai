@@ -249,7 +249,7 @@
       color: window.GOVIL_PALETTE,
       tooltip: { trigger: "axis", formatter: function (p) {
         var i = p[0].dataIndex, v = d.v[i], q = d.q[i];
-        var s = d.x[i];
+        var s = echarts.format.encodeHTML(d.x[i]);
         if (v !== null) {
           var tag = v < d.dry ? " (שנה שחונה)" : (v >= d.wet ? " (שנה גשומה)" : "");
           s += "<br>נפח שנתי: " + v + "% מהרגיל" + tag + " (" + d.vn[i] + " תחנות)";
@@ -331,7 +331,7 @@
       color: window.GOVIL_PALETTE,
       tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
         var i = p[0].dataIndex;
-        var s = echarts.format.encodeHTML(d.names[i]) + "<br>" + d.dates[i] + ": " + d.q[i].toLocaleString("he-IL") + " מ״ק בשנייה";
+        var s = echarts.format.encodeHTML(d.names[i]) + "<br>" + echarts.format.encodeHTML(d.dates[i]) + ": " + d.q[i].toLocaleString("he-IL") + " מ״ק בשנייה";
         if (d.base[i] !== null) s += "<br>חציון רב-שנתי: " + d.base[i].toLocaleString("he-IL");
         return s;
       } },

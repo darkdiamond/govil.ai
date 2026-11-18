@@ -368,7 +368,7 @@
     var c4 = echarts.init(document.getElementById("chart-heat"));
     c4.setOption(window.GovEcharts.option({
       tooltip: { position: "top", formatter: function (p) {
-        return echarts.format.encodeHTML(h.y[p.value[1]]) + " · " + h.x[p.value[0]] + ": " + p.value[2] + "%";
+        return echarts.format.encodeHTML(h.y[p.value[1]]) + " · " + echarts.format.encodeHTML(h.x[p.value[0]]) + ": " + p.value[2] + "%";
       } },
       grid: { left: 16, right: 16, top: 16, bottom: 96, containLabel: true },
       xAxis: { type: "category", data: h.x, splitArea: { show: true }, axisLabel: { rotate: 45, fontSize: 11 } },
@@ -421,7 +421,7 @@
       color: window.GOVIL_PALETTE,
       tooltip: { trigger: "axis", formatter: function (ps) {
         var i = ps[0].dataIndex;
-        return lg.x[i] + "<br>חציון: " + lg.p50[i] + " חודשים<br>רבעונים: " + lg.p25[i] + " עד " + lg.p75[i];
+        return echarts.format.encodeHTML(lg.x[i]) + "<br>חציון: " + lg.p50[i] + " חודשים<br>רבעונים: " + lg.p25[i] + " עד " + lg.p75[i];
       } },
       grid: { left: 40, right: 16, top: 32, bottom: 56, containLabel: true },
       xAxis: { type: "category", data: lg.x },

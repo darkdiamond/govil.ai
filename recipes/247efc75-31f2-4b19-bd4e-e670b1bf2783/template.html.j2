@@ -398,7 +398,7 @@
     var c6 = echarts.init(document.getElementById("chart-type-mix"));
     c6.setOption(window.GovEcharts.option({
       tooltip: { position: "top", formatter: function (p) {
-        return tm.types[p.value[1]] + ", " + tm.x[p.value[0]] + ": " + p.value[2] + "%";
+        return echarts.format.encodeHTML(tm.types[p.value[1]]) + ", " + echarts.format.encodeHTML(tm.x[p.value[0]]) + ": " + p.value[2] + "%";
       } },
       grid: { left: 16, right: 16, top: 16, bottom: 80, containLabel: true },
       xAxis: { type: "category", data: tm.x, axisLabel: { rotate: 45 }, splitArea: { show: true } },

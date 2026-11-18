@@ -1,7 +1,7 @@
 {
   "contract_version": 1,
   "dataset_id": "ab746a13-c7e9-442d-a524-e4ffd1a041b0",
-  "recipe_version": 2,
+  "recipe_version": 3,
   "authored_at": "2026-10-31T22:30:00Z",
   "authored_against": {
     "metadata_modified": "2026-10-02T10:57:06.982535+00:00",
@@ -21,7 +21,7 @@
         "D28",
         "D31"
       ],
-      "pick": "latest",
+      "pick": "latest_year",
       "columns": [
         "operator_nm",
         "cluster_nm",

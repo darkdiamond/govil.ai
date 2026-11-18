@@ -1,7 +1,7 @@
 {
   "contract_version": 1,
   "dataset_id": "cbs-index-selected-consumer-prices",
-  "recipe_version": 2,
+  "recipe_version": 3,
   "authored_at": "2026-11-17T12:00:00Z",
   "authored_against": {
     "metadata_modified": "2026-11-17T00:00:00Z",
@@ -11,7 +11,8 @@
       "home": 2944,
       "transport": 2179,
       "services": 2620,
-      "basics": 1932
+      "basics": 1932,
+      "toiletries": 142
     }
   },
   "inputs": [
@@ -74,6 +75,20 @@
     {
       "name": "services",
       "by_id": "services",
+      "required_columns": [
+        "CODE",
+        "NAME_HE",
+        "FREQ",
+        "DATE",
+        "PERCENT",
+        "PERCENT_YEAR",
+        "VALUE_CHAINED",
+        "CHAIN_BASE"
+      ]
+    },
+    {
+      "name": "toiletries",
+      "by_id": "toiletries",
       "required_columns": [
         "CODE",
         "NAME_HE",
