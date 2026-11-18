@@ -511,8 +511,10 @@ def test_coverage_of_a_map_input_with_columns_counts_the_dropped_properties(tmp_
     data = tmp_path / "data"
     data.mkdir()
     (data / "map-x.geojson").write_text(json.dumps({"type": "FeatureCollection", "features": [
-        {"type": "Feature", "properties": {"a": "1", "b": "2"},
-         "geometry": {"type": "Point", "coordinates": [34.8, 32.1]}}]}), encoding="utf-8")
+        {"type": "Feature", "properties": {"a": "1"},
+         "geometry": {"type": "Point", "coordinates": [34.8, 32.1]}},
+        {"type": "Feature", "properties": {"a": "3", "b": "2"},     # `b` only past the first
+         "geometry": {"type": "Point", "coordinates": [34.9, 32.2]}}]}), encoding="utf-8")
     (data / "maps.json").write_text(json.dumps([{"resource_id": RID, "file": "map-x.geojson"}]),
                                     encoding="utf-8")
     table = tmp_path / "geo.csv"
@@ -528,6 +530,9 @@ def test_coverage_of_a_map_input_with_columns_counts_the_dropped_properties(tmp_
                                "events.b": "kpi:total"}), encoding="utf-8")
     problems, _ = author._coverage_findings(recipe, inputs, [], "", model, data_dir=data)
     assert any("events.b is marked used" in p for p in problems)
+    # No prepare copy: said so, rather than calling the dropped properties' entries stale.
+    problems, _ = author._coverage_findings(recipe, inputs, [], "", model, data_dir=tmp_path / "none")
+    assert any("no readable copy" in p for p in problems), problems
 
 
 # ── author verify mirrors the byte caps ──────────────────────────────────

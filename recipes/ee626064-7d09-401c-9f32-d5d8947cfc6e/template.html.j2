@@ -156,10 +156,11 @@
     var dira = L.layerGroup();
     function syncBuildings() {
       var near = map.getZoom() >= 16;
-      bld.clearLayers();
-      bld.addLayer(near ? bShapes : bDots);
+      // Projects above the area polygons, renewal buildings on top (re-added last).
       dira.clearLayers();
       dira.addLayer(map.getZoom() >= 15 ? pShapes : pDots);
+      bld.clearLayers();
+      bld.addLayer(near ? bShapes : bDots);
     }
     dist.addTo(map);
     if (M.fams.length) { dira.addTo(map); }

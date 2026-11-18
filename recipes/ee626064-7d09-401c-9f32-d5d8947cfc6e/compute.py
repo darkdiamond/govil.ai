@@ -294,10 +294,12 @@ def _dira(m):
 
     # ---------- insights ----------
     if n_lot >= 10 and best_y is not None:
+        span = f"בשנים {years[0]} עד {years[-1]}" if len(years) > 1 else f"ב־{years[0]}"
         txt = (f"בשכבת מחיר למשתכן {n_he(n_lot)} הגרלות עם {n_he(u_lot)} דירות ב־{n_he(lots['town'].nunique())} "
                "יישובים, "
-               f"שההרשמה אליהן נפתחה בשנים {years[0]} עד {years[-1]}; הכי הרבה דירות הוגרלו ב־{best_y} "
-               f"({n_he(ysum[best_y])})")
+               f"שההרשמה אליהן נפתחה {span}")
+        if len(years) > 1:
+            txt += f"; הכי הרבה דירות הוגרלו ב־{best_y} ({n_he(ysum[best_y])})"
         if n_wait_proj:
             txt += f". עוד {n_he(n_wait_proj)} פרויקטים עם {n_he(u_wait)} דירות טרם נפתחו להרשמה"
         insights.append({"id": "dira_total", "text_he": txt + "."})
