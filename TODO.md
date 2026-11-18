@@ -67,10 +67,6 @@ This repo is public: describe a security gap by what to change, never by how to 
   from 556634fd, 025c3e07, 9859abec, 5a2d2f62 and 0a374a70. Fix: 14 days after the render goes
   live (~2026-12-01), compare those three query groups before/after in GSC and organic sessions
   in GA4. (2026-11-16)
-- **No signal of explorer use.** The site sends only GA4 enhanced measurement, so for lookup
-  pages (trademarks, contractors, doctors) there is no way to tell whether a visitor searched
-  the table, which is the main thing those pages are for. Fix: a GA4 event from GovExplorer on
-  the first search per page view (debounced, no query text sent). (2026-11-16)
 - **59d2e891 and df60d73b compete for "אזורי חיוג".** Batch 3 gave df60d73b (numbering plan,
   which has the geographic codes) a title for "אזורי חיוג בארץ" / "קידומת טלפון ישראל", but
   59d2e891 (service numbers, no geographic codes) still has "קידומות ואזורי חיוג" in its title
@@ -236,37 +232,11 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
   release story that runs; if routine-release copy turns formulaic, tighten the editor's
   headline list. (2026-11-16)
 
-## Search
-
-- **Hidden idle topic chips stay keyboard-reachable on phones.** Before anything is typed, the
-  homepage spotlight hides topic chips 4-6 below `sm` (`max-sm:hidden` in
-  `HomeSpotlight.vue`), but they stay in the option list, so a phone with a hardware keyboard
-  can arrow onto a `display:none` option (and `aria-activedescendant` points at it). Fix: let
-  `useSiteSearch` take the idle chip count from a `matchMedia` ref instead of hiding with CSS.
-  (2026-11-17)
-
-- **The match-bolding markup is copied six times.** The `<template v-for="s in segments">
-<strong v-if="s.match">` block appears 4 times in `HomeSpotlight.vue` and twice in
-  `SearchSuggestions.vue`, and both copy the scroll-highlight-into-view watcher and the
-  loading/failed panels. A change to how matches are marked has to touch every copy. Fix: a
-  `components/search/SearchMark.vue` and a scroll helper in `useSiteSearch`. (2026-11-17)
-
-- **The homepage placeholder animation runs while off-screen.** `HomeSearch.vue`'s typing loop
-  re-renders every 35-85ms for the whole visit, even with the masthead scrolled away. Fix:
-  pause it with an IntersectionObserver on the box. (2026-11-17)
-
-- **`/` can steal focus from the open header search.** The homepage's global `/` shortcut
-  ignores only fields, so with the header popover open and focus on one of its result links,
-  `/` jumps to the homepage box and leaves the popover open. Fix: skip the shortcut while focus
-  is inside a `[role=dialog]`. (2026-11-17)
-
 ## Site copy
 
-- **Several pages still say an AI agent writes every dataset page.** Since 2026-10-29 dataset
-  pages are deterministic recipe renders; only news articles are AI-written. The homepage,
-  header/footer tagline, DatasetCard and default SEO keywords were fixed with the homepage
-  redesign (and `/how-it-works/` was folded into `/about/` with accurate copy, 2026-11-17), but
-  these still carry the old claim: `faq.vue:18`, `datasets/index.vue:224`,
-  `terms.vue:45,50,73`, `accessibility.vue:38,142,145`, `disclaimer.vue:93`. Terms and
-  disclaimer are legal text, so rewrite them deliberately rather than by search-and-replace.
-  Leave `news/about.vue` alone (accurate). (2026-11-16)
+- **Legal and accessibility pages still say an AI agent writes every dataset page.** Since
+  2026-10-29 dataset pages are deterministic recipe renders; only news articles are AI-written.
+  The rest of the site's copy is fixed (`faq.vue` and `datasets/index.vue` on 2026-11-17), but
+  these still carry the old claim: `terms.vue:45,50,73`, `accessibility.vue:38,142,145`,
+  `disclaimer.vue:93`. Terms and disclaimer are legal text, so rewrite them deliberately rather
+  than by search-and-replace. Leave `news/about.vue` alone (accurate). (2026-11-16)

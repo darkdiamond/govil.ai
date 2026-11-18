@@ -220,8 +220,8 @@ watch(
       </div>
       <h1 class="font-display">כל המאגרים</h1>
       <p class="text-subtle mt-2 max-w-2xl">
-        {{ datasets.length }} מאגרים מאורגנים לפי משרד, פורמט ותגיות. לחץ על
-        מאגר כדי לראות את דף ה-AI שנכתב עבורו.
+        {{ datasets.length }} מאגרים מאורגנים לפי משרד, פורמט ותגיות. לחצו על
+        מאגר כדי לראות את העמוד שלו, עם הגרפים, הטבלאות והנתונים המלאים.
       </p>
       <label
         class="mt-4 flex items-center gap-2 bg-white border border-rule rounded-gov px-3 py-2 max-w-xl focus-within:border-brand transition-colors"

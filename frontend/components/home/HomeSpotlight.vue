@@ -13,7 +13,6 @@ import {
 import { datasetPath, ministryPath, tagPath } from "~/utils/paths";
 import {
   type DatasetResults,
-  highlightSegments,
   type NamedHit,
   resultsAnnouncement,
   snippetAround,
@@ -67,25 +66,13 @@ const listHref = computed(() =>
 
 const kindOf = (d: SlimEntry) =>
   d.dataset_kind ? KIND_INFO[d.dataset_kind] : null;
-const seg = (text: string) =>
-  props.active
-    ? highlightSegments(text, props.query)
-    : [{ text, match: false }];
 
 const CHIP =
   "inline-flex items-center gap-1.5 max-w-full ps-2.5 pe-3 py-1.5 text-sm border rounded-gov-pill no-underline hover:no-underline motion-safe:transition-colors";
 
-// The list scrolls past its max height: keep the highlighted option in view.
-watch(
+useHighlightInView(
   () => props.highlight,
-  (h) => {
-    if (h < 0) return;
-    nextTick(() =>
-      document
-        .getElementById(props.optionId(h))
-        ?.scrollIntoView({ block: "nearest" })
-    );
-  }
+  () => props.optionId
 );
 </script>
 
@@ -130,21 +117,14 @@ watch(
               j === highlight
                 ? 'bg-brand-100 border-brand text-ink-deep'
                 : 'bg-white border-rule text-ink hover:border-brand',
-              // Before typing, a phone shows only the 3 biggest topics.
-              { 'max-sm:hidden': !active && j >= 3 },
             ]"
             @mousemove="emit('hover', j)"
             @click="emit('navigate', 'route')"
           >
             <img src="/icons/tag.svg" alt="" class="w-3.5 h-3.5 opacity-60" />
             <span class="truncate"
-              ><template v-for="(s, k) in seg(t.name)" :key="k"
-                ><strong v-if="s.match" class="font-semibold text-ink-deep">{{
-                  s.text
-                }}</strong
-                ><template v-else>{{ s.text }}</template></template
-              ></span
-            >
+              ><SearchMark :text="t.name" :query="query" :active="active"
+            /></span>
             <span class="text-xs text-subtle tabular-nums"
               >{{ fmt(t.count) }}<span class="sr-only"> מאגרים</span></span
             >
@@ -184,13 +164,8 @@ watch(
               class="w-3.5 h-3.5 opacity-60"
             />
             <span class="truncate"
-              ><template v-for="(s, k) in seg(m.name)" :key="k"
-                ><strong v-if="s.match" class="font-semibold text-ink-deep">{{
-                  s.text
-                }}</strong
-                ><template v-else>{{ s.text }}</template></template
-              ></span
-            >
+              ><SearchMark :text="m.name" :query="query" :active="active"
+            /></span>
             <span class="text-xs text-subtle tabular-nums"
               >{{ fmt(m.count) }}<span class="sr-only"> מאגרים</span></span
             >
@@ -258,13 +233,8 @@ watch(
             />
             <span class="min-w-0 flex flex-col gap-0.5">
               <span class="text-[0.95rem] text-ink leading-snug line-clamp-2"
-                ><template v-for="(s, k) in seg(d.title)" :key="k"
-                  ><strong v-if="s.match" class="font-semibold text-ink-deep">{{
-                    s.text
-                  }}</strong
-                  ><template v-else>{{ s.text }}</template></template
-                ></span
-              >
+                ><SearchMark :text="d.title" :query="query" :active="active"
+              /></span>
               <span
                 v-if="d.summary_he && active"
                 class="md:hidden text-xs text-subtle line-clamp-1"
@@ -314,10 +284,12 @@ watch(
               <p
                 class="m-0 text-lg font-semibold text-ink-deep leading-snug text-balance"
               >
-                <template v-for="(s, k) in seg(preview.title)" :key="k"
-                  ><mark v-if="s.match" class="hl">{{ s.text }}</mark
-                  ><template v-else>{{ s.text }}</template></template
-                >
+                <SearchMark
+                  :text="preview.title"
+                  :query="query"
+                  :active="active"
+                  variant="mark"
+                />
               </p>
               <p
                 v-if="preview.organization"
@@ -330,12 +302,12 @@ watch(
               v-if="preview.summary_he"
               class="m-0 text-sm text-ink leading-relaxed line-clamp-6"
             >
-              <template
-                v-for="(s, k) in seg(snippetAround(preview.summary_he, query))"
-                :key="k"
-                ><mark v-if="s.match" class="hl">{{ s.text }}</mark
-                ><template v-else>{{ s.text }}</template></template
-              >
+              <SearchMark
+                :text="snippetAround(preview.summary_he, query)"
+                :query="query"
+                :active="active"
+                variant="mark"
+              />
             </p>
             <dl
               class="m-0 grid grid-cols-2 gap-px bg-rule border border-rule rounded-gov overflow-hidden text-sm"
@@ -388,27 +360,12 @@ watch(
       </div>
     </div>
 
-    <div
-      v-else-if="panel === 'loading'"
-      class="px-5 py-8 text-sm text-subtle text-center"
-    >
-      טוען את רשימת המאגרים…
-    </div>
-
-    <div
-      v-else-if="panel === 'failed'"
-      class="px-5 py-8 text-sm text-subtle text-center"
-      role="alert"
-    >
-      טעינת החיפוש נכשלה.
-      <button
-        type="button"
-        class="text-brand-700 hover:underline bg-transparent border-0 p-0 cursor-pointer"
-        @click="emit('retry')"
-      >
-        נסו שוב
-      </button>
-    </div>
+    <SearchStatus
+      v-else-if="panel === 'loading' || panel === 'failed'"
+      :state="panel"
+      pad="px-5 py-8"
+      @retry="emit('retry')"
+    />
 
     <div v-else-if="panel === 'empty'" class="ps-5 pe-14 py-6">
       <p class="m-0 text-base text-ink">
@@ -479,12 +436,6 @@ watch(
   from {
     opacity: 0;
   }
-}
-.hl {
-  background: #fff3bf;
-  color: inherit;
-  border-radius: 0.15rem;
-  padding: 0 0.1em;
 }
 kbd {
   display: inline-block;
