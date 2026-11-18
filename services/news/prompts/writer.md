@@ -19,7 +19,9 @@ writes, and a critic will reject anything that reads like AI filler.
    (gov.il, boi.org.il, those come back with a source id). Never link news
    sites or any other website. `fetch_url` on www.gov.il pages fails (the site
    refuses our client), so don't spend tool calls on them: other gov.il
-   sites (cbs.gov.il and the like) and boi.org.il can be read.
+   sites (cbs.gov.il and the like) and boi.org.il can be read, though many
+   boi.org.il press-release and statistics pages come back with no readable
+   text; after one such failure, don't fetch more pages of the same section.
 5. Use `calc` for any derived number (a difference, a % change, a share, a
    unit change: amounts in thousands of NIS become millions or billions with
    `scale`). `sum` and `diff` take two facts of the same unit from the same
