@@ -1,0 +1,200 @@
+{% import "gov.j2" as gov %}
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+{{ gov.lede(model.labels.lede) }}
+
+<a href="/datasets/כתב-העת-חברה-ורווחה-e4c3e3d0/" class="card p-4 mb-4 flex items-center gap-3 no-underline">
+  <img src="/icons/list.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">למפתח המאמרים המלא של חברה ורווחה, בעברית ←</span>
+    <span class="block text-sm text-subtle">כל המאמרים, הכותבים והחוברות של כתב העת מאז צאתו לאור, עם ניתוח לפי שנים, נושאים וכותבים.</span>
+  </span>
+</a>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור מאמר באנגלית לפי שם, כותב או חוברת ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות הקובץ: שם המאמר באנגלית, שמות הכותבים, החוברת ושנת הפרסום, עם קישור לקובץ התקצירים.</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+  {{ gov.kpi(model.kpis.articles, model.labels.articles_kpi) }}
+  {{ gov.kpi(model.kpis.issues, model.labels.issues_kpi) }}
+  {{ gov.kpi(model.kpis.span, model.labels.span_kpi) }}
+  {{ gov.kpi(model.kpis.authors, model.labels.authors_kpi) }}
+  {{ gov.kpi(model.kpis.pdf, model.labels.pdf_kpi) }}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "חוברות ותקצירים באנגלית") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.issues_note }}</p>
+  {{ gov.chart("chart-issues", model.labels.issues_aria, "h-64 md:h-80") }}
+  <details class="mt-3" open>
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.issues_aria }}</caption>
+      <thead><tr><th scope="col">חוברת</th><th scope="col">שנה</th><th scope="col">מאמרים</th><th scope="col">תקצירים באנגלית</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.issues %}
+        <tr><th scope="row" dir="ltr">{{ r.label }}</th><td dir="ltr">{{ r.year }}</td><td dir="ltr">{{ r.n }}</td><td>{% if r.url %}<a href="{{ r.url }}" target="_blank" rel="noopener" class="text-brand">קובץ PDF</a>{% else %}–{% endif %}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6" id="latest">
+  {{ gov.head("list", model.labels.latest_title) }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.latest_note }}</p>
+  <ul class="m-0 ps-5 list-disc space-y-3 text-sm marker:text-brand">
+{%- for a in model.latest %}
+    <li>
+      {%- if a.partial %}<span class="text-subtle">{{ a.title }}</span>{% else %}<span class="font-semibold text-ink-deep" dir="ltr" lang="en">{{ a.title }}</span>{% endif %}
+      {%- if a.authors %}<span class="block text-subtle"><span dir="ltr" lang="en">{{ a.authors }}</span></span>{% endif %}
+      {%- if a.genre %}<span class="block text-xs text-subtle">{{ a.genre }}</span>{% endif %}
+    </li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "סוגי הפרסומים לפי שנה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.genres_note }}</p>
+  {{ gov.chart("chart-genres", model.labels.genres_aria, "h-72 md:h-96") }}
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.genres_aria }}</caption>
+      <thead><tr><th scope="col">סוג</th><th scope="col">רשומות</th><th scope="col">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.genres %}
+        <tr><th scope="row">{{ r.name }}</th><td dir="ltr">{{ r.count }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ gov.head("database", "כמה כותבים למאמר") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.team_note }}</p>
+    {{ gov.chart("chart-team", model.labels.team_aria, "h-64 md:h-80") }}
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.team_aria }}</caption>
+        <thead><tr><th scope="col">כותבים</th><th scope="col">מאמרים</th><th scope="col">שיעור</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.team %}
+          <tr><th scope="row">{{ r.name }}</th><td dir="ltr">{{ r.count }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+{%- if model.tables.authors %}
+  <section class="card p-5">
+    {{ gov.head("database", "כותבים חוזרים") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.authors_note }}</p>
+    {{ gov.chart("chart-authors", model.labels.authors_aria, "h-80 md:h-[460px]") }}
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.authors_aria }}</caption>
+        <thead><tr><th scope="col">שם</th><th scope="col">מאמרים</th><th scope="col">שנים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.authors %}
+          <tr><th scope="row" dir="ltr">{{ r.name }}</th><td dir="ltr">{{ r.count }}</td><td dir="ltr">{{ r.span }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+{%- endif %}
+</div>
+
+<script>
+  (function () {
+    var d = {{ model.charts.issues | tojson }};
+    var c = echarts.init(document.getElementById("chart-issues"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+        var i = p[0].dataIndex;
+        return "חוברת " + d.x[i] + " (" + d.years[i] + ")<br>" + p[0].value + " מאמרים";
+      } },
+      grid: { left: 16, right: 16, top: 24, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "value", minInterval: 1 },
+      series: [{ type: "bar", name: "מאמרים", data: d.y }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.genres | tojson }};
+    var c = echarts.init(document.getElementById("chart-genres"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+        var y = p[0].axisValue, tot = 0, rows = [];
+        p.forEach(function (s) { tot += s.value; if (s.value) { rows.push(s.marker + s.seriesName + ": " + s.value); } });
+        return [y + (y === d.partial ? " (חלקית)" : "") + ": " + tot + " רשומות"].concat(rows).join("<br>");
+      } },
+      legend: { bottom: 0, type: "scroll" },
+      grid: { left: 16, right: 16, top: 24, bottom: 50, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", minInterval: 1 },
+      series: d.series.map(function (s) { return { type: "bar", stack: "t", name: s.name, data: s.data }; })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.team | tojson }};
+    var c = echarts.init(document.getElementById("chart-team"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+        return p[0].name + "<br>" + p[0].value + " מאמרים";
+      } },
+      grid: { left: 16, right: 16, top: 24, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { interval: 0, fontSize: 11, width: 64, overflow: "break" } },
+      yAxis: { type: "value", minInterval: 1 },
+      series: [{ type: "bar", name: "מאמרים", data: d.y, label: { show: true, position: "top" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- if model.tables.authors %}
+
+<script>
+  (function () {
+    var d = {{ model.charts.authors | tojson }};
+    var el = document.getElementById("chart-authors");
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+        return echarts.format.encodeHTML(p[0].name) + "<br>" + p[0].value + " מאמרים";
+      } },
+      grid: { left: 16, right: 32, top: 8, bottom: 16, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3, minInterval: 1, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: Math.min(150, el.clientWidth * 0.45), overflow: "truncate" } },
+      series: [{ type: "bar", name: "מאמרים", data: d.values, label: { show: true, position: "right" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
