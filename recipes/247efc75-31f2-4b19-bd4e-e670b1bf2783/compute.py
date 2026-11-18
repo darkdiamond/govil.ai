@@ -96,6 +96,9 @@ def _pct(x, d=1):
 def _prepare(raw):
     df = raw.apply(lambda c: c.str.strip())
     n_raw = len(df)
+    # Canonical row order (every column), so each later keep-first
+    # drop_duplicates picks the same row whatever order CKAN serves.
+    df = df.sort_values(list(df.columns), kind="stable", ignore_index=True)
     df = df.drop_duplicates()
     dups = n_raw - len(df)
     df = df.assign(app=pd.to_numeric(df["מספר בקשה"].str.replace(",", "", regex=False),
@@ -502,6 +505,15 @@ def compute(frames):
         "agent_data": {
             "summary_he": summary,
             "dataset_kind": "rankings",
+            "seo": {
+                "title": "ממציאים בבקשות פטנט בישראל: צוותים, ממציאים ומדינות",
+                "description": (f"ממציאים בבקשות פטנט שהוגשו בישראל: {_int(n_inventors)} שמות ממציאים "
+                                f"ב-{_int(n_apps)} בקשות, עם גודל הצוותים, הממציאים הפוריים "
+                                f"והמדינות שמהן הם מגיעים."),
+                "name": "ממציאים לבקשות פטנטים",
+                "alternate_names": ["ממציאים בפטנטים", "ממציאי פטנטים בישראל",
+                                    "רשימת ממציאים רשות הפטנטים"],
+            },
             "suggested_tags": ["פטנטים", "ממציאים", "קניין רוחני", "חדשנות", "רשות הפטנטים"],
             "related_ids": ["029b6747-551b-47ad-9a05-ef7f7868fcd0",
                             "6e207fff-abef-4f4d-aac7-61e669ba9ad5",

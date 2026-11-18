@@ -344,7 +344,7 @@
       color: used.map(function (g) { return P[o.legend.indexOf(g) % P.length]; }),
       tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
         var i = ps[0].dataIndex;
-        return ps[0].axisValue + " (" + o.groups[i] + ")<br>" + o.values[i].toLocaleString("he-IL") + " נגעים";
+        return ps[0].axisValue + " (" + echarts.format.encodeHTML(o.groups[i]) + ")<br>" + o.values[i].toLocaleString("he-IL") + " נגעים";
       } },
       legend: { bottom: 0 },
       grid: { left: 16, right: narrow ? 40 : 24, top: 16, bottom: narrow ? 64 : 40, containLabel: true },
@@ -410,7 +410,7 @@
       var c = echarts.init(el);
       c.setOption(window.GovEcharts.option({
         tooltip: { position: "top", formatter: function (p) {
-          return h.y[p.value[1]] + " · " + h.x[p.value[0]] + ": " + fmt(p.value[2]);
+          return echarts.format.encodeHTML(h.y[p.value[1]]) + " · " + echarts.format.encodeHTML(h.x[p.value[0]]) + ": " + fmt(p.value[2]);
         } },
         grid: { left: 8, right: 8, top: 8, bottom: 64, containLabel: true },
         xAxis: { type: "category", data: h.x, splitArea: { show: true },

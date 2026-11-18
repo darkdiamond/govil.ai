@@ -275,7 +275,7 @@
       color: window.GOVIL_PALETTE,
       tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
         var i = p[0].dataIndex;
-        return d.x[i] + "<br>" + d.mean[i] + " מאמרים מלאים לחוברת בממוצע<br>" + d.issues[i] + " חוברות";
+        return echarts.format.encodeHTML(d.x[i]) + "<br>" + d.mean[i] + " מאמרים מלאים לחוברת בממוצע<br>" + d.issues[i] + " חוברות";
       } },
       grid: { left: 16, right: 16, top: 32, bottom: 16, containLabel: true },
       xAxis: { type: "category", data: d.x, axisLabel: { interval: 0, rotate: 30, fontSize: 10 } },
@@ -361,7 +361,7 @@
     var narrow = el.clientWidth < 600;
     c.setOption(window.GovEcharts.option({
       tooltip: { position: "top", formatter: function (p) {
-        return echarts.format.encodeHTML(d.y[p.value[1]]) + "<br>" + d.x[p.value[0]] + ": " + p.value[2] + "% מהמאמרים";
+        return echarts.format.encodeHTML(d.y[p.value[1]]) + "<br>" + echarts.format.encodeHTML(d.x[p.value[0]]) + ": " + p.value[2] + "% מהמאמרים";
       } },
       grid: { left: 8, right: 16, top: 16, bottom: 70, containLabel: true },
       xAxis: { type: "category", data: d.x, splitArea: { show: true }, axisLabel: { interval: 0, rotate: narrow ? 40 : 0, fontSize: 10 } },

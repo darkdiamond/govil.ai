@@ -391,7 +391,7 @@
         color: window.GOVIL_PALETTE,
         tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
           var i = p[0].dataIndex;
-          return s.names[i] + "<br>מכוני רישוי: " + s.values[i] +
+          return echarts.format.encodeHTML(s.names[i]) + "<br>מכוני רישוי: " + s.values[i] +
             (s.ratio[i] === null ? "" : "<br>מתקנים לכל מכון: " + s.ratio[i].toLocaleString("he-IL"));
         } },
         grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
@@ -434,7 +434,7 @@
       var c = echarts.init(el);
       c.setOption(window.GovEcharts.option({
         tooltip: { position: "top", formatter: function (p) {
-          return h.y[p.value[1]] + " · " + h.x[p.value[0]] + ": " + p.value[2] + "% (" +
+          return echarts.format.encodeHTML(h.y[p.value[1]]) + " · " + echarts.format.encodeHTML(h.x[p.value[0]]) + ": " + p.value[2] + "% (" +
             p.value[3].toLocaleString("he-IL") + " " + unit + ")";
         } },
         grid: { left: 16, right: 16, top: 16, bottom: 64, containLabel: true },
@@ -468,7 +468,7 @@
       color: window.GOVIL_PALETTE,
       tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
         var i = p[0].dataIndex;
-        return e.names[i] + ": " + e.values[i] + "%<br>" + e.counts[i].toLocaleString("he-IL") +
+        return echarts.format.encodeHTML(e.names[i]) + ": " + e.values[i] + "%<br>" + e.counts[i].toLocaleString("he-IL") +
           " מתוך " + e.totals[i].toLocaleString("he-IL") + " מתקנים";
       } },
       grid: { left: 16, right: 24, top: 24, bottom: 24, containLabel: true },

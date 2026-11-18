@@ -153,7 +153,7 @@
     const chart = echarts.init(document.getElementById("chart-heat"));
     const narrow = window.innerWidth < 640;
     chart.setOption(window.GovEcharts.option({
-      tooltip: { position: "top", formatter: (p) => d.months[p.value[0]] + " " + d.years[p.value[1]] + ": " + Number(p.value[2]).toLocaleString("he-IL") + " אלף לינות" },
+      tooltip: { position: "top", formatter: (p) => echarts.format.encodeHTML(d.months[p.value[0]] + " " + d.years[p.value[1]]) + ": " + Number(p.value[2]).toLocaleString("he-IL") + " אלף לינות" },
       grid: { left: 8, right: 8, top: 8, bottom: 56, containLabel: true },
       xAxis: { type: "category", data: d.months, splitArea: { show: false }, axisLabel: { interval: 0, rotate: narrow ? 90 : 0 } },
       yAxis: { type: "category", data: d.years, inverse: true, splitArea: { show: false } },
