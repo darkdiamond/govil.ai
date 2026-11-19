@@ -102,9 +102,11 @@ useSeo({
       url: `${SITE_URL}/news/about/`,
     },
     publisher: {
-      "@type": "Organization",
+      "@type": "NewsMediaOrganization",
       name: "govil.ai",
       url: SITE_URL,
+      publishingPrinciples: `${SITE_URL}/news/about/`,
+      correctionsPolicy: `${SITE_URL}/news/about/#corrections`,
       logo: {
         "@type": "ImageObject",
         url: `${SITE_URL}/web-app-manifest-512x512.png`,
@@ -186,7 +188,14 @@ useSeo({
         class="border border-warn/60 bg-warn/10 rounded-gov p-3 my-4 text-sm"
         role="note"
       >
-        <strong>תיקון:</strong> {{ article.correction }}
+        <strong>תיקון</strong>
+        (<time :datetime="article.updated_at">{{
+          newsDate(article.updated_at, true)
+        }}</time
+        >): {{ article.correction }}
+        <NuxtLink to="/news/about/#corrections" class="whitespace-nowrap"
+          >מדיניות התיקונים</NuxtLink
+        >
       </div>
 
       <ArticleBody :blocks="article.blocks" :charts="article.charts" />
