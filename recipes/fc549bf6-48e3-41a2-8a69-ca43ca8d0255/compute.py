@@ -455,15 +455,12 @@ def compute(frames):
         lk_aq = sorted(a for a in df["aquifer"].unique() if a) + [UNSPEC]
         lk = {"status": statuses, "water": wts, "aquifer": lk_aq, "own": owns}
         lk_idx = {k: {v: i for i, v in enumerate(vals)} for k, vals in lk.items()}
+        recs = list(zip(df["fid"], df["name"], df["status"], df["water"], df["aquifer"], df["ownership"]))
         wells = []
         for ci, rows_in in enumerate(cell_rows):
-            sub = df.iloc[rows_in]
-            order = sorted(range(len(sub)), key=lambda j: (sub["name"].iat[j], sub["fid"].iat[j]))
-            for j in order:
-                r = sub.iloc[j]
-                wells.append([ci, r["fid"], r["name"],
-                              lk_idx["status"][r["status"]], lk_idx["water"][r["water"]],
-                              lk_idx["aquifer"][r["aquifer"] or UNSPEC], lk_idx["own"][r["ownership"]]])
+            for fid, name, st, wt, aq, own in sorted((recs[i] for i in rows_in), key=lambda t: (t[1], t[0])):
+                wells.append([ci, fid, name, lk_idx["status"][st], lk_idx["water"][wt],
+                              lk_idx["aquifer"][aq or UNSPEC], lk_idx["own"][own]])
         map_chart = {
             "chunks": [pts[i:i + MAP_CHUNK] for i in range(0, len(pts), MAP_CHUNK)],
             "wells": [wells[i:i + WELL_CHUNK] for i in range(0, len(wells), WELL_CHUNK)],

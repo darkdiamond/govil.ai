@@ -201,14 +201,16 @@
       if (m) { return Date.UTC(+m[3], +m[2] - 1, +m[1]); }
       return null;
     }
-    function fetchResource(rid, ids, out) {
+    // `alive` turns false once a newer click supersedes this one, so a stale
+    // square stops paging instead of downloading the rest of its rows.
+    function fetchResource(rid, ids, out, alive) {
       function step(offset) {
         return window.GovMap.records({ resourceId: rid, filters: { "זיהוי קידוח": ids },
           fields: [LV_ID, LV_DATE, LV_LEVEL], sort: "_id", limit: PAGE, offset: offset
         }).then(function (res) {
           Array.prototype.push.apply(out, res.records);
           var next = offset + res.records.length;
-          if (res.records.length && next < res.total && out.length < ROW_CAP) { return step(next); }
+          if (alive() && res.records.length && next < res.total && out.length < ROW_CAP) { return step(next); }
         });
       }
       return step(0);
@@ -222,10 +224,14 @@
       levelsChart.setOption(window.GovEcharts.option({
         color: window.GOVIL_PALETTE,
         legend: { top: 0, type: "scroll" },
-        tooltip: { trigger: "item", formatter: function (q) {
-          return echarts.format.encodeHTML(q.seriesName) + "<br>" +
-            new Date(q.value[0]).toLocaleDateString("he-IL", { timeZone: "UTC" }) + ": " +
-            q.value[1].toLocaleString("he-IL") + " מ׳";
+        // axis, not item: a line drawn without symbols (80+ readings) has
+        // no item to hover. Each line shows its own nearest reading's date.
+        tooltip: { trigger: "axis", formatter: function (ps) {
+          return ps.filter(function (q) { return q.value && q.value[1] !== null; }).map(function (q) {
+            return echarts.format.encodeHTML(q.seriesName) + ", " +
+              new Date(q.value[0]).toLocaleDateString("he-IL", { timeZone: "UTC" }) + ": " +
+              q.value[1].toLocaleString("he-IL") + " מ׳";
+          }).join("<br>");
         } },
         grid: { left: 16, right: 24, top: 40, bottom: 56, containLabel: true },
         xAxis: { type: "time" },
@@ -255,24 +261,30 @@
         cell(tr, lk.aquifer[r[5]], true);
         cell(tr, lk.own[r[6]], true);
         var n = Number(r[1]);
-        countCells[r[1]] = cell(tr, "…");
+        (countCells[r[1]] = countCells[r[1]] || []).push(cell(tr, "…"));
         rowsEl.appendChild(tr);
         if (r[1] !== "" && isFinite(n) && ids.indexOf(n) < 0) { ids.push(n); names[String(n)] = r[2]; }
       });
       chartEl.classList.add("hidden");
-      function fail() {
-        if (my !== seq) { return; }
-        Object.keys(countCells).forEach(function (k) { countCells[k].textContent = "אין"; });
-        stateEl.textContent = "לא ניתן לטעון כרגע את מדידות המפלס מ-data.gov.il. נסו שוב מאוחר יותר.";
+      function setCount(k, text) {
+        countCells[k].forEach(function (td) { td.textContent = text; });
       }
-      if (!ids.length) { fail(); return; }
+      function alive() { return my === seq; }
+      // Unknown, not "none": a failed load says nothing about the well.
+      function fail(msg) {
+        if (!alive()) { return; }
+        Object.keys(countCells).forEach(function (k) { setCount(k, "לא ידוע"); });
+        stateEl.textContent = msg || "לא ניתן לטעון כרגע את מדידות המפלס מ-data.gov.il. נסו שוב מאוחר יותר.";
+      }
+      if (!ids.length) { fail("לקידוחים בריבוע הזה אין מספר מתקן שלפיו אפשר לחפש מדידות מפלס."); return; }
       if (!window.GovMap || typeof window.GovMap.records !== "function") { fail(); return; }
       stateEl.textContent = "טוען מדידות מפלס…";
       var got = [];
-      meta.levels.reduce(function (pr, rid) {
-        return pr.then(function () { return fetchResource(rid, ids, got); });
-      }, Promise.resolve()).then(function () {
-        if (my !== seq) { return; }
+      Promise.all(meta.levels.map(function (rid) {
+        return fetchResource(rid, ids, got, alive);
+      })).then(function () {
+        if (!alive()) { return; }
+        var cut = got.length >= ROW_CAP;
         var by = {};
         got.forEach(function (rec) {
           var t = parseDate(rec[LV_DATE]);
@@ -284,7 +296,8 @@
         var keys = Object.keys(by);
         Object.keys(countCells).forEach(function (k) {
           var arr = by[String(Number(k))];
-          countCells[k].textContent = arr ? fmt(arr.length) : "אין";
+          // past the row cap a well with no rows may just have been cut off
+          setCount(k, arr ? fmt(arr.length) : (cut ? "לא ידוע" : "אין"));
         });
         if (!keys.length) {
           stateEl.textContent = "לקידוחים בריבוע הזה אין מדידות מפלס במאגר מפלסי הקידוחים.";
@@ -302,7 +315,7 @@
         stateEl.textContent = fmt(total) + " מדידות מפלס ב-" + fmt(keys.length) + " מתוך " + fmt(wells.length) +
           " הקידוחים בריבוע, בין " + new Date(t0).getUTCFullYear() + " ל-" + new Date(t1).getUTCFullYear() + "." +
           (keys.length > shown.length ? " בתרשים " + fmt(shown.length) + " הקידוחים עם מספר המדידות הגדול ביותר." : "") +
-          (got.length >= ROW_CAP ? " הוצגו רק חלק מהמדידות." : "");
+          (cut ? " הוצגו רק חלק מהמדידות." : "");
         drawLevels(shown.map(function (k) {
           var pts = [];
           by[k].forEach(function (pt, i) {

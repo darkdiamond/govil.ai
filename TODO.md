@@ -8,6 +8,14 @@ This repo is public: describe a security gap by what to change, never by how to 
 
 ## Recipes and refresh
 
+- **fc549bf6's live groundwater levels hard-code another dataset's resource ids.** The wells
+  page reads levels on click from 72aeb4ae's two resources (`LEVELS_RESOURCES` in its
+  compute.py) through `GovMap.records`. The refresh tracks only fc549bf6, so if 72aeb4ae
+  re-uploads under new resource ids or renames a column, every click shows "can't load" and
+  nothing opens an issue. Fix: a cheap cross-dataset check (resolve the ids, or a `by_schema`
+  input on 72aeb4ae that reads only the preview) so a moved resource fails the refresh.
+  (2026-11-19)
+
 - **Author 022552b2 with the new `raster` input.** 022552b2 (מפות מפלסים ומליחות באקוויפרים, a
   top no-recipe page by search clicks) ships only zips of yearly GeoTIFFs: coastal-aquifer water
   level 1954-2023 (`wl_tiff.zip`, 70 files, 85MB) and chloride 1977-2020 (`cl_tiff.zip`, 35
