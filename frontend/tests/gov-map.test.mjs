@@ -377,3 +377,75 @@ test("GovMap.create keeps fetching on engines without Node.isConnected", async (
   }
   assert.deepEqual(ingested, [1000, 1000, 1000]);
 });
+
+// --- GovMap.records: on-demand datastore_search page for a body ---
+
+function loadGovMapWithFetch(fetchImpl) {
+  const window = {};
+  const document = { getElementById: () => null, createElement: () => ({}) };
+  vm.runInNewContext(
+    readFileSync(new URL("../scripts/gov-map.js", import.meta.url), "utf8"),
+    { window, document, fetch: fetchImpl, URLSearchParams }
+  );
+  return window.GovMap;
+}
+
+const RID = "586b52c8-1aea-4f26-81fd-b55f51e665da";
+
+test("GovMap.records queries data.gov.il datastore_search only", async () => {
+  const urls = [];
+  const gm = loadGovMapWithFetch(async (url) => {
+    urls.push(url);
+    return {
+      ok: true,
+      json: async () => ({
+        success: true,
+        result: { records: [{ a: 1 }], total: 7 },
+      }),
+    };
+  });
+  const res = await gm.records({
+    resourceId: RID,
+    filters: { "זיהוי קידוח": [1, 2] },
+    fields: ["זיהוי קידוח", "תאריך"],
+    sort: "_id",
+    limit: 999999,
+    offset: 64000,
+  });
+  assert.deepEqual(JSON.parse(JSON.stringify(res)), {
+    records: [{ a: 1 }],
+    total: 7,
+  });
+  const u = new URL(urls[0]);
+  assert.equal(
+    u.origin + u.pathname,
+    "https://data.gov.il/api/3/action/datastore_search"
+  );
+  assert.equal(u.searchParams.get("resource_id"), RID);
+  assert.deepEqual(JSON.parse(u.searchParams.get("filters")), {
+    "זיהוי קידוח": [1, 2],
+  });
+  assert.equal(u.searchParams.get("fields"), "זיהוי קידוח,תאריך");
+  assert.equal(u.searchParams.get("sort"), "_id");
+  assert.equal(u.searchParams.get("limit"), "32000"); // capped
+  assert.equal(u.searchParams.get("offset"), "64000");
+});
+
+test("GovMap.records refuses a resource id that is not a CKAN UUID", async () => {
+  let called = false;
+  const gm = loadGovMapWithFetch(async () => {
+    called = true;
+  });
+  for (const bad of ["", "x", RID + "&q=1", "../" + RID, null]) {
+    await assert.rejects(gm.records({ resourceId: bad }), /bad resourceId/);
+  }
+  assert.equal(called, false);
+});
+
+test("GovMap.records rejects a CKAN error answer", async () => {
+  const gm = loadGovMapWithFetch(async () => ({
+    ok: true,
+    json: async () => ({ success: false }),
+  }));
+  await assert.rejects(gm.records({ resourceId: RID }), /ckan reject/);
+});

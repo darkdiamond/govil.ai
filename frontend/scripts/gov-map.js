@@ -185,6 +185,7 @@
       params.set("fields", opts.fields.join(","));
     if (opts.filters) params.set("filters", JSON.stringify(opts.filters));
     if (opts.q) params.set("q", String(opts.q));
+    if (opts.sort) params.set("sort", String(opts.sort));
     params.set("limit", String(opts.limit));
     if (opts.offset) params.set("offset", String(opts.offset));
     params.set("include_total", "true");
@@ -203,6 +204,36 @@
           total: data.result.total || 0,
         };
       });
+  }
+
+  // GovMap.records: one datastore_search page, for a body that needs rows
+  // on demand (e.g. a clicked map point's time series) rather than a map.
+  // The host is fixed to data.gov.il here and the resource id must be a
+  // CKAN UUID, so a body can read public CKAN rows and nothing else: page
+  // scripts may not call fetch themselves (check.py NETWORK-API).
+  // Resolves to {records, total}.
+  var UUID_RE =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  var RECORDS_MAX_LIMIT = 32000;
+
+  function records(opts) {
+    opts = opts || {};
+    var rid = String(opts.resourceId || "");
+    if (!UUID_RE.test(rid))
+      return Promise.reject(new Error("GovMap.records: bad resourceId"));
+    var limit = parseInt(opts.limit, 10);
+    if (!(limit > 0)) limit = 100;
+    var offset = parseInt(opts.offset, 10);
+    return fetchPage({
+      resourceId: rid,
+      fields: Array.isArray(opts.fields) ? opts.fields.map(String) : null,
+      filters:
+        opts.filters && typeof opts.filters === "object" ? opts.filters : null,
+      q: opts.q,
+      sort: opts.sort,
+      limit: Math.min(limit, RECORDS_MAX_LIMIT),
+      offset: offset > 0 ? offset : 0,
+    });
   }
 
   function isFiniteNum(v) {
@@ -622,6 +653,7 @@
 
   window.GovMap = {
     create: create,
+    records: records,
     islands: islands,
     ring: ring,
     popup: popup,
