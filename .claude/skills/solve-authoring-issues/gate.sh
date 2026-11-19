@@ -117,8 +117,12 @@ fi
 
 # Judge the fire by the RemoteTrigger tool result in the transcript (HTTP 2xx for
 # a run call on this trigger), never by the model's own reply.
+# RemoteTrigger answers "ask" for run/create/update whatever the allow rules say,
+# and -p can't ask, so the call goes through auto mode's classifier instead.
+# --tools RemoteTrigger makes it the only tool the session has.
 out=$(cd "$STATE" && timeout 180 claude -p --model haiku --strict-mcp-config \
-  --allowedTools RemoteTrigger --output-format stream-json --verbose \
+  --tools RemoteTrigger --allowedTools RemoteTrigger --permission-mode auto \
+  --output-format stream-json --verbose \
   "Call the RemoteTrigger tool once with action \"run\" and trigger_id \"$TRIGGER\" and no body. Do nothing else, then reply DONE." \
   </dev/null | TRIGGER="$TRIGGER" python3 -c '
 import json, os, sys
@@ -128,7 +132,13 @@ for line in sys.stdin:
         ev = json.loads(line)
     except ValueError:
         continue
-    for c in (ev.get("message") or {}).get("content") or []:
+    # Some stream events carry "message" as a plain string (not an API
+    # message); skip anything that is not the dict shape we read.
+    msg = ev.get("message") if isinstance(ev, dict) else None
+    content = msg.get("content") if isinstance(msg, dict) else None
+    if not isinstance(content, list):
+        continue
+    for c in content:
         if not isinstance(c, dict):
             continue
         inp = c.get("input") or {}
