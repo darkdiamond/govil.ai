@@ -54,6 +54,17 @@ def test_correct_on_a_live_article_marks_it_corrected(docs, status):
     assert admin.main(["correct", "live-article", "--note", "תיקון"]) == 0
     assert docs["live-article"]["status"] == "corrected"
     assert docs["live-article"]["correction"] == "תיקון"
+    assert docs["live-article"]["corrected_at"] == docs["live-article"]["updated_at"]
+
+
+def test_republish_keeps_the_correction_date(docs):
+    docs["a"] = {"slug": "a", "status": "published"}
+    assert admin.main(["correct", "a", "--note", "תיקון"]) == 0
+    corrected_at = docs["a"]["corrected_at"]
+    assert admin.main(["unpublish", "a"]) == 0
+    assert admin.main(["republish", "a"]) == 0
+    assert docs["a"]["corrected_at"] == corrected_at
+    assert docs["a"]["updated_at"] >= corrected_at
 
 
 def test_correct_on_an_unpublished_article_keeps_it_off_the_site(docs, capsys):

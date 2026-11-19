@@ -148,6 +148,14 @@ This repo is public: describe a security gap by what to change, never by how to 
 
 ## News
 
+- **Keep every correction, and say when an article was removed.** `admin correct` overwrites
+  `correction`, so a second correction erases the first notice, and `admin unpublish` turns the
+  URL into a 404 with no word on the site. The corrections policy on `/news/about/#corrections`
+  now promises only what the tooling does (a dated notice, removal). To be fully open about
+  mistakes: store corrections as a list rendered in order, and leave a short "הכתבה הוסרה" page
+  at an unpublished slug. Also consider moving `publishingPrinciples`/`correctionsPolicy` from
+  the article's publisher node into the site-wide Organization in `useSeo.ts`. (2026-11-19)
+
 - **`kpi_move` can re-signal a KPI that hovers around its threshold.** Its "once" guard
   compares the baseline with the current reference render, and the reference (the render
   ≥28 days older, `registry.pick_ref`) slides forward daily, so a KPI near ±10% that dips under

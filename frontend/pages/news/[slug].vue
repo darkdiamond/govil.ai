@@ -57,6 +57,10 @@ const images = [hero.sizes["16x9"], hero.sizes["4x3"], hero.sizes["1x1"]]
   .map(abs)
   .filter(Boolean) as string[];
 const updated = article.value.updated_at !== article.value.published_at;
+// updated_at also moves on an unpublish/republish, so it is only the fallback
+// for corrections stored before corrected_at existed.
+const correctedAt = article.value.corrected_at || article.value.updated_at;
+const correctedLabel = newsDate(correctedAt, true);
 // Plain URLs, not typed Dataset nodes: Google validates every Dataset node it
 // finds and requires description/license/creator, which article.json doesn't
 // carry. The dataset page itself has the full Dataset. encodeURI matches
@@ -102,7 +106,7 @@ useSeo({
       url: `${SITE_URL}/news/about/`,
     },
     publisher: {
-      "@type": "NewsMediaOrganization",
+      "@type": "Organization",
       name: "govil.ai",
       url: SITE_URL,
       publishingPrinciples: `${SITE_URL}/news/about/`,
@@ -189,10 +193,10 @@ useSeo({
         role="note"
       >
         <strong>תיקון</strong>
-        (<time :datetime="article.updated_at">{{
-          newsDate(article.updated_at, true)
-        }}</time
-        >): {{ article.correction }}
+        <template v-if="correctedLabel">
+          (<time :datetime="correctedAt">{{ correctedLabel }}</time
+          >)</template
+        >: {{ article.correction }}
         <NuxtLink to="/news/about/#corrections" class="whitespace-nowrap"
           >מדיניות התיקונים</NuxtLink
         >
