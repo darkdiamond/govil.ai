@@ -135,7 +135,59 @@ def _canon(keys, names):
     return v.drop_duplicates("k").set_index("k")["name"]
 
 
+# Since 2026-11 the resource is loaded into CKAN's datastore as ONE column: the
+# file is pipe-delimited and CKAN read it as a single field, so its name is the
+# pipe-joined header cut at Postgres's 63-character limit. The row values are
+# whole, so each row is split back into the eleven fields of the old schema.
+# If CKAN loads the file properly again, the original columns are read as is.
+PACKED = "license|title|expire_date|gmp_expire_date|ProductActivityFoodTy"
+FIELDS = ["license", "title", "expire_date", "gmp_expire_date", "ProductActivityFoodType",
+          "accountType", "gmpstatuscode", "health_district_desc", "city_number", "city", "Addr"]
+# Never shown: the licence number is an identifier, the address can be a sole
+# trader's home address. Dropped on read so no later code can use them.
+DROPPED = ["license", "Addr"]
+USED = [f for f in FIELDS if f not in DROPPED]
+DATE_RE = r"^(?:\d{4}-\d{2}-\d{2}(?: \d{2}:\d{2}:\d{2}(?:\.\d+)?)?)?$"
+MIN_OK = 0.95
+
+
+def _unpack(df):
+    if all(f in df.columns for f in USED):
+        parts = df[USED].astype(str).fillna("")
+    elif PACKED in df.columns:
+        packed = df[PACKED].astype(str)
+        # A row is read only when it has exactly one pipe per field gap: an
+        # extra pipe inside a free-text field would shift every later field.
+        whole = packed.str.count(r"\|") == len(FIELDS) - 1
+        if len(packed) and whole.mean() < MIN_OK:
+            raise ValueError("packed rows do not have the expected eleven fields")
+        packed = packed[whole]
+        parts = pd.DataFrame(
+            [r.split("|") for r in packed] or None, columns=FIELDS, index=packed.index,
+            dtype=object,
+        ).reindex(columns=FIELDS).fillna("").astype(str)[USED]
+    else:
+        raise ValueError(f"neither the packed column nor the columns {USED} are present")
+    # The header names only the first five fields; check every field is where
+    # the old schema put it, so a reordered file fails instead of mislabelling.
+    if len(parts):
+        st = {f: parts[f].str.strip() for f in USED}
+        checks = [
+            st["expire_date"].str.match(DATE_RE).mean(),
+            st["gmp_expire_date"].str.match(DATE_RE).mean(),
+            st["city_number"].str.fullmatch(r"\d*").mean(),
+            st["gmpstatuscode"].isin(["", "0", "1"]).mean(),
+            st["accountType"].isin(GROUP_OF.keys()).mean(),
+            (st["health_district_desc"].str.startswith("מחוז") | (st["health_district_desc"] == "")).mean(),
+            (~st["city"].str.match(r"^(?:מחוז|\d)")).mean(),
+        ]
+        if min(checks) < MIN_OK:
+            raise ValueError("packed columns are not in the expected order")
+    return parts
+
+
 def _prepare(df):
+    df = _unpack(df)
     out = pd.DataFrame({
         "title": df["title"].str.strip().str.replace(r"\s+", " ", regex=True),
         "type": df["accountType"].str.strip(),
