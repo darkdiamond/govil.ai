@@ -1,17 +1,21 @@
 {
   "contract_version": 1,
   "dataset_id": "fc549bf6-48e3-41a2-8a69-ca43ca8d0255",
-  "recipe_version": 2,
+  "recipe_version": 3,
   "authored_at": "2026-10-31T20:30:00Z",
   "authored_against": {
     "metadata_modified": "2026-01-01T09:45:27.571356+00:00",
-    "rows": { "wells": 4151 }
+    "rows": {
+      "wells": 4151
+    }
   },
   "inputs": [
     {
       "name": "wells",
       "by_id": "71090141-46a0-42b7-aed8-c71322b25c6d",
       "required_columns": [
+        "מספר מתקן",
+        "שם מתקן",
         "סטאטוס",
         "בעלות המתקן",
         "שם צרכן בעל המתקן",

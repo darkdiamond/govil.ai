@@ -1,6 +1,6 @@
 {
-  "wells.מספר מתקן": "skip: identifier (searchable in the explorer)",
-  "wells.שם מתקן": "skip: free-text facility name (searchable in the explorer)",
+  "wells.מספר מתקן": "map-wells — the square's well list; the key that joins each well to its groundwater levels (fetched live on click)",
+  "wells.שם מתקן": "map-wells — names in the clicked square's well list and in the levels chart legend",
   "wells.מספר צרכן בעל המתקן": "skip: identifier of the owner; the owner name column carries the same grouping",
   "wells.שם צרכן בעל המתקן": "chart-owners, chart-basin, kpi:owners, insight:owner_top — Mekorot basin parsed from the Mekorot owner name",
   "wells.בעלות המתקן": "chart-ownership, insight:owner_gap, chart-owners, chart-basin",

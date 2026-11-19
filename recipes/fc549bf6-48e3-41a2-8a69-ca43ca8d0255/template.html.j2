@@ -20,7 +20,7 @@
     </div>
   </details>
 {%- endmacro %}
-<h1>קידוחי רשות המים: מאגר קידוחי מים מורשים בישראל</h1>
+<h1>{{ model.agent_data.seo.name }}</h1>
 
 <section class="card p-5 mb-6">
 {{ head("info", "תקציר") }}
@@ -58,6 +58,20 @@
 {{ head("map-pin", "מפת הקידוחים") }}
   <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.map_lede }}</p>
   <div id="map-wells" class="h-80 md:h-[460px]" role="region" aria-label="{{ model.labels.map_aria }}" data-fallback="explorer"></div>
+  <p id="well-hint" class="m-0 mt-3 text-sm text-subtle">לחצו על עיגול במפה כדי לראות כאן את רשימת הקידוחים בריבוע ואת מפלסי מי התהום שנמדדו בהם.</p>
+  <div id="well-detail" class="hidden mt-4" aria-live="polite">
+    <h3 id="well-detail-title" class="m-0 mb-2 text-base font-semibold text-ink-deep"></h3>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <caption class="sr-only">הקידוחים בריבוע שנבחר במפה</caption>
+        <thead><tr class="border-b border-rule text-ink-deep"><th scope="col" class="text-start py-1 pe-3">שם מתקן</th><th scope="col" class="text-start py-1 pe-3">מספר מתקן</th><th scope="col" class="text-start py-1 pe-3">סטטוס</th><th scope="col" class="text-start py-1 pe-3">סוג מים</th><th scope="col" class="hidden md:table-cell text-start py-1 pe-3">אקוויפר</th><th scope="col" class="hidden md:table-cell text-start py-1 pe-3">בעלות</th><th scope="col" class="text-start py-1 pe-3">מדידות מפלס</th></tr></thead>
+        <tbody id="well-detail-rows"></tbody>
+      </table>
+    </div>
+    <p id="levels-state" class="m-0 mt-4 mb-2 text-sm text-subtle"></p>
+    <div id="chart-levels" class="hidden h-72 md:h-96" role="img" aria-label="מפלסי מי התהום שנמדדו בקידוחי הריבוע שנבחר, במטרים ביחס לפני הים, לאורך זמן"></div>
+    <p class="m-0 mt-2 text-xs text-subtle">מפלס מי התהום במטרים ביחס לפני הים; קו נקטע כשעברו יותר משלוש שנים בין מדידות. המפלסים נטענים בזמן הלחיצה מתוך המאגר <a href="{{ model.charts.map.levels_page }}">מפלסי קידוחים</a> של רשות המים, לפי מספר המתקן. רק לחלק מהקידוחים יש מדידות מפלס.</p>
+  </div>
 </section>
 {%- endif %}
 
@@ -152,18 +166,184 @@
 {%- for chunk in model.charts.map.chunks %}
 <script type="application/json" id="map-pts-{{ loop.index0 }}">{{ chunk | tojson }}</script>
 {%- endfor %}
+{%- for chunk in model.charts.map.wells %}
+<script type="application/json" id="map-wells-{{ loop.index0 }}">{{ chunk | tojson }}</script>
+{%- endfor %}
 <script>
   (function () {
     var el = document.getElementById("map-wells");
     if (!el || !window.L) { return; }
-    var meta = {{ {"n": model.charts.map.chunks | length, "max": model.charts.map.max, "bounds": model.charts.map.bounds, "admins": model.charts.map.admins} | tojson }};
+    var meta = {{ {"n": model.charts.map.chunks | length, "nw": model.charts.map.wells | length, "max": model.charts.map.max, "bounds": model.charts.map.bounds, "admins": model.charts.map.admins, "lookup": model.charts.map.lookup, "levels": model.charts.map.levels} | tojson }};
     var map = L.map(el, { preferCanvas: true, scrollWheelZoom: false, zoomSnap: 0.25 });
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: "© <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a>" }).addTo(map);
     var fmt = function (v) { return Number(v).toLocaleString("he-IL"); };
+    // ── the clicked square: well list + live groundwater levels ──
+    var LV_ID = "זיהוי קידוח", LV_DATE = "תאריך", LV_LEVEL = "מפלס (מטרים)";
+    var PAGE = 32000, ROW_CAP = 150000, MAX_LINES = 12;
+    var GAP_MS = 3 * 365.25 * 864e5; // a longer pause between readings breaks the line
+    var detail = document.getElementById("well-detail");
+    var rowsEl = document.getElementById("well-detail-rows");
+    var stateEl = document.getElementById("levels-state");
+    var chartEl = document.getElementById("chart-levels");
+    var levelsChart = null, seq = 0;
+    function cell(tr, text, wide) {
+      var td = document.createElement("td");
+      td.className = wide ? "hidden md:table-cell py-1 pe-3" : "py-1 pe-3";
+      td.textContent = text;
+      tr.appendChild(td);
+      return td;
+    }
+    function parseDate(s) {
+      s = String(s || "");
+      var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s);
+      if (m) { return Date.UTC(+m[1], +m[2] - 1, +m[3]); }
+      m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(s);
+      if (m) { return Date.UTC(+m[3], +m[2] - 1, +m[1]); }
+      return null;
+    }
+    // `alive` turns false once a newer click supersedes this one, so a stale
+    // square stops paging instead of downloading the rest of its rows.
+    function fetchResource(rid, ids, out, alive) {
+      function step(offset) {
+        return window.GovMap.records({ resourceId: rid, filters: { "זיהוי קידוח": ids },
+          fields: [LV_ID, LV_DATE, LV_LEVEL], sort: "_id", limit: PAGE, offset: offset
+        }).then(function (res) {
+          Array.prototype.push.apply(out, res.records);
+          var next = offset + res.records.length;
+          if (alive() && res.records.length && next < res.total && out.length < ROW_CAP) { return step(next); }
+        });
+      }
+      return step(0);
+    }
+    function drawLevels(series) {
+      chartEl.classList.remove("hidden");
+      if (!levelsChart) {
+        levelsChart = echarts.init(chartEl);
+        window.addEventListener("resize", function () { levelsChart.resize(); });
+      }
+      levelsChart.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        legend: { top: 0, type: "scroll" },
+        // axis, not item: a line drawn without symbols (80+ readings) has
+        // no item to hover. Each line shows its own nearest reading's date.
+        tooltip: { trigger: "axis", formatter: function (ps) {
+          return ps.filter(function (q) { return q.value && q.value[1] !== null; }).map(function (q) {
+            return echarts.format.encodeHTML(q.seriesName) + ", " +
+              new Date(q.value[0]).toLocaleDateString("he-IL", { timeZone: "UTC" }) + ": " +
+              q.value[1].toLocaleString("he-IL") + " מ׳";
+          }).join("<br>");
+        } },
+        grid: { left: 16, right: 24, top: 40, bottom: 56, containLabel: true },
+        xAxis: { type: "time" },
+        yAxis: { type: "value", scale: true },
+        dataZoom: [{ type: "inside" }, { type: "slider", height: 18, bottom: 8 }],
+        series: series
+      }), true);
+      levelsChart.resize();
+    }
+    function showWells(wells, title) {
+      var my = ++seq;
+      var lk = meta.lookup;
+      detail.classList.remove("hidden");
+      document.getElementById("well-detail-title").textContent =
+        (title ? title + ": " : "") + fmt(wells.length) + " קידוחים בריבוע";
+      while (rowsEl.firstChild) { rowsEl.removeChild(rowsEl.firstChild); }
+      var countCells = {};
+      var names = {};
+      var ids = [];
+      wells.forEach(function (r) {
+        var tr = document.createElement("tr");
+        tr.className = "border-b border-rule";
+        cell(tr, r[2]);
+        cell(tr, r[1]);
+        cell(tr, lk.status[r[3]]);
+        cell(tr, lk.water[r[4]]);
+        cell(tr, lk.aquifer[r[5]], true);
+        cell(tr, lk.own[r[6]], true);
+        var n = Number(r[1]);
+        (countCells[r[1]] = countCells[r[1]] || []).push(cell(tr, "…"));
+        rowsEl.appendChild(tr);
+        if (r[1] !== "" && isFinite(n) && ids.indexOf(n) < 0) { ids.push(n); names[String(n)] = r[2]; }
+      });
+      chartEl.classList.add("hidden");
+      function setCount(k, text) {
+        countCells[k].forEach(function (td) { td.textContent = text; });
+      }
+      function alive() { return my === seq; }
+      // Unknown, not "none": a failed load says nothing about the well.
+      function fail(msg) {
+        if (!alive()) { return; }
+        Object.keys(countCells).forEach(function (k) { setCount(k, "לא ידוע"); });
+        stateEl.textContent = msg || "לא ניתן לטעון כרגע את מדידות המפלס מ-data.gov.il. נסו שוב מאוחר יותר.";
+      }
+      if (!ids.length) { fail("לקידוחים בריבוע הזה אין מספר מתקן שלפיו אפשר לחפש מדידות מפלס."); return; }
+      if (!window.GovMap || typeof window.GovMap.records !== "function") { fail(); return; }
+      stateEl.textContent = "טוען מדידות מפלס…";
+      var got = [];
+      Promise.all(meta.levels.map(function (rid) {
+        return fetchResource(rid, ids, got, alive);
+      })).then(function () {
+        if (!alive()) { return; }
+        var cut = got.length >= ROW_CAP;
+        var by = {};
+        got.forEach(function (rec) {
+          var t = parseDate(rec[LV_DATE]);
+          var v = rec[LV_LEVEL];
+          if (t === null || v === null || v === "" || !isFinite(Number(v))) { return; }
+          var k = String(Number(rec[LV_ID]));
+          (by[k] = by[k] || []).push([t, Number(v)]);
+        });
+        var keys = Object.keys(by);
+        Object.keys(countCells).forEach(function (k) {
+          var arr = by[String(Number(k))];
+          // past the row cap a well with no rows may just have been cut off
+          setCount(k, arr ? fmt(arr.length) : (cut ? "לא ידוע" : "אין"));
+        });
+        if (!keys.length) {
+          stateEl.textContent = "לקידוחים בריבוע הזה אין מדידות מפלס במאגר מפלסי הקידוחים.";
+          return;
+        }
+        keys.sort(function (a, b) { return by[b].length - by[a].length || (a < b ? -1 : 1); });
+        var total = 0, t0 = Infinity, t1 = -Infinity;
+        keys.forEach(function (k) {
+          by[k].sort(function (a, b) { return a[0] - b[0]; });
+          total += by[k].length;
+          t0 = Math.min(t0, by[k][0][0]);
+          t1 = Math.max(t1, by[k][by[k].length - 1][0]);
+        });
+        var shown = keys.slice(0, MAX_LINES);
+        stateEl.textContent = fmt(total) + " מדידות מפלס ב-" + fmt(keys.length) + " מתוך " + fmt(wells.length) +
+          " הקידוחים בריבוע, בין " + new Date(t0).getUTCFullYear() + " ל-" + new Date(t1).getUTCFullYear() + "." +
+          (keys.length > shown.length ? " בתרשים " + fmt(shown.length) + " הקידוחים עם מספר המדידות הגדול ביותר." : "") +
+          (cut ? " הוצגו רק חלק מהמדידות." : "");
+        drawLevels(shown.map(function (k) {
+          var pts = [];
+          by[k].forEach(function (pt, i) {
+            if (i && pt[0] - by[k][i - 1][0] > GAP_MS) { pts.push([(pt[0] + by[k][i - 1][0]) / 2, null]); }
+            pts.push(pt);
+          });
+          return { type: "line", name: names[k] + " (" + k + ")", data: pts,
+            showSymbol: by[k].length < 80, symbolSize: 4, connectNulls: false };
+        }));
+      }).catch(function (err) {
+        console.warn("[levels] fetch failed", err);
+        fail();
+      });
+    }
+    var wellsByCell = {};
+    for (var w = 0; w < meta.nw; w++) {
+      var wnode = document.getElementById("map-wells-" + w);
+      if (!wnode) { continue; }
+      JSON.parse(wnode.textContent).forEach(function (r) {
+        (wellsByCell[r[0]] = wellsByCell[r[0]] || []).push(r);
+      });
+    }
+    var cellIdx = 0;
     for (var c = 0; c < meta.n; c++) {
       var node = document.getElementById("map-pts-" + c);
       if (!node) { continue; }
       JSON.parse(node.textContent).forEach(function (p) {
+        var ci = cellIdx++;
         var t = Math.sqrt(p[2] / meta.max);
         var on = p[3] > 0;
         var mk = L.circleMarker([p[0], p[1]], {
@@ -176,12 +356,15 @@
           title.textContent = meta.admins[p[4]];
           box.appendChild(title);
         }
-        [["קידוחים בריבוע", fmt(p[2])], ["מתוכם פעילים", fmt(p[3])]].forEach(function (row) {
+        [["קידוחים בריבוע", fmt(p[2])], ["מתוכם פעילים", fmt(p[3])], ["פירוט ומפלסים", "מתחת למפה"]].forEach(function (row) {
           var line = document.createElement("div");
           line.textContent = row[0] + ": " + row[1];
           box.appendChild(line);
         });
         mk.bindPopup(box);
+        mk.on("click", function () {
+          showWells(wellsByCell[ci] || [], p[4] >= 0 ? meta.admins[p[4]] : "");
+        });
       });
     }
     map.fitBounds(meta.bounds, { padding: [8, 8] });

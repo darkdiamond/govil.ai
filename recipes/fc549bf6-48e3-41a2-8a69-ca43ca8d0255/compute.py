@@ -13,6 +13,8 @@ import re
 
 import pandas as pd
 
+COL_FACILITY = "מספר מתקן"
+COL_NAME = "שם מתקן"
 COL_STATUS = "סטאטוס"
 COL_OWNERSHIP = "בעלות המתקן"
 COL_OWNER = "שם צרכן בעל המתקן"
@@ -40,6 +42,12 @@ MIN_OWNER_WELLS = 5
 TOP_HEAT_REGIONS = 9
 TOP_HEAT_AQUIFERS = 7
 MAP_CHUNK = 600
+WELL_CHUNK = 450
+# Groundwater levels (dataset 72aeb4ae, מפלסי קידוחים): its "זיהוי קידוח" is
+# this registry's מספר מתקן. The page reads a clicked square's levels live
+# (GovMap.records); these are that dataset's two level resources.
+LEVELS_DATASET = "72aeb4ae-83f6-4f02-a9ca-9ff4f5aa1dca"
+LEVELS_RESOURCES = ["f2d9436d-2352-442a-9d2e-10cd693c28d1", "586b52c8-1aea-4f26-81fd-b55f51e665da"]
 FLOW_BINS = [(0, 50), (50, 100), (100, 150), (150, 200), (200, 300), (300, 500), (500, None)]
 
 # Old Israeli grid (Israeli CS Grid, Cassini-Soldner on Clarke 1880).
@@ -277,6 +285,8 @@ def insight_national(df):
 def compute(frames):
     raw = frames["wells"]
     df = pd.DataFrame({
+        "fid": _clean(raw[COL_FACILITY]).str.replace(r"\.0$", "", regex=True),
+        "name": _clean(raw[COL_NAME]),
         "status": _clean(raw[COL_STATUS]).replace("", UNSPEC),
         "ownership": _clean(raw[COL_OWNERSHIP]).replace("", UNSPEC),
         "owner": _clean(raw[COL_OWNER]),
@@ -404,23 +414,26 @@ def compute(frames):
     # map: aggregate to 1 km grid cells
     cells_map = {}
     n_located = 0
-    for code, st, ad in zip(df["national"], df["status"], df["admin"]):
+    for ri, (code, st, ad) in enumerate(zip(df["national"], df["status"], df["admin"])):
         g = _grid_cell(code)
         if g is None:
             continue
-        rec = cells_map.setdefault(g, [0, 0, {}])
+        rec = cells_map.setdefault(g, [0, 0, {}, []])
         rec[0] += 1
         rec[1] += 1 if st == ACTIVE else 0
         if ad:
             rec[2][ad] = rec[2].get(ad, 0) + 1
+        rec[3].append(ri)
     admin_names = []
     admin_idx = {}
     pts = []
+    cell_rows = []
     for g in sorted(cells_map):
         ll = _cell_latlon(*g)
         if ll is None:
             continue
-        tot, act, ads = cells_map[g]
+        tot, act, ads, rows_in = cells_map[g]
+        cell_rows.append(rows_in)
         n_located += tot
         if ads:
             top_ad = min(ads.items(), key=lambda kv: (-kv[1], kv[0]))[0]
@@ -436,8 +449,24 @@ def compute(frames):
     if has_map:
         lats = [p[0] for p in pts]
         lons = [p[1] for p in pts]
+        # The wells of each square, for the list under the map: [square index,
+        # facility no., name, status, water type, aquifer, ownership] with the
+        # last four as indexes into `lookup`.
+        lk_aq = sorted(a for a in df["aquifer"].unique() if a) + [UNSPEC]
+        lk = {"status": statuses, "water": wts, "aquifer": lk_aq, "own": owns}
+        lk_idx = {k: {v: i for i, v in enumerate(vals)} for k, vals in lk.items()}
+        recs = list(zip(df["fid"], df["name"], df["status"], df["water"], df["aquifer"], df["ownership"]))
+        wells = []
+        for ci, rows_in in enumerate(cell_rows):
+            for fid, name, st, wt, aq, own in sorted((recs[i] for i in rows_in), key=lambda t: (t[1], t[0])):
+                wells.append([ci, fid, name, lk_idx["status"][st], lk_idx["water"][wt],
+                              lk_idx["aquifer"][aq or UNSPEC], lk_idx["own"][own]])
         map_chart = {
             "chunks": [pts[i:i + MAP_CHUNK] for i in range(0, len(pts), MAP_CHUNK)],
+            "wells": [wells[i:i + WELL_CHUNK] for i in range(0, len(wells), WELL_CHUNK)],
+            "lookup": lk,
+            "levels": LEVELS_RESOURCES,
+            "levels_page": f"/datasets/{LEVELS_DATASET}/",
             "admins": admin_names,
             "max": max(p[2] for p in pts),
             "bounds": [[min(lats), min(lons)], [max(lats), max(lons)]],
@@ -549,7 +578,8 @@ def compute(frames):
         "map_lede": (f"כל עיגול הוא ריבוע של קילומטר על קילומטר, לפי המיקום המקודד במספר הארצי של הקידוח "
                      f"(רשת ישראל הישנה). גודל העיגול לפי מספר הקידוחים בריבוע; כחול: יש בו קידוח פעיל, אפור: אין. "
                      f"המיקום מקורב לרמת קילומטר. {_int(n_located)} קידוחים ממוקמים על המפה"
-                     + (f"; ל-{_int(n_unlocated)} אין מספר ארצי שניתן לפענח." if n_unlocated else ".")),
+                     + (f"; ל-{_int(n_unlocated)} אין מספר ארצי שניתן לפענח." if n_unlocated else ".")
+                     + " לחיצה על עיגול מציגה מתחת למפה את הקידוחים שבריבוע ואת המפלסים שנמדדו בהם."),
         "map_aria": (f"מפה אינטראקטיבית של {_int(n_located)} קידוחי רשות המים, מקובצים לריבועי קילומטר. "
                      f"גרסה נגישה: ראו את טבלת הנתונים בתחתית העמוד."),
     }
@@ -564,6 +594,13 @@ def compute(frames):
             "summary_he": summary,
             "dataset_kind": "registry",
             "spatial_coverage": "ישראל",
+            "seo": {
+                "title": "קידוחי מים בישראל: מפה, איתור קידוח ומפלסים",
+                "description": (f"מפת קידוחי המים של רשות המים: איתור קידוח לפי שם, בעלים או אקוויפר, "
+                                f"ומפלסי מי התהום שנמדדו בו. {_int(total)} קידוחים, {_int(n_active)} פעילים."),
+                "name": "קידוחי רשות המים: מאגר קידוחי מים מורשים בישראל",
+                "alternate_names": ["קידוחי רשות המים", "מאגר קידוחים", "בארות מים בישראל"],
+            },
         },
         "kpis": kpis,
         "kpi_order": kpi_order,
