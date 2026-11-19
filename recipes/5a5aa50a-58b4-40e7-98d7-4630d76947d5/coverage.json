@@ -1,13 +1,3 @@
 {
-  "main.license": "skip: licence number — an identifier (for sole traders, an individual's registration number); never shown",
-  "main.title": "chart-holders, chart-holdsize, chart-legal, kpi:holders, insight:holders — business names folded on a normalized key (legal suffix, spacing, yod/vav); titles with no letters (vehicle numbers) excluded",
-  "main.expire_date": "chart-expiry, chart-box, chart-months, insight:horizon, insight:month_end, insight:missing_exp — no export date in the data, so licences are never classified as expired",
-  "main.gmp_expire_date": "chart-gmp, kpi:gmp — expiry span and median quoted in the GMP section note",
-  "main.ProductActivityFoodType": "chart-products, insight:products — keyword classification into food categories, production group only, multi-label",
-  "main.accountType": "chart-types, chart-groups, chart-districts, chart-lq, chart-cities, chart-holders, chart-expiry, chart-box, chart-gmp, insight:transport, insight:horizon, insight:gmp, insight:missing_exp",
-  "main.gmpstatuscode": "chart-gmp, kpi:gmp, insight:gmp",
-  "main.health_district_desc": "chart-districts, chart-lq, insight:district, insight:transport",
-  "main.city_number": "chart-cities, kpi:cities, insight:cities — settlement key (CBS code); 0 = not recorded",
-  "main.city": "chart-cities, kpi:cities, insight:cities — display name (most frequent spelling per code)",
-  "main.Addr": "skip: street address free text — premises of sole traders can be a home address; not aggregated"
+  "main.license|title|expire_date|gmp_expire_date|ProductActivityFoodTy": "chart-holders, chart-holdsize, chart-legal, chart-expiry, chart-box, chart-months, chart-gmp, chart-products, chart-types, chart-groups, chart-districts, chart-lq, chart-cities, kpi:holders, kpi:gmp, kpi:cities, insight:holders, insight:horizon, insight:month_end, insight:missing_exp, insight:products, insight:transport, insight:gmp, insight:district, insight:cities — one pipe-packed column (CKAN loaded the pipe-delimited file as a single field), split in compute into the old eleven fields: license (skip: licence number, an identifier, never shown; dropped on read in _unpack); title (holders, holdsize, legal; names folded on a normalized key); expire_date (expiry, box, months; no export date, so never classified as expired); gmp_expire_date (gmp); ProductActivityFoodType (products, keyword food categories, production group only); accountType (types, groups and every per-group view); gmpstatuscode (gmp); health_district_desc (districts, lq); city_number + city (cities; CBS code, 0 = not recorded); Addr (skip: street address free text, can be a sole trader's home address; dropped on read in _unpack). compute also reads the original eleven columns if CKAN loads the file properly again"
 }
