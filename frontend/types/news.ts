@@ -53,6 +53,8 @@ export interface NewsArticle {
   byline: string;
   tags: string[];
   correction?: string | null;
+  /** When the correction was made; older corrections lack it (→ updated_at). */
+  corrected_at?: string | null;
   hero: NewsHero;
   blocks: NewsBlock[];
   charts: NewsChart[];

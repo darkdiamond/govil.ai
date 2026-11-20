@@ -42,7 +42,7 @@ PUBLISH_MODES = ("live", "off")
 LOCK_DOC = f"{STATE}/{LOCK}"
 META_FIELDS = ("slug", "status", "headline", "dek", "published_at", "updated_at", "byline",
                "dataset_ids", "tags", "signal_keys", "hero", "run_id", "models", "words",
-               "critic_scores", "critic_final_round", "correction", "kind")
+               "critic_scores", "critic_final_round", "correction", "corrected_at", "kind")
 BODY_FIELDS = ("blocks", "charts", "sources", "ledger")
 
 
@@ -232,9 +232,12 @@ class FirestoreArticles:
                 for x in (d.to_dict() or {} for d in q.stream())]
 
     def set_status(self, slug: str, status: str, *, correction: str | None = None) -> None:
-        upd = {"status": status, "updated_at": datetime.now(UTC)}
+        now = datetime.now(UTC)
+        upd = {"status": status, "updated_at": now}
         if correction:
-            upd["correction"] = correction
+            # Its own stamp: a later unpublish/republish also moves updated_at,
+            # and the page dates the correction notice, not the last status flip.
+            upd["correction"], upd["corrected_at"] = correction, now
         self.db.collection(ARTICLES).document(slug).update(upd)
 
     def iter_published(self):
@@ -243,7 +246,8 @@ class FirestoreArticles:
         for d in self.db.collection(ARTICLES).where(
                 filter=FieldFilter("status", "in", list(LIVE_STATUSES))).stream():
             x = join(d.to_dict() or {})
-            x["published_at"], x["updated_at"] = _iso(x.get("published_at")), _iso(x.get("updated_at"))
+            for k in ("published_at", "updated_at", "corrected_at"):
+                x[k] = _iso(x.get(k))
             yield x
 
 
