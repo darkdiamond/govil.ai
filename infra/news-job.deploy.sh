@@ -56,7 +56,9 @@ NEWS_MAX_TOOL_CALLS=${NEWS_MAX_TOOL_CALLS:-100}
 NEWS_MIN_PER_DAY=${NEWS_MIN_PER_DAY:-2}
 NEWS_FEATURE_COOLDOWN_DAYS=${NEWS_FEATURE_COOLDOWN_DAYS:-60}
 NEWS_FILL_ATTEMPTS=${NEWS_FILL_ATTEMPTS:-3}
-NEWS_FEATURE_MAX_TOOL_CALLS=${NEWS_FEATURE_MAX_TOOL_CALLS:-35}
+# 35 ran out on 11-22: a road-interchange explainer spent its calls on 28
+# real queries and was at its calcs when it stopped. Event news runs at 100.
+NEWS_FEATURE_MAX_TOOL_CALLS=${NEWS_FEATURE_MAX_TOOL_CALLS:-50}
 # The floor is checked once a day, by the first run at/after this Israel hour
 # (13 on Friday, before the quiet window); news_state/daily records the attempt.
 NEWS_FLOOR_HOUR=${NEWS_FLOOR_HOUR-20}
