@@ -541,7 +541,7 @@ catalog` lists chapters → subjects → codes.
      (`prompts/features.md`) → the same writer, gates and critic (critic judges
      "informative" instead of "new"; aggregates only, no named person or business
      from a registry). Up to `NEWS_FILL_ATTEMPTS` (code 2, prod 3) briefs per
-     missing article, each with `NEWS_FEATURE_MAX_TOOL_CALLS` (35) tool calls, so a
+     missing article, each with `NEWS_FEATURE_MAX_TOOL_CALLS` (code 35, prod 50) tool calls, so a
      day can still end empty; a rejected explainer's dataset sits out the fill for
      7 days (`article_rejects`). Only `news` articles start the 21-day event
      cooldown (`NEWS_DATASET_COOLDOWN_DAYS`), and only for the datasets of their
