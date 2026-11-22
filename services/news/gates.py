@@ -393,7 +393,11 @@ def as_markdown(core: dict, ledger: Ledger | None = None) -> str:
             c = charts[b["chart"]]
             out.append(f"[CHART RENDERS HERE: {c['title']} ({c['unit']}), {len(c['table']) - 1} points]")
         elif b["type"] == "stat":
-            out.append(f"**{b['value']}** ({b['label']})")
+            # A marker, not a bold line: shown as `**v** (label)` the critic read
+            # the required stat card as a stray callout, asked for it gone, the
+            # gate put it back, and the draft died on "unfixed item" (7 of the 9
+            # critic_revise rejections 11-20 → 11-22).
+            out.append(f"[STAT CARD RENDERS HERE: {b['value']} ({b['label']})]")
         out.append("")
     if core["sources"]:
         # Shown to the critic only: the site renders the sources list itself.
@@ -473,7 +477,8 @@ def critique(llm, core: dict, *, kind: str = "news", ledger: Ledger | None = Non
         v = "revise"
     if v not in ("pass", "revise", "kill"):
         v = "revise"
-    out = {"verdict": v, "scores": scores, "issues": issues, "fixes": fixes}
+    out = {"verdict": v, "scores": scores, "issues": issues, "fixes": fixes,
+           "blocking": verdict.get("blocking")}   # kept on the reject record, for tuning
     # Only an explicit "revise" with an explicit `blocking: false`: a missing
     # or unknown verdict, or any doubt about what the open issues are, never passes.
     if (final and verdict.get("verdict") == "revise" and verdict.get("blocking") is False

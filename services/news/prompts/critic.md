@@ -39,6 +39,12 @@ comparison, a risk, a sourcing problem, or an artefact; false when every
 remaining issue is style or wording only.
 `[CHART RENDERS HERE: <title>]` marks where a chart built from the data appears on
 the page. It is not text the reader sees: don't flag it.
+`[STAT CARD RENDERS HERE: <value> (<label>)]` marks the story's stat card: the
+big key number the page and its tile on the news front page show, set apart
+from the prose by design. Every story must have exactly one, near the top, so
+never ask for it to be removed, moved into the prose or merged into a
+sentence, and don't count it as repeating the lead. Judge only whether it is
+the story's key number and whether its label says clearly what it counts.
 
 Under the article, a "[for review: how each derived number was computed]" block
 lists every number the reporter derived with a calculation and the inputs
