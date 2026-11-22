@@ -496,3 +496,15 @@ def test_tool_log_arguments_are_capped():
     tb = Toolbox(ledger=Ledger(), series={}, models={}, catalog={})
     tb.call("sql", {"dataset_id": "d", "query": "x" * 50_000})
     assert len(tb.log[0]["args"]["query"]) == LOG_ARG_CHARS
+
+
+def test_the_critic_sees_the_stat_card_as_a_marker_not_a_bold_line():
+    # As `**v** (label)` it read as a stray callout and the critic kept asking
+    # for the required card to go (7 drafts lost 11-20 → 11-22).
+    core = {"headline": "h", "dek": "d", "charts": [], "sources": [],
+            "blocks": [{"type": "p", "runs": [{"t": "text", "v": "lead"}]},
+                       {"type": "stat", "value": "85.6%", "label": "נרשמו"}]}
+    md = gates.as_markdown(core)
+    assert "[STAT CARD RENDERS HERE: 85.6% (נרשמו)]" in md and "**85.6%**" not in md
+    prompt = (gates.PROMPTS / "critic.md").read_text(encoding="utf-8")
+    assert "[STAT CARD RENDERS HERE" in prompt and "never ask for it to be removed" in prompt
