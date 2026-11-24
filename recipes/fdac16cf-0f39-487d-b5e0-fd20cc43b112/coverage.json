@@ -1,0 +1,5 @@
+{
+  "items.model": "table-bans, insight:repeats, insight:bans — model codes are near-unique, so the lookup is the shell's explorer; ALL MODELS rows drive the blanket-ban list",
+  "items.manufacturer": "chart-makers, chart-stack, chart-buckets, kpi:makers, insight:leader, insight:concentration, insight:specialists, insight:bans — spellings grouped by a normalized key; ALL MANUFACTURERS rows excluded from manufacturer counts and listed as blanket bans",
+  "items.type_of_product": "chart-families, chart-types, chart-stack, kpi:types, kpi:bans, insight:top_type, insight:families, insight:specialists, insight:bans — typo-fixed, translated where known, grouped into families by keyword"
+}
