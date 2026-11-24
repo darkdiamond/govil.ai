@@ -317,7 +317,7 @@ def compute(frames):
         if r.glob:
             who, what, who_ltr, what_ltr = "כל היצרנים", "כל הדגמים", False, False
         elif r.all_makers:
-            model = getattr(r, C_MODEL)
+            model = r.model
             who, what, who_ltr, what_ltr = "כל היצרנים", model or NONE_LABEL, False, bool(model)
         else:
             known = r.mk != NONE_KEY
