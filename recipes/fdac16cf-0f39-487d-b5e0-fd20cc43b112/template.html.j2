@@ -111,7 +111,7 @@
           formatter: function (ps) {
             const p = ps[0];
             const en = d.en && d.en[p.dataIndex] ? " (" + enc(d.en[p.dataIndex]) + ")" : "";
-            return p.name + en + "<br/>" + fmt(p.value) + " " + unit;
+            return enc(p.name) + en + "<br/>" + fmt(p.value) + " " + unit;
           } },
         grid: { left: 8, right: 40, top: 8, bottom: 8, containLabel: true },
         xAxis: { type: "value", minInterval: 1 },
@@ -140,8 +140,8 @@
       legend: { type: "scroll", top: 0 },
       tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
         formatter: function (ps) {
-          return ps[0].name + ps.filter(function (p) { return p.value > 0; }).map(function (p) {
-            return "<br/>" + p.marker + p.seriesName + ": " + Number(p.value).toLocaleString("he-IL");
+          return enc(ps[0].name) + ps.filter(function (p) { return p.value > 0; }).map(function (p) {
+            return "<br/>" + p.marker + enc(p.seriesName) + ": " + Number(p.value).toLocaleString("he-IL");
           }).join("");
         } },
       grid: { left: 8, right: 16, top: 40, bottom: 8, containLabel: true },
@@ -169,8 +169,8 @@
       legend: { top: 0 },
       tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
         formatter: function (ps) {
-          return ps[0].name + ps.map(function (p) {
-            return "<br/>" + p.seriesName + ": " + Number(p.value).toLocaleString("he-IL");
+          return enc(ps[0].name) + ps.map(function (p) {
+            return "<br/>" + enc(p.seriesName) + ": " + Number(p.value).toLocaleString("he-IL");
           }).join("");
         } },
       grid: { left: 8, right: 8, top: 36, bottom: 8, containLabel: true },
