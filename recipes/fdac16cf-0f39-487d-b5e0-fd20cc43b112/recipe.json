@@ -1,0 +1,19 @@
+{
+  "contract_version": 1,
+  "dataset_id": "fdac16cf-0f39-487d-b5e0-fd20cc43b112",
+  "recipe_version": 1,
+  "authored_at": "2026-11-24T10:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-11-24T07:52:40.562963+00:00",
+    "rows": { "items": 1641 }
+  },
+  "inputs": [
+    {
+      "name": "items",
+      "by_id": "86ac55d1-8991-43c8-92fc-db37d69f0e48",
+      "required_columns": ["model", "manufacturer", "type_of_product"]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": []
+}

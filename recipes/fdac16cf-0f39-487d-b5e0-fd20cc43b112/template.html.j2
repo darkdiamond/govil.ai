@@ -1,0 +1,187 @@
+{% import "gov.j2" as gov %}
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("info", "תקציר") }}
+  <p class="m-0 text-subtle leading-relaxed">{{ model.agent_data.summary_he }} הרשימה מפרטת דגמים של מכשירים אלחוטיים (מכשירי קשר, רחפנים, שלטים, מיקרופונים, נתבים ועוד) שבקשה לייבא אותם ביבוא אישי לא אושרה במשרד התקשורת. לפני שמזמינים מכשיר אלחוטי מחו״ל אפשר לבדוק כאן אם הדגם, היצרן או סוג המוצר כבר מופיעים ברשימת הפריטים שלא אושרו.</p>
+</section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">בדיקה אם דגם נדחה ביבוא אישי, לפי דגם, יצרן או סוג מוצר ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות הרשימה: דגם (model), יצרן (manufacturer) וסוג מוצר (type of product), כפי שנרשמו באנגלית.</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  {{ gov.kpi(model.kpis.total, model.labels.kpi_total) }}
+  {{ gov.kpi(model.kpis.makers, model.labels.kpi_makers) }}
+  {{ gov.kpi(model.kpis.types, model.labels.kpi_types) }}
+  {{ gov.kpi(model.kpis.bans, model.labels.kpi_bans) }}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("tag", "אילו קבוצות מוצרים לא אושרו") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.families_lede }}</p>
+  {{ gov.chart("chart-families", model.labels.families_aria, "h-80 md:h-[460px]") }}
+  {{ gov.table(model.labels.families_aria, ["קבוצה", "פריטים", "שיעור", "סוגי מוצרים", "הסוג הנפוץ"], model.tables.families, ltr=(2,)) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "סוגי המוצרים הנפוצים ברשימה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.types_lede }}</p>
+  {{ gov.chart("chart-types", model.labels.types_aria, "h-80 md:h-[460px]") }}
+  {{ gov.table(model.labels.types_aria, ["סוג מוצר", "כפי שנרשם", "פריטים", "שיעור"], model.tables.types, ltr=(1, 3)) }}
+</section>
+
+{%- if model.flags.has_bans %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-warn">
+    <img src="/icons/triangle-alert.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">פסילות גורפות: כל הדגמים או כל היצרנים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.bans_lede }}</p>
+  <div class="overflow-x-auto">
+    <table id="table-bans" class="w-full text-sm">
+      <caption class="sr-only">{{ model.labels.bans_lede }}</caption>
+      <thead><tr class="border-b border-rule text-ink-deep"><th scope="col" class="text-start py-1 pe-3">סוג מוצר</th><th scope="col" class="text-start py-1 pe-3">כפי שנרשם</th><th scope="col" class="text-start py-1 pe-3">יצרן</th><th scope="col" class="text-start py-1">דגם</th></tr></thead>
+      <tbody>
+{%- for b in model.tables.bans %}
+        <tr class="border-b border-rule"><th scope="row" class="text-start font-semibold py-1 pe-3">{{ b.type }}</th><td class="py-1 pe-3" dir="ltr">{{ b.en }}</td><td class="py-1 pe-3"{% if b.who_ltr %} dir="ltr"{% endif %}>{{ b.who }}</td><td class="py-1"{% if b.what_ltr %} dir="ltr"{% endif %}>{{ b.what }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </div>
+{%- if model.labels.bans_more %}
+  <p class="m-0 mt-2 text-sm text-subtle">{{ model.labels.bans_more }}</p>
+{%- endif %}
+</section>
+{%- endif %}
+
+{%- if model.flags.has_makers %}
+<section class="card p-5 mb-6">
+  {{ gov.head("building-2", "היצרנים שמופיעים ברשימה הכי הרבה פעמים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.makers_lede }}</p>
+  {{ gov.chart("chart-makers", model.labels.makers_aria, "h-80 md:h-[460px]") }}
+  {{ gov.table(model.labels.makers_aria, ["יצרן", "פריטים", "שיעור", "סוג המוצר העיקרי"], model.tables.makers, ltr=(0, 2)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.has_stack %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "במה מתמחה כל יצרן גדול") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.stack_lede }}</p>
+  {{ gov.chart("chart-stack", model.labels.stack_aria, "h-80 md:h-[460px]") }}
+  <div class="overflow-x-auto">
+  {{ gov.table(model.labels.stack_aria, model.tables.stack_cols, model.tables.stack, ltr=(0,)) }}
+  </div>
+</section>
+{%- endif %}
+
+{%- if model.flags.has_buckets %}
+<section class="card p-5 mb-6">
+  {{ gov.head("building-2", "יצרנים לפי מספר הפריטים שלהם ברשימה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.buckets_lede }}</p>
+  {{ gov.chart("chart-buckets", model.labels.buckets_aria, "h-64 md:h-80") }}
+  {{ gov.table(model.labels.buckets_aria, ["מספר פריטים ליצרן", "יצרנים", "פריטים", "שיעור מהפריטים"], model.tables.buckets, ltr=(3,)) }}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "על הרשימה") }}
+  <p class="m-0 text-sm text-subtle leading-relaxed mb-3">הרשימה המחייבת של מכשירים אלחוטיים המותרים בייבוא אישי קבועה בחקיקה. הרשימה המפורטת באתר היא אינה הרשימה המחייבת.</p>
+  <p class="m-0 text-sm text-subtle leading-relaxed">סוגי המוצרים ושמות היצרנים מוצגים אחרי איחוד כתיבים שונים של אותו שם. הקבוצות (רחפנים, מכשירי קשר, רשתות וכדומה) נקבעו לפי מילות מפתח בשם סוג המוצר, ואינן חלק מהרשימה המקורית.</p>
+</section>
+
+<script>
+  (function () {
+    const enc = function (s) { return echarts.format.encodeHTML(String(s)); };
+    const fmt = function (v) { return Number(v).toLocaleString("he-IL"); };
+    function hbar(id, d, unit) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const c = echarts.init(el);
+      const narrow = el.clientWidth < 520;
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+          formatter: function (ps) {
+            const p = ps[0];
+            const en = d.en && d.en[p.dataIndex] ? " (" + enc(d.en[p.dataIndex]) + ")" : "";
+            return enc(p.name) + en + "<br/>" + fmt(p.value) + " " + unit;
+          } },
+        grid: { left: 8, right: 40, top: 8, bottom: 8, containLabel: true },
+        xAxis: { type: "value", minInterval: 1 },
+        yAxis: { type: "category", inverse: true, data: d.names,
+          axisLabel: { width: narrow ? 120 : 240, overflow: "truncate", ellipsis: "…", fontSize: narrow ? 10 : 12 } },
+        series: [{ type: "bar", data: d.values, barMaxWidth: 22,
+          label: { show: true, position: "right", fontFamily: "Rubik", color: "#0c3058" } }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    hbar("chart-families", {{ model.charts.families | tojson }}, "פריטים");
+    hbar("chart-types", {{ model.charts.types | tojson }}, "פריטים");
+    hbar("chart-makers", {{ model.charts.makers | tojson }}, "פריטים");
+  })();
+</script>
+{%- if model.flags.has_stack %}
+<script>
+  (function () {
+    const d = {{ model.charts.stack | tojson }};
+    const el = document.getElementById("chart-stack");
+    if (!el) return;
+    const c = echarts.init(el);
+    const narrow = el.clientWidth < 520;
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      legend: { type: "scroll", top: 0 },
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+        formatter: function (ps) {
+          return enc(ps[0].name) + ps.filter(function (p) { return p.value > 0; }).map(function (p) {
+            return "<br/>" + p.marker + enc(p.seriesName) + ": " + Number(p.value).toLocaleString("he-IL");
+          }).join("");
+        } },
+      grid: { left: 8, right: 16, top: 40, bottom: 8, containLabel: true },
+      xAxis: { type: "value", minInterval: 1 },
+      yAxis: { type: "category", inverse: true, data: d.makers,
+        axisLabel: { width: narrow ? 90 : 200, overflow: "truncate", ellipsis: "…", fontSize: narrow ? 10 : 12 } },
+      series: d.series.map(function (s) {
+        return { type: "bar", stack: "all", name: s.name, data: s.data, barMaxWidth: 26 };
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+{%- if model.flags.has_buckets %}
+<script>
+  (function () {
+    const d = {{ model.charts.buckets | tojson }};
+    const el = document.getElementById("chart-buckets");
+    if (!el) return;
+    const c = echarts.init(el);
+    const narrow = el.clientWidth < 520;
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      legend: { top: 0 },
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+        formatter: function (ps) {
+          return enc(ps[0].name) + ps.map(function (p) {
+            return "<br/>" + enc(p.seriesName) + ": " + Number(p.value).toLocaleString("he-IL");
+          }).join("");
+        } },
+      grid: { left: 8, right: 8, top: 36, bottom: 8, containLabel: true },
+      xAxis: { type: "category", data: d.names, axisLabel: { interval: 0, width: narrow ? 60 : 120, overflow: "break", fontSize: narrow ? 10 : 12 } },
+      yAxis: { type: "value", minInterval: 1 },
+      series: [
+        { type: "bar", name: "יצרנים", data: d.makers, barMaxWidth: 36 },
+        { type: "bar", name: "פריטים", data: d.items, barMaxWidth: 36 }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
