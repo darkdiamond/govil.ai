@@ -18,9 +18,15 @@ from scratch produced fresh style notes each time, and most rejected drafts
 "revise" whose scores all clear the bar (>= 4) and whose open notes are
 style only (`blocking: false`) passes (`gates.critique` `final`). A brief on a recurring release's new period tells the critic so
 (`RELEASE:`): the new figure is the news, however small the move.
+
+The writer sees three of the six example passages in prompts/exemplars/,
+rotated per brief (`exemplars`), and the desk's current stock phrases
+(`stock`). With NEWS_LINE_EDIT on, an accepted story gets a delete-only line
+edit (`line_edit.py`) that must pass the gates and the critic again.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 from dataclasses import dataclass, field
@@ -28,7 +34,7 @@ from pathlib import Path
 
 from services.shared.states import ArticleKind
 
-from . import gates
+from . import gates, line_edit
 from .registry import REGISTRY_FLAGS
 from .signals import is_release
 from .tools import SUBMIT_SPEC, TOOL_SPECS, Toolbox
@@ -50,11 +56,43 @@ class Outcome:
     problems: list[str] = field(default_factory=list)
     critic: dict | None = None
     tool_calls: int = 0
+    line_edit: dict | None = None     # what the delete-only line edit did (`line_edit.py`)
 
 
-def system_prompt() -> str:
-    return ((PROMPTS / "writer.md").read_text(encoding="utf-8") + "\n\n# Style guide\n\n"
-            + (PROMPTS / "style_he.md").read_text(encoding="utf-8"))
+EXEMPLARS = 3
+
+
+def exemplars(kind: str = ArticleKind.NEWS, seed: str = "") -> list[str]:
+    """`EXEMPLARS` example passages from prompts/exemplars/: two of the
+    brief's kind (`news-*` / `feature-*`; a digest reads news ones) and one of
+    the other, rotated by `seed`. One fixed set of examples is copied, phrase
+    and shape: the old style guide's three were, and "אחד ההסברים האפשריים"
+    ended up in half the articles (2026-11-26)."""
+    files = sorted((PROMPTS / "exemplars").glob("*.md"))
+    own = "feature" if kind == ArticleKind.FEATURE else "news"
+    mine = [f for f in files if f.name.startswith(own + "-")]
+    other = [f for f in files if not f.name.startswith(own + "-")]
+    n = int(hashlib.sha256(seed.encode()).hexdigest(), 16)
+
+    def turn(xs, k):
+        return [xs[(n + i) % len(xs)] for i in range(min(k, len(xs)))] if xs else []
+
+    pick = turn(mine, EXEMPLARS - 1)
+    pick += turn(other, EXEMPLARS - len(pick))
+    return [f.read_text(encoding="utf-8").strip() for f in pick]
+
+
+def system_prompt(kind: str = ArticleKind.NEWS, seed: str = "") -> str:
+    out = ((PROMPTS / "writer.md").read_text(encoding="utf-8") + "\n\n# Style guide\n\n"
+           + (PROMPTS / "style_he.md").read_text(encoding="utf-8"))
+    ex = exemplars(kind, seed)
+    if ex:
+        out += ("\n\n# Examples of the target voice\n\n"
+                "Each shows a different kind of story. Learn the voice and the choices (what is "
+                "left out, how a hedge is said, how it ends), never the wording: don't copy their "
+                "phrases or their shape. Their numbers are illustrations typed as digits; yours "
+                "are fact tokens.\n\n" + "\n\n---\n\n".join(ex))
+    return out
 
 
 def seed_facts(tb: Toolbox, brief: dict) -> list[dict]:
@@ -149,7 +187,7 @@ def release_name(brief: dict, catalog: dict) -> str | None:
 
 
 def write(llm, tb: Toolbox, brief: dict, *, catalog: dict, vocab: set[str], today: str,
-          max_tool_calls: int = 25) -> Outcome:
+          max_tool_calls: int = 25, stock: list[str] | None = None) -> Outcome:
     seeds = seed_facts(tb, brief)
     kind = str(brief.get("kind") or ArticleKind.NEWS)
     # Explainers and digests are told from our data alone: in dry runs web
@@ -170,7 +208,11 @@ def write(llm, tb: Toolbox, brief: dict, *, catalog: dict, vocab: set[str], toda
                                   for t in (catalog.get(d) or {}).get("tags", []) if t in vocab})
                           or sorted(vocab),
     }
-    messages = [{"role": "system", "content": system_prompt()},
+    if stock:
+        # Phrases many of our recent articles share (`stock.py`): once at most.
+        user["stock_phrases"] = stock
+    seed = ",".join(map(str, brief.get("signal_keys") or brief.get("dataset_ids") or []))
+    messages = [{"role": "system", "content": system_prompt(kind, seed)},
                 {"role": "user", "content": json.dumps(user, ensure_ascii=False, default=str)}]
     calls = 0
     over = 0                  # calls refused in a turn that still offered tools
@@ -231,12 +273,24 @@ def write(llm, tb: Toolbox, brief: dict, *, catalog: dict, vocab: set[str], toda
             continue
 
         core, problems = gates.check(draft, ledger=tb.ledger, series_by_ds=tb.series,
-                                     catalog=catalog, vocab=vocab, article_kind=kind)
+                                     catalog=catalog, vocab=vocab, article_kind=kind, stock=stock)
         if not problems:
             critic = gates.critique(llm, core, kind=kind, ledger=tb.ledger, previous=last_review,
                                     release=release, final=critic_rounds >= CRITIC_REVISIONS)
             if critic["verdict"] == "pass":
-                return Outcome("accepted", core=core, critic=critic, tool_calls=calls)
+                out = Outcome("accepted", core=core, critic=critic, tool_calls=calls)
+                if line_edit.enabled():
+                    edited, out.line_edit = line_edit.edit(
+                        llm, draft,
+                        check=lambda d: gates.check(d, ledger=tb.ledger, series_by_ds=tb.series,
+                                                    catalog=catalog, vocab=vocab, article_kind=kind,
+                                                    stock=stock),
+                        # the cut version against the same bar, with no round left
+                        critique=lambda c: gates.critique(llm, c, kind=kind, ledger=tb.ledger,
+                                                          release=release, final=True))
+                    out.core = edited or core
+                    log.info("news line edit %s: %s", brief.get("signal_keys"), out.line_edit)
+                return out
             if critic["verdict"] == "kill":
                 return Outcome("rejected", core=core, reason="critic_kill", critic=critic, tool_calls=calls)
             problems = [f"copy chief: {x}" for x in critic["issues"] + critic["fixes"]]

@@ -17,18 +17,35 @@ will leave in 10 seconds unless the first sentence tells them something new.
 - Concrete beats abstract: "כ-1,200 עסקאות פחות מבחודש מקביל" beats "ירידה
   משמעותית בפעילות".
 - One idea per paragraph. If a paragraph could be deleted without loss, delete it.
-- Subheads (h2) are short statements of what follows, never questions,
-  never puns.
-- End on the most useful forward-looking fact (what to watch next, when the next
-  data comes out), not a summary, not a moral.
+- Subheads (h2) are short statements with a verb, saying what the section
+  found: "הישראלים נסעו פחות", not a topic label like "הקשר לכניסות המבקרים
+  ולפדיון בענף". Never questions, never puns. A short story needs none.
+- End on the last fact worth knowing. A forward-looking line (the next
+  release, a pending decision) only when it changes how the reader reads this
+  number, as one sentence, never a section of its own. Not a summary, not a
+  moral, not a call to vaccinate or to check something.
+- Choose. A reporter picks the three or four findings that matter and drops
+  the rest; covering every column of the data is what a machine does.
+- Every sentence must belong to this story. If it could appear unchanged in
+  another of our articles ("הנתונים הבאים יאפשרו לבחון אם המגמה נמשכת",
+  "הנתון משקף את המגמה בשוק"), cut it or make it specific.
+- Don't inflate. No "מדגיש את הצורך", "הופך את הגל הנוכחי לשונה", "נקודת
+  מפנה", "שינוי דרמטי": give the number and let the reader judge.
+- Vary the rhythm the way a person does: a short sentence after a long one,
+  not every paragraph built the same way (fact, number, comparison, number).
 
 ## Explanations and speculation
 
 - You may offer explanations for a move, that is the value we add. Research
   them (web search: what happened around that period), then say them as
-  hypotheses: "אחד ההסברים האפשריים הוא <הסבר>", "ייתכן שהדבר קשור ל<נושא>", "הנתון
-  מתפרסם על רקע <אירוע>". A hypothesis needs no link; our links are to government
-  data only (our dataset pages, official gov.il / boi.org.il pages).
+  hypotheses, in words that fit this story. A hedge does one job: it tells the
+  reader this is a likely reason, not a proven one. Say it once, attached to
+  the specific event ("חלק מהקפיצה קשור כנראה ללוח השנה: סוכות הסתיים השנה
+  ב-3 באוקטובר"; "הבחירות, שנערכו ביום שבתון, נפלו בתוך החודש"). Don't open
+  with a stock formula ("אחד ההסברים האפשריים", half our articles used it and
+  the gate now refuses it), and don't stack hedges ("ייתכן שאולי"). A
+  hypothesis needs no link; our links are to government data only (our
+  dataset pages, official gov.il / boi.org.il pages).
 - Correlation is not causation. Two series moving together is "במקביל", never
   "בגלל". A causal claim is either a hedged hypothesis or attributed to an
   official body ("לפי בנק ישראל, <טענה>").
@@ -60,7 +77,13 @@ will leave in 10 seconds unless the first sentence tells them something new.
   `abs` (no sign), `pp` (signed, for percentage points). Default: sensible auto.
 - Prefer words for direction ("עלה ב-", "ירד ב-") with `abs_pct`/`abs` over
   signed numbers in prose.
-- Round in spirit: don't stack five numbers in a sentence. Two per sentence, max.
+- Round in spirit: don't stack five numbers in a sentence. Two per sentence, max,
+  five per paragraph (the gate counts), none in parentheses.
+- The formats already round the way a reporter writes: a percent change of 10%
+  or more prints whole ("40%"), trailing zeros go ("673", not "673.0"), and a
+  figure of a thousand or more right before its scale word moves up a scale
+  ("{f3} אלף" with 1,932.1 prints "1.93 מיליון"). Don't fight it with `num2`
+  on a big number.
 - Always give the comparison basis: vs. the same month last year, vs. the
   previous month, the highest since <period>.
 - If the latest period may be incomplete (late reporting), say so or don't use it.
@@ -73,6 +96,13 @@ will leave in 10 seconds unless the first sentence tells them something new.
 לא רק X אלא גם Y · "האם X?" as a subhead · rhetorical questions · exclamation
 marks · emoji · "במאמר זה" · "נבחן" · "נסקור" · listing three adjectives.
 
+Words our articles lean on, capped per article by the gate (each is fine once;
+the density is what reads as a machine): בלבד (1), במקביל (1), עם זאת / ואולם
+/ לעומת זאת / מנגד (2 together), מדובר (1), בולט/ת (1), נותר/ה/ו (2),
+נרשם/ה/ו (3), משמעותי/ת (1), ממשי (1), לעומת (5), and never "במבט רחב
+יותר" / "במבט קדימה" (a translated English opener). Use the verb that says what
+happened ("ירד", "זינק", "עמד על") instead of the all-purpose "נרשם".
+
 Punctuation: NO em dashes at all, no en dash or hyphen used as a dash between
 words (a range between two numbers is fine), no ellipses, no exclamation marks,
 no emoji. Use a comma, a period, or two short sentences. No colons in headlines,
@@ -81,19 +111,8 @@ no "X: Y" headline formula, no clickbait ("לא תאמינו", "הסיבה המ�
 ## Headline and dek
 
 - Headline: ≤ 90 characters, a plain statement with the key number or the key
-  change, present tense. Example: "מספר העסקאות בדירות חדשות ירד לשפל של שלוש שנים".
+  change, present tense. One fact: don't join a second one with "לצד", "עם" or
+  "ו" ("שיעור האבטלה נותר יציב לצד עלייה בתעסוקה" is two headlines). Example:
+  "מספר העסקאות בדירות חדשות ירד לשפל של שלוש שנים".
 - Dek (subtitle): one sentence, ≤ 160 characters, adding the second most important
   fact or the context.
-
-## Examples of the target voice
-
-> בספטמבר נלקחו משכנתאות בהיקף של 8.7 מיליארד שקל, ירידה של 9% לעומת ספטמבר
-> אשתקד. זו כבר הפעם הרביעית ברציפות שההיקף החודשי נמוך מזה של השנה הקודמת.
-
-> הירידה בולטת במיוחד במסלולי הריבית הקבועה הלא צמודה, שחלקם בתמהיל ירד לשפל
-> מאז 2019. אחד ההסברים האפשריים: הפער בין הריבית הקבועה למשתנה התרחב מאז
-> החלטת הריבית האחרונה של בנק ישראל.
-
-> הנתונים לאוקטובר צפויים להתפרסם באמצע דצמבר.
-
-(The numbers in these examples are illustrations; yours come from fact tokens.)

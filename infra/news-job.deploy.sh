@@ -78,6 +78,10 @@ NEWS_REGISTRY_SIGNALS=${NEWS_REGISTRY_SIGNALS:-true}
 # A signal at least this surprising on new data skips its dataset's cooldown
 # (a record 3.0, a rate decision 2.5, a z>=5 move); empty or 0 = off.
 NEWS_BREAKING_SURPRISE=${NEWS_BREAKING_SURPRISE-2.5}
+# A delete-only line edit of every accepted story, re-checked by the gates
+# and the copy chief; the original stands if either objects
+# (services/news/line_edit.py). One or two more model calls per story.
+NEWS_LINE_EDIT=${NEWS_LINE_EDIT:-true}
 PUBLISH_GITHUB_REPO=${PUBLISH_GITHUB_REPO:-darkdiamond/govil.ai}
 PUBLISH_BRANCH=${PUBLISH_BRANCH:-main}
 
@@ -121,6 +125,7 @@ ENV_PAIRS=(
   "NEWS_NEW_DATASET_SIGNALS=${NEWS_NEW_DATASET_SIGNALS}"
   "NEWS_REGISTRY_SIGNALS=${NEWS_REGISTRY_SIGNALS}"
   "NEWS_BREAKING_SURPRISE=${NEWS_BREAKING_SURPRISE}"
+  "NEWS_LINE_EDIT=${NEWS_LINE_EDIT}"
   "PUBLISH_GITHUB_REPO=${PUBLISH_GITHUB_REPO}"
   "PUBLISH_BRANCH=${PUBLISH_BRANCH}"
   "PROVIDER_BOI_SDMX_ENABLED=true"

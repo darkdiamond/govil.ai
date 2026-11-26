@@ -81,6 +81,7 @@ from .signals import (
     rank,
 )
 from .snapshots import GcsSnapshots, History, LocalSnapshots, Snapshot, history
+from .stock import stock_phrases
 from .store import CONTROL, LIVE_STATUSES, LOCK_DOC, STATE, published_at
 from .tools import Toolbox
 from .writer import DATA_ONLY_KINDS, Outcome, write
@@ -417,6 +418,7 @@ def _unique_slug(store, slug: str, today: date) -> str:
 IL_TZ = ZoneInfo("Asia/Jerusalem")
 # A dataset whose explainer was rejected sits out the fill this long.
 FEATURE_REJECT_DAYS = 7
+STOCK_DAYS = 30           # the articles the desk's stock phrases are counted over
 
 
 def _published_on(recent: list[dict], today_il: date) -> list[dict]:
@@ -527,6 +529,22 @@ class _Day:
         self.published, self.rejected = published, []
         # explainers do the data work themselves (no seeded signal facts)
         self.feature_tool_calls = feature_tool_calls or max_tool_calls
+        self._stock: list[str] | None = None
+
+    def stock(self) -> list[str]:
+        """The desk's stock phrases over the last STOCK_DAYS of articles
+        (`stock.py`), read once per run on the first story. A store that can't
+        say (an error, an old fake) gives no list: the check is a nicety."""
+        if self._stock is None:
+            try:
+                arts = self.store.recent_bodies(STOCK_DAYS)
+                names = [str(v.get(k) or "") for v in self.catalog.values() if isinstance(v, dict)
+                         for k in ("title", "organization")]
+                self._stock = stock_phrases(arts, names=names)
+            except Exception:
+                log.warning("news: reading recent articles for stock phrases failed", exc_info=True)
+                self._stock = []
+        return self._stock
 
     def write_one(self, brief: dict) -> StoryResult:
         llm, store, today = self.llm, self.store, self.today
@@ -538,6 +556,7 @@ class _Day:
         status = None
         try:
             out = write(llm, tb, brief, catalog=self.catalog, vocab=self.vocab, today=today.isoformat(),
+                        stock=self.stock(),
                         max_tool_calls=(self.feature_tool_calls if kind in DATA_ONLY_KINDS
                                         else self.max_tool_calls))
         except LLMUnavailable:
@@ -588,6 +607,7 @@ class _Day:
                 "blocks": core["blocks"], "charts": core["charts"], "sources": core["sources"],
                 "ledger": ledger.dump(keep=core["fact_ids"]), "words": core["words"], "run_id": self.run_id,
                 "critic_scores": (out.critic or {}).get("scores"),
+                **({"line_edit": out.line_edit} if out.line_edit else {}),
                 # Passed on the last round on its scores despite open notes
                 # (gates.critique `final`): kept so they can be audited.
                 **({"critic_final_round": {k: out.critic.get(k) for k in ("issues", "fixes")}}

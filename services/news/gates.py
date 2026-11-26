@@ -9,7 +9,12 @@ and chart, and lists every problem (any one blocks publication):
   - a chart that doesn't resolve to real series/facts; none, or more than 3
   - banned AI-slop phrases and punctuation (em dashes, dash-as-punctuation,
     ellipses, exclamation marks), question subheads
-  - headline/dek/body length, too little Hebrew
+  - words our articles lean on, over a per-article cap (`OVERUSED`, measured
+    against general Hebrew), and the desk's recent stock phrases (`stock`,
+    from `stock.py`) used more than once
+  - number density: more than `MAX_NUMBERS_PER_PARAGRAPH` fact tokens in a
+    paragraph, or a number tucked into parentheses
+  - headline/dek/body length (by article kind), too little Hebrew
 
 `critique()` then asks the model, as copy chief, for pass / revise / kill
 (prompts/critic.md). From the second round it sees its own previous review
@@ -19,6 +24,7 @@ scratch. A release story is marked `RELEASE:` (the new figure is the news).
 from __future__ import annotations
 
 import math
+import os
 import re
 import unicodedata
 from pathlib import Path
@@ -44,7 +50,10 @@ from .series import parse_period
 
 PROMPTS = Path(__file__).with_name("prompts")
 HEADLINE_MAX, DEK_MAX = 95, 180
-WORDS_MIN, WORDS_MAX = 300, 1100
+# Body words by kind. A monthly release reads best at 250-500 words; the old
+# single 300-1,100 band let a short release story pad itself to the minimum.
+WORDS = {ArticleKind.NEWS: (220, 750), ArticleKind.FEATURE: (300, 950),
+         ArticleKind.DIGEST: (250, 950)}
 QUOTE_MIN = 20
 MAX_CHARTS = 3
 HEBREW_MIN = 0.85
@@ -57,6 +66,43 @@ BANNED = [
     "נבחן את", "נסקור", "לא תאמינו", "הסיבה המפתיעה",
 ]
 _NOT_ONLY = re.compile(r"לא רק\b.{0,80}?\bאלא גם")
+
+
+def _word(alts: str) -> re.Pattern:
+    """A Hebrew word (or phrase) with its one- to three-letter prefixes (ו, ב,
+    ל, מ, ה, ש, כ) and nothing glued after it."""
+    return re.compile(rf"(?<![א-ת])[ובלמהשכ]{{0,3}}(?:{alts})(?![א-ת])")
+
+
+# Words our published articles lean on, with a per-article cap. Measured
+# 2026-11-26 over the 28 live articles against general Hebrew (wordfreq):
+# "אחד ההסברים האפשריים" opened a hedge in 13 of them (the style guide itself
+# offered it as the example), "בלבד" 44 times in 17, "במקביל" in 17,
+# נרשם/ה/ו 52 times. None is wrong once; the density is what reads as a
+# machine. Each is (label, pattern, at most, what to do instead).
+OVERUSED = [
+    ("אחד ההסברים האפשריים", _word("אחד ההסברים(?: האפשריים)?"), 0,
+     "half our articles open a hedge with it: say the hypothesis in words that fit this story"),
+    ("בלבד", _word("בלבד"), 1, "let the number speak; 'only' once at most"),
+    ("במקביל", _word("במקביל"), 1, "say how the two things relate, or use two sentences"),
+    ("עם זאת / ואולם / לעומת זאת / מנגד", _word("עם זאת|ואולם|אולם|לעומת זאת|מנגד"), 2,
+     "too many contrast connectives: most sentences need none"),
+    ("מדובר ב", _word("מדובר"), 1, "say the thing itself"),
+    ("בולט", _word("בולט|בולטת|בולטים|בולטות"), 1, "show why it stands out with the number"),
+    ("נותר", _word("נותר|נותרה|נותרו"), 2, "vary: עמד, נשאר, or say the level directly"),
+    ("נרשם", _word("נרשם|נרשמה|נרשמו"), 3, "a stock report verb: use the verb that says what happened"),
+    ("משמעותי", _word("משמעותי|משמעותית|משמעותיים|משמעותיות"), 1, "give the size instead"),
+    ("ממשי", _word("ממשי|ממשית|ממשיים|ממשיות"), 1, "an English calque ('real'): drop it or be specific"),
+    ("במבט רחב / קדימה", _word("במבט (?:רחב|רחב יותר|קדימה|לאחור|לטווח ארוך|כולל|על)"), 0,
+     "a translated English opener: start with the fact"),
+    ("לעומת", _word("לעומת"), 5, "vary the comparison: מול, בהשוואה ל, or a separate sentence"),
+]
+# Numbers per paragraph (fact tokens; years and dates aren't tokens). The live
+# articles had paragraphs of up to 14 (2026-11-26). 0 turns the check off.
+MAX_NUMBERS_PER_PARAGRAPH = int(os.environ.get("NEWS_MAX_NUMBERS_PER_PARAGRAPH", "5") or 0)
+# A number tucked into parentheses: "(300.4 אלף לינות)", "(1)". 89 of them in
+# 28 articles. A reporter writes it into the sentence or leaves it out.
+_PAREN_NUMBER = re.compile(r"\([^()]*\{f\d+(?::[a-z0-9_]+)?\}[^()]*\)")
 PUNCTUATION = [
     (re.compile("—"), "no em dashes: use a comma, a period, or two sentences"),
     (re.compile(r"(?<!\d)\s[–-]\s|\s[–-]\s(?!\d)"), "no dash as punctuation between words"),
@@ -117,11 +163,14 @@ def slugify(s: str) -> str:
 
 
 def check(draft: dict, *, ledger: Ledger, series_by_ds: dict, catalog: dict,
-          vocab: set[str], article_kind: str = ArticleKind.NEWS) -> tuple[dict, list[str]]:
+          vocab: set[str], article_kind: str = ArticleKind.NEWS,
+          stock: list[str] | None = None) -> tuple[dict, list[str]]:
     """(rendered article core, problems).
 
     News and explainers must carry one stat block: /news/ shows each story's key
-    number on its tile. A digest covers several stories, so it is exempt."""
+    number on its tile. A digest covers several stories, so it is exempt.
+    `stock`: phrases the desk's recent articles share (`stock.stock_phrases`);
+    each may appear once."""
     problems: list[str] = []
     if not isinstance(draft, dict):
         return {}, ["the article must be a JSON object"]
@@ -259,6 +308,13 @@ def check(draft: dict, *, ledger: Ledger, series_by_ds: dict, catalog: dict,
             raw = str(b.get("text") or "")
             for m in LINK.finditer(raw):
                 (linked_ds.add(m[2][3:]) if m[2].startswith("ds:") else linked_sources.add(m[2]))
+            if MAX_NUMBERS_PER_PARAGRAPH and (n := len(TOKEN.findall(raw))) > MAX_NUMBERS_PER_PARAGRAPH:
+                problems.append(f"block {i}: {n} numbers in one paragraph (at most "
+                                f"{MAX_NUMBERS_PER_PARAGRAPH}): keep the ones the paragraph is about, "
+                                "drop the rest or move one to a chart")
+            if m := _PAREN_NUMBER.search(raw):
+                problems.append(f"block {i}: a number in parentheses «{m[0][:60]}»: write it into "
+                                "the sentence or leave it out")
             runs, ptxt = text(f"block {i}", raw)
             blocks.append({"type": "p", "runs": runs})
             body_text.append(ptxt)
@@ -311,8 +367,9 @@ def check(draft: dict, *, ledger: Ledger, series_by_ds: dict, catalog: dict,
 
     body = "\n".join(body_text)
     words = len(re.findall(r"\S+", body))
-    if not WORDS_MIN <= words <= WORDS_MAX:
-        problems.append(f"body length {words} words ({WORDS_MIN}–{WORDS_MAX})")
+    wmin, wmax = WORDS.get(article_kind, WORDS[ArticleKind.NEWS])
+    if not wmin <= words <= wmax:
+        problems.append(f"body length {words} words ({wmin}–{wmax})")
     every = prose = f"{headline} {dek} {body}"
     heb, lat = len(_HEB.findall(every)), len(_LAT.findall(every))
     if heb + lat and heb / (heb + lat) < HEBREW_MIN:
@@ -330,6 +387,14 @@ def check(draft: dict, *, ledger: Ledger, series_by_ds: dict, catalog: dict,
     for rx, why in PATTERNS:
         if m := rx.search(prose):
             problems.append(f"style: «{m[0]}» — {why}")
+    for label, rx, cap, why in OVERUSED:
+        if (n := len(rx.findall(prose))) > cap:
+            problems.append(f"overused: «{label}» {n}× (at most {cap}): {why}")
+    norm_prose = " ".join(prose.split())
+    for phrase in stock or []:
+        if norm_prose.count(phrase) > 1:
+            problems.append(f"stock phrase: «{phrase}» appears {norm_prose.count(phrase)}× and in many "
+                            "of our recent articles: once at most, in your own words otherwise")
     if hits:
         problems.append(f"banned phrases: {hits}")
     if "!" in every:
