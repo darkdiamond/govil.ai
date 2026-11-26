@@ -134,15 +134,16 @@ ENV_VARS=$(join_env_pairs "${ENV_PAIRS[@]}")
 # Its own dispatch PAT (Actions: write only), not the builder's token.
 SECRETS="OPENROUTER_API_KEY=openrouter-news-key:latest,GITHUB_DISPATCH_TOKEN=github-news-dispatch-token:latest"
 
-# 1 vCPU / 2Gi since 2026-11-26: p99 was 20% CPU and ~450MB at 2 / 4Gi (the run
-# mostly waits on the model API; DuckDB tables are capped by NEWS_TABLE_MAX_BYTES).
+# 1 vCPU / 3Gi since 2026-11-26: p99 was 20% CPU and ~450MB at 2 / 4Gi (the run
+# mostly waits on the model API). Memory stays above 2Gi because a run keeps every
+# loaded dataset's DuckDB table (1GB memory_limit each, services/news/data.py).
 echo "==> deploying job $JOB ($REGION, project $PROJECT) as $NEWS_SA"
 gcloud run jobs deploy "$JOB" \
   --source=. \
   --region="$REGION" \
   --service-account="$NEWS_SA" \
   --cpu=1 \
-  --memory=2Gi \
+  --memory=3Gi \
   --task-timeout="$TASK_TIMEOUT" \
   --max-retries=0 \
   --parallelism=1 \

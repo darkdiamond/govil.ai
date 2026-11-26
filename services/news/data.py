@@ -7,7 +7,7 @@ or the provider's fetchers for non-CKAN sources), then `recipe_exec.load_frames`
 table (`query.TableQuery`): the pandas frames and the downloaded files are
 dropped as soon as the table exists, so the run keeps one copy per dataset.
 
-A news load is capped below the refresh's limits (the job has 4GiB and holds
+A news load is capped below the refresh's limits (the job has 3GiB and holds
 the run's other datasets too): NEWS_TABLE_MAX_ROWS (default 1,000,000 rows over
 all of the recipe's inputs, checked from the datastore previews before any
 download, then from the export) and NEWS_TABLE_MAX_BYTES (default 150 MB of
