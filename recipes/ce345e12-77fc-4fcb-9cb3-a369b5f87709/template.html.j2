@@ -1,0 +1,300 @@
+{% import "gov.j2" as gov %}
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+{{ gov.lede(model.labels.lede) }}
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור שביל אופניים לפי רחוב, שכונה או עיר ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל מקטעי התכנית: עיר, נקודת מוצא, יעד, רחוב, רמת השביל וסטטוס (קיים או מתוכנן)</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+{%- for k in model.kpi_order %}
+  {{ gov.kpi(model.kpis[k], model.labels["kpi_" ~ k]) }}
+{%- endfor %}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+{%- if model.flags.map %}
+<section class="card p-5 mb-6">
+  {{ gov.head("map-pin", "מפת שבילי האופניים: קיים ומתוכנן") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.map_note }}</p>
+{%- if model.charts.map.zoom %}
+  <div class="flex flex-wrap gap-2 mb-3" id="map-zoom">
+    <button type="button" class="rounded-gov-pill border border-rule px-3 py-1 text-sm text-ink bg-surface" data-zoom="-1">כל הרשת</button>
+{%- for z in model.charts.map.zoom %}
+    <button type="button" class="rounded-gov-pill border border-rule px-3 py-1 text-sm text-ink bg-surface" data-zoom="{{ loop.index0 }}">{{ z.name }}</button>
+{%- endfor %}
+  </div>
+{%- endif %}
+  <div id="map-network" class="h-80 md:h-[460px]" role="region" aria-label="{{ model.labels.map_aria }}" data-fallback="explorer"></div>
+  <ul id="map-legend" class="flex flex-wrap gap-x-4 gap-y-2 mt-3 mb-0 ps-0 list-none text-sm text-subtle">
+{%- for t in model.charts.map.types %}
+    <li class="flex items-center gap-2"><span class="map-swatch" data-i="{{ loop.index0 }}" style="display:inline-block;width:24px;height:4px;border-radius:2px"></span>{{ t }}</li>
+{%- endfor %}
+    <li class="flex items-center gap-2"><span style="display:inline-block;width:24px;height:6px;border-radius:2px;background:#0c3058"></span>קיים</li>
+    <li class="flex items-center gap-2"><span style="display:inline-block;width:24px;border-top:3px dashed #0c3058"></span>מתוכנן</li>
+  </ul>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("map-pin", "שבילי אופניים לפי עיר") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.cities_lede }}</p>
+  {{ gov.chart("chart-cities", model.labels.cities_aria, h="h-72 md:h-96") }}
+  {{ gov.table(model.labels.cities_aria, ["רשות", "סה״כ ק״מ", "ק״מ קיים", "שיעור קיים", "מקטעים"], model.tables.cities) }}
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+{%- if model.flags.built %}
+  <section class="card p-5">
+    {{ gov.head("circle-check", "כמה מהתכנית כבר נסלל") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.built_lede }}</p>
+    {{ gov.chart("chart-built", model.labels.built_aria, h="h-64 md:h-80") }}
+    {{ gov.table(model.labels.built_aria, ["רשות", "שיעור קיים", "ק״מ בתכנית"], model.tables.built) }}
+  </section>
+{%- endif %}
+{%- if model.flags.types %}
+  <section class="card p-5">
+    {{ gov.head("database", "היררכיית הרשת לפי רמת שביל") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.types_lede }}</p>
+    {{ gov.chart("chart-types", model.labels.types_aria, h="h-64 md:h-80") }}
+    {{ gov.table(model.labels.types_aria, ["רמת שביל", "ק״מ", "ק״מ קיים", "שיעור מהרשת", "מסלולים"], model.tables.types) }}
+  </section>
+{%- endif %}
+</div>
+
+{%- if model.flags.heat %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "רמות השביל בכל עיר") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.heat_lede }}</p>
+  {{ gov.chart("chart-heat", model.labels.heat_aria, h="h-80 md:h-[460px]") }}
+  {{ gov.table(model.labels.heat_aria, ["רשות"] + model.charts.heat.x, model.tables.heat) }}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "המסלולים הארוכים בתכנית") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.routes_lede }}</p>
+  {{ gov.chart("chart-routes", model.labels.routes_aria, h="h-80 md:h-[460px]") }}
+  <ul id="routes-legend" class="flex flex-wrap gap-x-4 gap-y-2 mt-3 mb-0 ps-0 list-none text-sm text-subtle">
+{%- for t in model.route_legend %}
+    <li class="flex items-center gap-2"><span class="route-swatch" data-i="{{ t.i }}" style="display:inline-block;width:14px;height:14px;border-radius:2px"></span>{{ t.name }}</li>
+{%- endfor %}
+  </ul>
+  {{ gov.table(model.labels.routes_aria, ["מסלול", "רשות", "רמת שביל", "ק״מ", "סטטוס"], model.tables.routes) }}
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ gov.head("database", "אורך המסלולים") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.hist_lede }}</p>
+    {{ gov.chart("chart-hist", model.labels.hist_aria, h="h-64 md:h-80") }}
+    {{ gov.table(model.labels.hist_aria, ["אורך מסלול (מ׳)"] + model.charts.hist.series | map(attribute="name") | list + ["סה״כ"], model.tables.hist) }}
+  </section>
+{%- if model.flags.streets %}
+  <section class="card p-5">
+    {{ gov.head("map-pin", "הרחובות עם הכי הרבה שבילים") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.streets_lede }}</p>
+    {{ gov.chart("chart-streets", model.labels.streets_aria, h="h-64 md:h-80") }}
+    {{ gov.table(model.labels.streets_aria, ["רחוב", "רשות", "ק״מ", "ק״מ קיים"], model.tables.streets) }}
+  </section>
+{%- endif %}
+</div>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "תיאור מקורי") }}
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">שכבה המציגה את רשת שבילי האופניים המתוכננת במסגרת תכנית האב לפיתוח תשתיות רכיבה בגלעין מטרופולין חיפה, הכולל את חיפה, הקריות, נשר וטירת הכרמל</p>
+</section>
+
+{%- if model.flags.map %}
+{%- for chunk in model.charts.map.chunks %}
+<script type="application/json" id="map-s-{{ loop.index0 }}">{{ chunk | tojson }}</script>
+{%- endfor %}
+<script>
+  (function () {
+    var el = document.getElementById("map-network");
+    if (!el || !window.L || !window.GovMap) { return; }
+    var meta = {{ {"origin": model.charts.map.origin, "scale": model.charts.map.scale, "types": model.charts.map.types, "statuses": model.charts.map.statuses, "cities": model.charts.map.cities, "existing": model.charts.map.existing, "zoom": model.charts.map.zoom, "bounds": model.charts.map.bounds} | tojson }};
+    var C = ["#0b3668", "#0068f5", "#e8743b", "#19a979"];
+    var P = window.GOVIL_PALETTE || C;
+    var color = function (i) { return C[i] || P[i % P.length]; };
+    document.querySelectorAll("#map-legend .map-swatch").forEach(function (sw) {
+      sw.style.background = color(Number(sw.getAttribute("data-i")));
+    });
+    var map = L.map(el, { scrollWheelZoom: false, zoomSnap: 0.25, preferCanvas: true });
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: "© <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a>" }).addTo(map);
+    GovMap.islands("map-s").forEach(function (f) {
+      var built = f[1] === meta.existing;
+      var style = { color: color(f[0]), weight: built ? 5 : 3, opacity: built ? 0.95 : 0.8 };
+      if (!built) { style.dashArray = "6 5"; }
+      var line = L.polyline(GovMap.ring(f[7], meta.origin, meta.scale), style).addTo(map);
+      line.bindPopup(function () {
+        return GovMap.popup(meta.cities[f[2]], [["רמה", meta.types[f[0]]], ["סטטוס", meta.statuses[f[1]]], ["מוצא", f[3]], ["יעד", f[4]], ["רחוב", f[5]], ["אורך", f[6] + " ק״מ"]]);
+      });
+    });
+    map.fitBounds(meta.bounds, { padding: [8, 8] });
+    document.querySelectorAll("#map-zoom button").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var i = Number(b.getAttribute("data-zoom"));
+        map.fitBounds(i < 0 ? meta.bounds : meta.zoom[i].bounds, { padding: [12, 12], maxZoom: 16 });
+      });
+    });
+  })();
+</script>
+{%- endif %}
+
+<script>
+  (function () {
+    var d = {{ model.charts.cities | tojson }};
+    var S = ["#0b3668", "#8fb8f0", "#6c757d"];
+    var fmt = function (v) { return Number(v).toLocaleString("he-IL", { maximumFractionDigits: 1 }); };
+    var c = echarts.init(document.getElementById("chart-cities"));
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return fmt(v) + " ק״מ"; } },
+      legend: { bottom: 0 },
+      grid: { left: 12, right: 24, top: 8, bottom: 40, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3 },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { interval: 0, fontSize: 11, width: 110, overflow: "truncate" } },
+      series: d.series.map(function (s, i) { return { type: "bar", stack: "c", name: s.name, data: s.data, barMaxWidth: 28, itemStyle: { color: S[i] || S[2] } }; })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+{%- if model.flags.built %}
+<script>
+  (function () {
+    var d = {{ model.charts.built | tojson }};
+    var c = echarts.init(document.getElementById("chart-built"));
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+        var i = p[0].dataIndex;
+        return echarts.format.encodeHTML(d.names[i]) + "<br>" + d.pct[i].toLocaleString("he-IL") + "% קיים<br>" + d.km[i].toLocaleString("he-IL") + " ק״מ בתכנית";
+      } },
+      grid: { left: 12, right: 40, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: "value", max: 100, splitNumber: 4, axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { interval: 0, fontSize: 11, width: 110, overflow: "truncate" } },
+      series: [{ type: "bar", data: d.pct, barMaxWidth: 22, itemStyle: { color: "#198754" },
+        label: { show: true, position: "right", formatter: function (p) { return p.value + "%"; } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+
+{%- if model.flags.types %}
+<script>
+  (function () {
+    var d = {{ model.charts.types | tojson }};
+    var S = ["#0b3668", "#8fb8f0", "#6c757d"];
+    var fmt = function (v) { return Number(v).toLocaleString("he-IL", { maximumFractionDigits: 1 }); };
+    var c = echarts.init(document.getElementById("chart-types"));
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+        var i = p[0].dataIndex;
+        var out = echarts.format.encodeHTML(d.names[i]);
+        p.forEach(function (q) { out += "<br>" + q.marker + q.seriesName + ": " + fmt(q.value) + " ק״מ"; });
+        return out + "<br>שיעור קיים: " + d.pct[i].toLocaleString("he-IL") + "%";
+      } },
+      legend: { bottom: 0 },
+      grid: { left: 12, right: 16, top: 16, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: d.names, axisLabel: { interval: 0, fontSize: 11 } },
+      yAxis: { type: "value", name: "ק״מ", splitNumber: 4 },
+      series: d.series.map(function (s, i) { return { type: "bar", stack: "t", name: s.name, data: s.data, barMaxWidth: 48, itemStyle: { color: S[i] || S[2] } }; })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+
+{%- if model.flags.heat %}
+<script>
+  (function () {
+    var d = {{ model.charts.heat | tojson }};
+    var c = echarts.init(document.getElementById("chart-heat"));
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "item", formatter: function (p) {
+        return echarts.format.encodeHTML(d.y[p.value[1]]) + "<br>" + echarts.format.encodeHTML(d.x[p.value[0]]) + ": " + p.value[2].toLocaleString("he-IL") + " ק״מ";
+      } },
+      grid: { left: 12, right: 16, top: 8, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: d.x, splitArea: { show: true }, axisLabel: { interval: 0, fontSize: 11 } },
+      yAxis: { type: "category", data: d.y, inverse: true, splitArea: { show: true }, axisLabel: { interval: 0, fontSize: 11, width: 110, overflow: "truncate" } },
+      visualMap: { min: 0, max: d.max, dimension: 2, calculable: false, orient: "horizontal", left: "center", bottom: 0, itemWidth: 12, itemHeight: 140,
+        inRange: { color: ["#f1f7ff", "#8fb8f0", "#0068f5", "#0b3668"] } },
+      series: [{ type: "heatmap", data: d.cells, label: { show: true, fontSize: 10, formatter: function (p) { return p.value[2].toLocaleString("he-IL"); } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+
+<script>
+  (function () {
+    var d = {{ model.charts.routes | tojson }};
+    var C = ["#0b3668", "#0068f5", "#8fb8f0", "#6c757d"];
+    document.querySelectorAll("#routes-legend .route-swatch").forEach(function (sw) {
+      sw.style.background = C[Number(sw.getAttribute("data-i"))];
+    });
+    var c = echarts.init(document.getElementById("chart-routes"));
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+        var i = p[0].dataIndex;
+        return echarts.format.encodeHTML(d.names[i]) + "<br>" + echarts.format.encodeHTML(d.city[i]) + ", שביל " + echarts.format.encodeHTML(d.type[i]) + "<br>" + d.km[i].toLocaleString("he-IL") + " ק״מ<br>" + echarts.format.encodeHTML(d.states[d.state[i]]);
+      } },
+      grid: { left: 12, right: 40, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3 },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { interval: 0, fontSize: 11, width: 140, overflow: "truncate" } },
+      series: [{ type: "bar", barMaxWidth: 20,
+        data: d.km.map(function (v, i) { return { value: v, itemStyle: { color: C[d.state[i]] || "#6c757d" } }; }),
+        label: { show: true, position: "right", formatter: function (p) { return p.value.toLocaleString("he-IL"); } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.hist | tojson }};
+    var C = ["#0b3668", "#0068f5", "#e8743b", "#19a979"];
+    var c = echarts.init(document.getElementById("chart-hist"));
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v.toLocaleString("he-IL") + " מסלולים"; } },
+      legend: { bottom: 0 },
+      grid: { left: 12, right: 16, top: 16, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: d.x, name: "מטרים", axisLabel: { interval: 0, fontSize: 10, rotate: 30 } },
+      yAxis: { type: "value", splitNumber: 4 },
+      series: d.series.map(function (s, i) { return { type: "bar", stack: "h", name: s.name, data: s.data, barMaxWidth: 40, itemStyle: { color: C[i] || "#6c757d" } }; })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+{%- if model.flags.streets %}
+<script>
+  (function () {
+    var d = {{ model.charts.streets | tojson }};
+    var S = ["#0b3668", "#8fb8f0"];
+    var fmt = function (v) { return Number(v).toLocaleString("he-IL", { maximumFractionDigits: 2 }); };
+    var c = echarts.init(document.getElementById("chart-streets"));
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+        var i = p[0].dataIndex;
+        var out = echarts.format.encodeHTML(d.names[i]);
+        p.forEach(function (q) { out += "<br>" + q.marker + q.seriesName + ": " + fmt(q.value) + " ק״מ"; });
+        return out;
+      } },
+      legend: { bottom: 0 },
+      grid: { left: 12, right: 24, top: 8, bottom: 40, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3 },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { interval: 0, fontSize: 11, width: 110, overflow: "truncate" } },
+      series: d.series.map(function (s, i) { return { type: "bar", stack: "s", name: s.name, data: s.data, barMaxWidth: 22, itemStyle: { color: S[i] } }; })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}

@@ -1,0 +1,14 @@
+{
+  "geo.ID": "chart-routes, chart-hist, kpi:routes, insight:longest, insight:short — groups segments into routes (one route can be split into many pieces)",
+  "geo.OBJECTID": "skip: row identifier (only a fallback route key when ID is empty)",
+  "geo.CITY": "chart-cities, chart-built, chart-heat, map-network, kpi:cities, insight:city_lead, insight:city_built",
+  "geo.START_": "chart-routes, map-network — route name with DESTNATION",
+  "geo.DESTNATION": "chart-routes, map-network — route name with START_",
+  "geo.STREET": "chart-streets, map-network, chart-routes — route name fallback",
+  "geo.TYPE": "chart-types, chart-heat, chart-hist, map-network, insight:hierarchy, insight:type_built",
+  "geo.STATUS": "chart-cities, chart-built, chart-types, chart-streets, map-network, kpi:existing, kpi:planned, kpi:share, insight:size, insight:multiplier",
+  "geo.LENGT": "chart-cities, chart-types, chart-heat, chart-hist, chart-routes, chart-streets, kpi:total, insight:size — metres (ITM)",
+  "geo.Shape_Leng": "kpi:total — fallback length when LENGT is empty; same value within millimetres",
+  "geo.__geometry": "map-network — also the measured length when the declared one disagrees",
+  "resource:6ac4334d-808a-4ee6-8ef8-6a2f129256ea": "skip: the CSV is the same attribute table as the map file (411 rows, same columns plus FID)"
+}

@@ -1,0 +1,30 @@
+{
+  "contract_version": 1,
+  "dataset_id": "ce345e12-77fc-4fcb-9cb3-a369b5f87709",
+  "recipe_version": 1,
+  "authored_at": "2026-11-26T15:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-11-26T11:38:03.304526+00:00",
+    "rows": { "geo": 411 }
+  },
+  "inputs": [
+    {
+      "name": "geo",
+      "by_id": "5f6cfbd5-f733-4f3b-ba8f-1c7b6e4f031b",
+      "map": true,
+      "map_max_kb": 600,
+      "required_columns": [
+        "ID",
+        "CITY",
+        "START_",
+        "DESTNATION",
+        "STREET",
+        "TYPE",
+        "STATUS",
+        "LENGT"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}
