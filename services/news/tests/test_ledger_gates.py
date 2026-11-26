@@ -20,8 +20,23 @@ MINUS = "−"
     (12.345, None, "12.3"),
     (1.2345, None, "1.23"),
     (23.6, "pct", "23.6%"),
-    (-34.1, "abs_pct", "34.1%"),
-    (1500.4, "abs", "1,500.4"),
+    (-34.1, "abs_pct", "34%"),
+    (-7.64, "abs_pct", "7.6%"),
+    (2.0, "abs_pct", "2%"),
+    (9.96, "abs_pct", "10%"),
+    (1500.4, "abs", "1,500"),
+    (673.0, "abs", "673"),
+    (12.0, "abs1", "12.0"),
+    # a reporter's precision, not the data's
+    (39.98, None, "40"),
+    (673.04, None, "673"),
+    (17742.6, None, "17,743"),
+    (1.2, None, "1.2"),
+    (673.0, "num1", "673"),
+    (3.0, "num1", "3.0"),
+    # a level keeps its decimal, so a comparison lines up
+    (3.0, "pct", "3.0%"),
+    (60.5, "pct", "60.5%"),
 ])
 def test_format_value(v, spec, want):
     assert format_value(v, spec) == want
@@ -29,8 +44,27 @@ def test_format_value(v, spec, want):
 
 def test_signed_formats_are_isolated_with_a_real_minus():
     s = format_value(-5.0, "spct")
-    assert MINUS in s and "5.0%" in s and "-" not in s
+    assert MINUS in s and "5%" in s and "-" not in s
+    assert "5.4%" in format_value(5.4, "spct")
+    assert "+40%" in format_value(40.04, "spct")
     assert "+" in format_value(0.25, "pp")
+
+
+@pytest.mark.parametrize("value, text, want", [
+    (1932.1, "{f1} אלף לינות", "1.93 מיליון לינות"),
+    (16980.0, "{f1} אלף לינות", "17 מיליון לינות"),
+    (2207.6, "{f1:num1} מיליון שקל", "2.21 מיליארד שקל"),
+    (2207.6, "{f1} מיליוני שקלים", "2.21 מיליארדי שקלים"),
+    (507.3, "{f1} אלף לינות", "507.3 אלף לינות"),       # under a thousand: stays
+    (999.96, "{f1} אלף לינות", "1 מיליון לינות"),       # prints 1,000: moves up too
+    (1932.1, "{f1} לינות", "1,932 לינות"),                # no scale word
+    (1932.1, "{f1} אלפים", "1,932 אלפים"),                # not a scale word we move
+])
+def test_a_figure_over_a_thousand_moves_up_a_scale(value, text, want):
+    led = Ledger()
+    led.add(value, label="x", provenance="t")
+    runs, probs = render(text, led, lambda d: None)
+    assert not probs and runs[0]["v"] == want
 
 
 @pytest.mark.parametrize("text, bad", [
@@ -84,7 +118,7 @@ def test_render_runs_and_problems():
                          led, lambda d: "/datasets/abc/" if d == "abc" else None)
     assert probs == []
     assert [r["t"] for r in runs] == ["text", "link", "text", "link"]
-    assert runs[0]["v"] == "ירידה של 12.5% לפי " and runs[1]["href"] == "https://www.boi.org.il/x"
+    assert runs[0]["v"] == "ירידה של 13% לפי " and runs[1]["href"] == "https://www.boi.org.il/x"
     assert runs[3] == {"t": "link", "v": "העמוד", "href": "/datasets/abc/", "kind": "dataset", "id": "abc"}
     _, probs = render("{f99} [[x|s9]] [[y|ds:zzz]]", led, lambda d: None)
     assert len(probs) == 3
@@ -101,7 +135,7 @@ def test_calc_traces_inputs():
 
 # ── the gate ─────────────────────────────────────────────────────────────
 
-FILLER = ("הנתון החודשי מראה שינוי בהיקף הפעילות לעומת התקופה המקבילה אשתקד ולעומת החודש הקודם, "
+FILLER = ("הנתון החודשי מראה שינוי בהיקף הפעילות בהשוואה לתקופה המקבילה אשתקד ולחודש הקודם, "
           "והוא מצטרף למגמה שנמשכת כבר כמה חודשים בשוק המשכנתאות בישראל. ")
 QUOTE = "הוועדה המוניטרית החליטה להותיר את הריבית ללא שינוי"
 
@@ -495,7 +529,7 @@ def test_prompts_have_no_ai_punctuation():
     """Models copy their prompt's style: the prompts model the punctuation rule."""
     from pathlib import Path
 
-    for p in (Path(gates.__file__).parent / "prompts").glob("*.md"):
+    for p in (Path(gates.__file__).parent / "prompts").rglob("*.md"):
         t = p.read_text(encoding="utf-8")
         assert "—" not in t and "…" not in t, p.name
 

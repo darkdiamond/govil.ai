@@ -15,7 +15,23 @@ Check, strictly:
 3. VOICE: does it read like a human reporter (concrete, plain, varied rhythm)
    or like AI (generic openers, hedging stacks, "חשוב לציין", rhetorical
    questions, symmetrical triplets, summary endings, empty adjectives, em dashes
-   or dashes used as punctuation, ellipses)?
+   or dashes used as punctuation, ellipses)? Run these tests and quote what
+   fails them:
+   - Interchangeable: a sentence that could appear unchanged in another of our
+     articles ("הנתונים הבאים יאפשרו לבחון אם המגמה נמשכת"). It belongs to no
+     story: cut it or make it specific.
+   - Inflated: a claim of importance the numbers don't show ("נקודת מפנה",
+     "מדגיש את הצורך", "הופך את <X> לשונה"), or an ending that draws a lesson or
+     a call to action instead of stopping on a fact.
+   - Template: a closing "what's next" section added by habit, a subhead that
+     names a topic ("הקשר לכניסות המבקרים") instead of saying what the
+     section found, a headline that joins two facts ("<X> לצד <Y>").
+   - Everything in: the article reports every figure the data has instead of
+     choosing, two number-heavy paragraphs in a row, a paragraph that only
+     restates the chart.
+     List each as an issue with its fix. They are style, not blocking, and one
+     or two of them don't take the voice score below 4: reserve a voice score
+     under 4 for copy that reads machine-written throughout.
 4. RISK: blame on parties/politicians/communities, private individuals, legal
    or security sensitivity, misleading or clickbait headline.
 5. SOURCING: every number is our government data (it is, mechanically) and

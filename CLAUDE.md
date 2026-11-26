@@ -612,6 +612,24 @@ catalog` lists chapters → subjects → codes.
      source (user rule); the web is read for context only (allowlisted
      sites, fenced as untrusted text); no em dashes or other AI-looking
      punctuation (user rule, in the gate and the prompts).
+   - against machine-sounding copy (2026-11-26, measured on the 28 live
+     articles): the ledger rounds like a reporter (a percent change of 10%+
+     prints whole, no trailing ".0", `{f} אלף` over 1,000 moves up a scale);
+     `gates.check` caps fact tokens per paragraph (`NEWS_MAX_NUMBERS_PER_PARAGRAPH`,
+     default 5; 0 = off), refuses a number in parentheses, caps the words our
+     articles lean on (`gates.OVERUSED`: בלבד, במקביל, נרשם…; "אחד ההסברים
+     האפשריים" is refused), allows each of the desk's stock phrases once
+     (`stock.py`: 2-4 word runs in ≥30% of the last 30 days' articles, minus
+     names), and sets body length by kind (`gates.WORDS`). No required
+     section layout and no "what's next" section; the writer gets 3 of 6
+     rotating examples (`prompts/exemplars/`, picked per brief), not fixed
+     ones. The critic runs four voice tests (interchangeable sentence,
+     inflation, template, everything-in; not blocking). With `NEWS_LINE_EDIT`
+     (code off, prod on) an accepted story gets a delete-only line edit
+     (`line_edit.py`: the editor may only remove words, and a negation or
+     hedge only with its whole sentence, `is_cut` checks it);
+     the cut draft must pass the gates and the critic again or the original
+     stands. Its record is `line_edit` on the article doc.
    - data access for the writer is DuckDB SQL over the recipe's own inputs
      with external access off (`query.py`); it never runs model-written code.
      Only the brief's datasets, each loaded once per run into DuckDB (frames

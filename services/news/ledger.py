@@ -185,13 +185,35 @@ class Source:
 FORMATS = ("auto", "int", "num0", "num1", "num2", "pct", "pct0", "spct", "abs", "abs1", "abs_pct", "pp")
 
 
+def _trim(s: str) -> str:
+    """'40.0' → '40', '1.20' → '1.2': zeros after the point say nothing."""
+    return s.rstrip("0").rstrip(".") if "." in s else s
+
+
+def _change(a: float) -> tuple[float, int]:
+    """A percent CHANGE rounded the way a reporter writes it: "זינוק של 40%",
+    not "40.0%" or "68.9%"; one decimal only under 10%, halves up (12.5 → 13).
+    A percent LEVEL (`pct`: a rate, a share) keeps its decimal, so "3.0% →
+    3.1%" still reads. Returns (rounded magnitude, decimals)."""
+    d = 0 if math.floor(a * 10 + 0.5) >= 100 else 1
+    return math.floor(a * 10 ** d + 0.5) / 10 ** d, d
+
+
 def format_value(v: float, spec: str | None = None) -> str:
-    """One number as Hebrew page text (minus sign U+2212, thousands commas)."""
+    """One number as Hebrew page text (minus sign U+2212, thousands commas).
+
+    Precision follows how a reporter writes, not the data's: `auto` gives two
+    decimals under 10, one under 1,000 and none from 1,000 up, with trailing
+    zeros dropped ("673.0" → "673"); percent changes (`spct`, `abs_pct`) lose
+    the decimal from 10% up and a trailing ".0" below it. Explicit `num1`/`num2`
+    and `abs`/`abs1` keep their decimals under 100, where the writer may want a
+    comparison to line up, and drop a trailing ".0" from 100 up."""
     spec = spec or "auto"
     if not math.isfinite(v):
         raise ValueError(f"cannot print {v}")
-    if spec == "auto":
-        if float(v).is_integer():
+    auto = spec == "auto"
+    if auto:
+        if float(v).is_integer() or abs(v) >= 1000:
             spec = "int"
         else:
             spec = "num2" if abs(v) < 10 else "num1"
@@ -201,16 +223,23 @@ def format_value(v: float, spec: str | None = None) -> str:
         s = fmt.int_he(a)
     elif spec in ("num0", "num1", "num2"):
         s = fmt.num_he(a, int(spec[-1]))
+        s = _trim(s) if auto or a >= 100 else s
     elif spec in ("pct", "pct0"):
         s = fmt.pct_of(a, 0 if spec == "pct0" else 1)
     elif spec == "spct":
-        return fmt.isolate(fmt.signed_pct(v / 100))
+        r, d = _change(a)
+        return fmt.isolate(fmt.signed_pct((-r if neg else r) / 100, d).replace(".0%", "%"))
     elif spec == "abs":
-        return fmt.int_he(a) if float(a).is_integer() else fmt.num_he(a, 1)
+        if float(a).is_integer() or a >= 1000:
+            return fmt.int_he(a)
+        s = fmt.num_he(a, 1)
+        return _trim(s) if a >= 100 else s
     elif spec == "abs1":
-        return fmt.num_he(a, 1)
+        s = fmt.num_he(a, 1)
+        return _trim(s) if a >= 100 else s
     elif spec == "abs_pct":
-        return fmt.pct_of(a, 1)
+        r, d = _change(a)
+        return fmt.pct_of(r, d).replace(".0%", "%")
     elif spec == "pp":
         s = fmt.num_he(a, 2 if a < 1 else 1)
         return fmt.isolate(("+" if v > 0 else fmt.MINUS if neg else "") + s)
@@ -375,6 +404,27 @@ def stray_numbers(text: str) -> list[str]:
     return [m for m in re.findall(r"\S*\d\S*", t) if _DIGITS.search(m)]
 
 
+# A token followed by its scale word: "{f3} אלף", "{f9:num1} מיליוני".
+_TOKEN_SCALE = re.compile(TOKEN.pattern + r"(?:(\s+)(אלף|מיליון|מיליוני)(?![א-ת]))?")
+_NEXT_SCALE = {"אלף": "מיליון", "מיליון": "מיליארד", "מיליוני": "מיליארדי"}
+_PLAIN_SPECS = (None, "auto", "int", "num0", "num1", "num2", "abs", "abs1")
+
+
+def rescale(v: float, spec: str | None, word: str) -> str | None:
+    """'1,932.1 אלף' → '1.93 מיליון', '2,207.6 מיליון' → '2.21 מיליארד': a
+    figure of a thousand or more before its scale word moves up a scale, the
+    way a reporter writes it. None when it stays as it is (under 1,000, a
+    percent or signed format, a negative)."""
+    if spec not in _PLAIN_SPECS or v < 0:
+        return None
+    # on the printed value: 999.96 prints "1,000", so it moves up too
+    printed = float(format_value(v, spec).replace(",", ""))
+    if not 1000 <= printed < 1_000_000:
+        return None
+    up = v / 1000
+    return _trim(fmt.num_he(up, 2 if up < 10 else 1)) + " " + _NEXT_SCALE[word]
+
+
 def render(text: str, ledger: Ledger, dataset_href) -> tuple[list[dict], list[str]]:
     """Text with tokens/links → runs. `dataset_href(id)` → page URL or None.
     Returns (runs, problems); any problem means the text must not ship."""
@@ -387,11 +437,13 @@ def render(text: str, ledger: Ledger, dataset_href) -> tuple[list[dict], list[st
                 problems.append(f"unknown fact {m[1]}")
                 return m[0]
             try:
-                return format_value(f.value, m[2])
+                if m[3] and (up := rescale(f.value, m[2], m[4])) is not None:
+                    return up
+                return format_value(f.value, m[2]) + (m[3] or "") + (m[4] or "")
             except ValueError as e:
                 problems.append(f"{m[0]}: {e}")
                 return m[0]
-        return TOKEN.sub(one, s)
+        return _TOKEN_SCALE.sub(one, s)
 
     runs: list[dict] = []
     pos = 0

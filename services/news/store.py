@@ -42,7 +42,8 @@ PUBLISH_MODES = ("live", "off")
 LOCK_DOC = f"{STATE}/{LOCK}"
 META_FIELDS = ("slug", "status", "headline", "dek", "published_at", "updated_at", "byline",
                "dataset_ids", "tags", "signal_keys", "hero", "run_id", "models", "words",
-               "critic_scores", "critic_final_round", "correction", "corrected_at", "kind")
+               "critic_scores", "critic_final_round", "correction", "corrected_at", "kind",
+               "line_edit")
 BODY_FIELDS = ("blocks", "charts", "sources", "ledger")
 
 
@@ -176,6 +177,16 @@ class FirestoreArticles:
             out.append(x)
         return sorted(out, key=lambda a: str(a.get("published_at")), reverse=True)
 
+    def recent_bodies(self, days: int = 30) -> list[dict]:
+        """Recent published articles with their blocks (`recent` drops the
+        body): what the desk's stock phrases are counted over (`stock.py`)."""
+        from google.cloud.firestore_v1.base_query import FieldFilter
+
+        since = datetime.now(UTC) - timedelta(days=days)
+        q = self.db.collection(ARTICLES).where(filter=FieldFilter("published_at", ">=", since))
+        docs = (join(d.to_dict() or {}) for d in q.stream())
+        return [x for x in docs if x.get("status", "published") in LIVE_STATUSES]
+
     def slug_taken(self, slug: str) -> bool:
         return self.db.collection(ARTICLES).document(slug).get().exists
 
@@ -265,6 +276,9 @@ class LocalArticles:
 
     def slug_taken(self, slug: str) -> bool:
         return (self.root / slug / "article.json").exists() or any(a.get("slug") == slug for a in self._seed)
+
+    def recent_bodies(self, days: int = 30) -> list[dict]:
+        return [a for a in self.recent(days) if a.get("blocks")]
 
     def pool(self, items: list[dict]) -> None:
         d = self.root / "_pool"

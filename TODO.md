@@ -156,6 +156,15 @@ This repo is public: describe a security gap by what to change, never by how to 
 
 ## News
 
+- **Check the anti-AI-voice changes around 2026-12-10.** The new gate rules (numbers per
+  paragraph, no numbers in parentheses, `OVERUSED` caps, stock phrases, shorter news length) and
+  the critic's voice tests can raise the rejection rate. Compare `article_rejects` reasons and
+  writer gate rounds for the two weeks before and after the deploy (`admin list --rejected`),
+  the `line_edit.status` counts on new articles (how many cuts were applied and how many words
+  they saved), and rerun the over-represented-words check on the new articles: retune
+  `NEWS_MAX_NUMBERS_PER_PARAGRAPH` or a cap if one rule causes most of the rejections, and add
+  any new stock words. (2026-11-26)
+
 - **Keep every correction, and say when an article was removed.** `admin correct` overwrites
   `correction`, so a second correction erases the first notice, and `admin unpublish` turns the
   URL into a 404 with no word on the site. The corrections policy on `/news/about/#corrections`
