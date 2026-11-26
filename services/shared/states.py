@@ -178,6 +178,17 @@ class StoryResult(StrEnum):
     POOL_UNREADABLE = "pool_unreadable"   # the signal pool couldn't be read
 
 
+class LineEditStatus(StrEnum):
+    """What the delete-only line edit did to an accepted story
+    (`services/news/line_edit.py`; the article doc's `line_edit.status`)."""
+    APPLIED = "applied"        # cut, and the cut passed the gates and the copy chief
+    UNCHANGED = "unchanged"    # nothing usable to apply (no cut, or every cut refused)
+    MALFORMED = "malformed"    # the editor's reply had no edit list
+    ERROR = "error"            # a model call or a check failed: the original stands
+    GATES = "gates"            # the cut failed `gates.check`
+    CRITIC = "critic"          # the copy chief didn't pass the cut
+
+
 @dataclass
 class RefreshState:
     """The refresh fields of a `sources/<id>` doc (all optional; absent = None).

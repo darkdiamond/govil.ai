@@ -626,7 +626,8 @@ catalog` lists chapters → subjects → codes.
      ones. The critic runs four voice tests (interchangeable sentence,
      inflation, template, everything-in; not blocking). With `NEWS_LINE_EDIT`
      (code off, prod on) an accepted story gets a delete-only line edit
-     (`line_edit.py`: the editor may only remove words, `is_cut` checks it);
+     (`line_edit.py`: the editor may only remove words, and a negation or
+     hedge only with its whole sentence, `is_cut` checks it);
      the cut draft must pass the gates and the critic again or the original
      stands. Its record is `line_edit` on the article doc.
    - data access for the writer is DuckDB SQL over the recipe's own inputs

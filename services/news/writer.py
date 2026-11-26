@@ -280,7 +280,7 @@ def write(llm, tb: Toolbox, brief: dict, *, catalog: dict, vocab: set[str], toda
             if critic["verdict"] == "pass":
                 out = Outcome("accepted", core=core, critic=critic, tool_calls=calls)
                 if line_edit.enabled():
-                    edited, out.line_edit = line_edit.edit(
+                    edited, out.line_edit, recheck = line_edit.edit(
                         llm, draft,
                         check=lambda d: gates.check(d, ledger=tb.ledger, series_by_ds=tb.series,
                                                     catalog=catalog, vocab=vocab, article_kind=kind,
@@ -288,7 +288,9 @@ def write(llm, tb: Toolbox, brief: dict, *, catalog: dict, vocab: set[str], toda
                         # the cut version against the same bar, with no round left
                         critique=lambda c: gates.critique(llm, c, kind=kind, ledger=tb.ledger,
                                                           release=release, final=True))
-                    out.core = edited or core
+                    if edited is not None:
+                        # what is stored with the story is the verdict on the text it prints
+                        out.core, out.critic = edited, recheck
                     log.info("news line edit %s: %s", brief.get("signal_keys"), out.line_edit)
                 return out
             if critic["verdict"] == "kill":

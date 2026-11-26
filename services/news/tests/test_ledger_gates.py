@@ -56,6 +56,7 @@ def test_signed_formats_are_isolated_with_a_real_minus():
     (2207.6, "{f1:num1} מיליון שקל", "2.21 מיליארד שקל"),
     (2207.6, "{f1} מיליוני שקלים", "2.21 מיליארדי שקלים"),
     (507.3, "{f1} אלף לינות", "507.3 אלף לינות"),       # under a thousand: stays
+    (999.96, "{f1} אלף לינות", "1 מיליון לינות"),       # prints 1,000: moves up too
     (1932.1, "{f1} לינות", "1,932 לינות"),                # no scale word
     (1932.1, "{f1} אלפים", "1,932 אלפים"),                # not a scale word we move
 ])

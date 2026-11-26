@@ -50,6 +50,34 @@ def test_overused_words_over_their_cap():
     assert [p for p in probs if "overused: «במקביל» 2×" in p]
 
 
+def test_a_hall_is_no_contrast_connective():
+    _, _, _, f1 = _setup()
+    _, probs = _check(_with_lead(f1, "באולם הגדול ובאולם הקטן, ובאולם השלישי, עם זאת."))
+    assert not [p for p in probs if "overused: «עם זאת" in p]
+    _, probs = _check(_with_lead(f1, "ואולם ההיקף ירד. עם זאת הוא גבוה. מנגד הפער קטן."))
+    assert [p for p in probs if "overused: «עם זאת / ואולם / לעומת זאת / מנגד» 3×" in p]
+
+
+def test_registered_is_the_fact_in_an_explainer():
+    _, _, _, f1 = _setup()
+    d = _with_lead(f1, "נרשמו קבלנים. נרשמו מתווכים. נרשם קבלן. נרשמה חברה.")
+    _, news = _check(d)
+    _, feature = _check(d, article_kind="feature")
+    assert [p for p in news if "overused: «נרשם»" in p]
+    assert not [p for p in feature if "overused: «נרשם»" in p]
+
+
+def test_a_malformed_density_knob_is_the_default(monkeypatch):
+    import importlib
+
+    monkeypatch.setenv("NEWS_MAX_NUMBERS_PER_PARAGRAPH", "five")
+    try:
+        assert importlib.reload(gates).MAX_NUMBERS_PER_PARAGRAPH == 5
+    finally:
+        monkeypatch.delenv("NEWS_MAX_NUMBERS_PER_PARAGRAPH")
+        importlib.reload(gates)
+
+
 def test_a_stock_phrase_may_appear_once():
     _, _, _, f1 = _setup()
     d = _with_lead(f1, "הנתונים צפויים להתפרסם בדצמבר. נתוני ינואר צפויים להתפרסם בפברואר.")

@@ -29,7 +29,9 @@ Check, strictly:
    - Everything in: the article reports every figure the data has instead of
      choosing, two number-heavy paragraphs in a row, a paragraph that only
      restates the chart.
-     These are voice issues: they lower the voice score and are not blocking.
+     List each as an issue with its fix. They are style, not blocking, and one
+     or two of them don't take the voice score below 4: reserve a voice score
+     under 4 for copy that reads machine-written throughout.
 4. RISK: blame on parties/politicians/communities, private individuals, legal
    or security sensitivity, misleading or clickbait headline.
 5. SOURCING: every number is our government data (it is, mechanically) and

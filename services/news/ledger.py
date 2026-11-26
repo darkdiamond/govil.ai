@@ -415,7 +415,11 @@ def rescale(v: float, spec: str | None, word: str) -> str | None:
     figure of a thousand or more before its scale word moves up a scale, the
     way a reporter writes it. None when it stays as it is (under 1,000, a
     percent or signed format, a negative)."""
-    if spec not in _PLAIN_SPECS or not 1000 <= v < 1_000_000:
+    if spec not in _PLAIN_SPECS or v < 0:
+        return None
+    # on the printed value: 999.96 prints "1,000", so it moves up too
+    printed = float(format_value(v, spec).replace(",", ""))
+    if not 1000 <= printed < 1_000_000:
         return None
     up = v / 1000
     return _trim(fmt.num_he(up, 2 if up < 10 else 1)) + " " + _NEXT_SCALE[word]

@@ -18,6 +18,12 @@ from services.news.tests.test_llm_pipeline import FILLER, FakeLLM, _day, _draft
     ("הלינות זינקו ב-{f1} בגלל החג.", "בגלל החג הלינות זינקו ב-{f1}.", False),  # reordered
     ("הלינות זינקו ב-{f1}.", "הלינות זינקו ב-{f1} בגלל החג.", False),          # an added claim
     ("לפי [[נתוני הלמ\"ס|ds:x]] הלינות זינקו.", "לפי [[נתוני הלמ\"ס|ds:x]] הלינות זינקו.", True),
+    # a negation or hedge goes only with its whole sentence
+    ("המדד לא עלה החודש. הלינות זינקו.", "המדד עלה החודש. הלינות זינקו.", False),
+    ("העלייה קשורה כנראה לחג. הלינות זינקו.", "העלייה קשורה לחג. הלינות זינקו.", False),
+    ("ייתכן שהעלייה קשורה לחג, והלינות זינקו.", "שהעלייה קשורה לחג, והלינות זינקו.", False),
+    ("המדד לא עלה החודש. הלינות זינקו.", "הלינות זינקו.", True),
+    ("הנתון שלא פורסם. הלינות זינקו.", "הנתון פורסם. הלינות זינקו.", False),   # with a prefix
 ])
 def test_is_cut(old, new, ok):
     assert line_edit.is_cut(old, new) is ok
@@ -50,14 +56,14 @@ def _pass(core):
 
 def test_a_cut_that_passes_the_gates_and_the_critic_is_applied():
     llm = _Editor({"edits": [{"block": 0, "text": "הלינות זינקו ב-{f1}."}]})
-    core, info = line_edit.edit(llm, DRAFT, check=_ok_check, critique=_pass)
+    core, info, _ = line_edit.edit(llm, DRAFT, check=_ok_check, critique=_pass)
     assert core["blocks"][0]["text"] == "הלינות זינקו ב-{f1}." and core["blocks"][1]["type"] == "stat"
     assert info["status"] == "applied" and info["words_after"] < info["words_before"]
 
 
 def test_an_emptied_paragraph_is_removed():
     llm = _Editor({"edits": [{"block": 2, "text": ""}]})
-    core, _ = line_edit.edit(llm, DRAFT, check=_ok_check, critique=_pass)
+    core, _, _ = line_edit.edit(llm, DRAFT, check=_ok_check, critique=_pass)
     assert [b["type"] for b in core["blocks"]] == ["p", "stat"]
 
 
@@ -69,15 +75,37 @@ def test_an_emptied_paragraph_is_removed():
     (ValueError("no JSON"), "error"),
 ])
 def test_nothing_usable_keeps_the_original(reply, status):
-    core, info = line_edit.edit(_Editor(reply), DRAFT, check=_ok_check, critique=_pass)
+    core, info, _ = line_edit.edit(_Editor(reply), DRAFT, check=_ok_check, critique=_pass)
     assert core is None and info["status"] == status
+
+
+def test_a_cut_that_passes_returns_the_verdict_on_the_cut():
+    llm = _Editor({"edits": [{"block": 0, "text": "הלינות זינקו ב-{f1}."}]})
+    _, _, verdict = line_edit.edit(llm, DRAFT, check=_ok_check,
+                                   critique=lambda c: {"verdict": "pass", "scores": {"voice": 5}})
+    assert verdict["scores"] == {"voice": 5}
+
+
+def test_anything_raising_after_the_model_call_keeps_the_original():
+    from services.news.llm import LLMTransient
+
+    def boom(core):
+        raise LLMTransient("HTTP 503")
+
+    llm = _Editor({"edits": [{"block": 0, "text": "הלינות זינקו ב-{f1}."}]})
+    core, info, verdict = line_edit.edit(llm, DRAFT, check=_ok_check, critique=boom)
+    assert core is None and verdict is None and info["status"] == "error"
+    # a prose block with no text (the gate takes it as empty) is no crash either
+    draft = {**DRAFT, "blocks": [*DRAFT["blocks"], {"type": "p"}]}
+    core, info, _ = line_edit.edit(llm, draft, check=_ok_check, critique=_pass)
+    assert info["status"] == "applied"
 
 
 def test_a_cut_the_gates_or_the_critic_refuse_keeps_the_original():
     llm = _Editor({"edits": [{"block": 0, "text": "הלינות זינקו."}]})
-    core, info = line_edit.edit(llm, DRAFT, check=lambda d: ({}, ["body length 12 words"]), critique=_pass)
+    core, info, _ = line_edit.edit(llm, DRAFT, check=lambda d: ({}, ["body length 12 words"]), critique=_pass)
     assert core is None and info["status"] == "gates"
-    core, info = line_edit.edit(llm, DRAFT, check=_ok_check,
+    core, info, _ = line_edit.edit(llm, DRAFT, check=_ok_check,
                                 critique=lambda c: {"verdict": "revise", "issues": ["חסר בסיס השוואה"]})
     assert core is None and info["status"] == "critic"
 

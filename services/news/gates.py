@@ -24,11 +24,11 @@ scratch. A release story is marked `RELEASE:` (the new figure is the news).
 from __future__ import annotations
 
 import math
-import os
 import re
 import unicodedata
 from pathlib import Path
 
+from services.shared.env import env_int
 from services.shared.states import ArticleKind
 
 from . import charts as charts_mod
@@ -85,7 +85,9 @@ OVERUSED = [
      "half our articles open a hedge with it: say the hypothesis in words that fit this story"),
     ("בלבד", _word("בלבד"), 1, "let the number speak; 'only' once at most"),
     ("במקביל", _word("במקביל"), 1, "say how the two things relate, or use two sentences"),
-    ("עם זאת / ואולם / לעומת זאת / מנגד", _word("עם זאת|ואולם|אולם|לעומת זאת|מנגד"), 2,
+    # "ואולם" whole: a bare אולם with a prefix is also a hall ("באולם", "האולם")
+    ("עם זאת / ואולם / לעומת זאת / מנגד",
+     re.compile(r"(?<![א-ת])(?:[ובלמהשכ]{0,3}(?:עם זאת|לעומת זאת|מנגד)|ואולם)(?![א-ת])"), 2,
      "too many contrast connectives: most sentences need none"),
     ("מדובר ב", _word("מדובר"), 1, "say the thing itself"),
     ("בולט", _word("בולט|בולטת|בולטים|בולטות"), 1, "show why it stands out with the number"),
@@ -97,9 +99,13 @@ OVERUSED = [
      "a translated English opener: start with the fact"),
     ("לעומת", _word("לעומת"), 5, "vary the comparison: מול, בהשוואה ל, or a separate sentence"),
 ]
+# A registry explainer's "נרשמו" is the fact itself (who registered), not a
+# filler report verb: those caps don't apply to these kinds.
+OVERUSED_EXEMPT = {"נרשם": {ArticleKind.FEATURE}}
 # Numbers per paragraph (fact tokens; years and dates aren't tokens). The live
-# articles had paragraphs of up to 14 (2026-11-26). 0 turns the check off.
-MAX_NUMBERS_PER_PARAGRAPH = int(os.environ.get("NEWS_MAX_NUMBERS_PER_PARAGRAPH", "5") or 0)
+# articles had paragraphs of up to 14 (2026-11-26). 0 turns the check off; a
+# malformed value is the default.
+MAX_NUMBERS_PER_PARAGRAPH = env_int("NEWS_MAX_NUMBERS_PER_PARAGRAPH", 5)
 # A number tucked into parentheses: "(300.4 אלף לינות)", "(1)". 89 of them in
 # 28 articles. A reporter writes it into the sentence or leaves it out.
 _PAREN_NUMBER = re.compile(r"\([^()]*\{f\d+(?::[a-z0-9_]+)?\}[^()]*\)")
@@ -388,6 +394,8 @@ def check(draft: dict, *, ledger: Ledger, series_by_ds: dict, catalog: dict,
         if m := rx.search(prose):
             problems.append(f"style: «{m[0]}» — {why}")
     for label, rx, cap, why in OVERUSED:
+        if article_kind in OVERUSED_EXEMPT.get(label, ()):
+            continue
         if (n := len(rx.findall(prose))) > cap:
             problems.append(f"overused: «{label}» {n}× (at most {cap}): {why}")
     norm_prose = " ".join(prose.split())
