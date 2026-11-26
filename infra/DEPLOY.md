@@ -102,6 +102,12 @@ publishing what refreshed. All three exit non-zero, so the execution
 shows FAILED; an idle run (nothing re-rendered) is a success, and so are
 `skipped_quiet` and `skipped_overlap`.
 
+**Old Hosting versions:** every publish is a Hosting deploy (~15 a day).
+`./infra/hosting-retention.setup.sh` caps the site at `MAX_VERSIONS` (100,
+about a week of rollback); Hosting deletes older versions itself. The full URL
+history up to 2026-11-26 is in
+`gs://govdata-il-staging/hosting-history/paths-2026-11-26.tsv.gz`.
+
 **Old images:** every deploy pushes an image to Artifact Registry. After the
 first job deploy on a fresh project (it creates `cloud-run-source-deploy`), run
 `./infra/artifact-cleanup.setup.sh` once: it deletes versions older than 14
