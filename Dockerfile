@@ -4,7 +4,7 @@
 # queue authoring issues → dispatch the publisher. Python-only — the
 # Node/Firebase build runs in GitHub Actions (publish.yml).
 
-FROM python:3.12-slim
+FROM python:3.13-slim
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
